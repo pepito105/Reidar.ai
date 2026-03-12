@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useAuth, UserButton } from '@clerk/clerk-react'
+import { useAuth, UserButton, SignIn } from '@clerk/clerk-react'
 import Sidebar from './components/Sidebar.jsx'
 import Home from './components/Home.jsx'
 import Coverage from './components/Coverage.jsx'
@@ -70,6 +70,13 @@ export default function App() {
     setShowOnboarding(false)
     setCoverageKey(k => k + 1)
   }
+
+  if (!isLoaded) return <div style={{ background: '#0a0a0f', height: '100vh' }} />
+  if (!isSignedIn) return (
+    <div style={{ background: '#0a0a0f', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <SignIn routing="hash" />
+    </div>
+  )
 
   return (
     <div style={{ display: 'flex', height: '100vh', background: '#0a0a0f', color: '#e8e8f0', fontFamily: "'Inter', sans-serif", overflow: 'hidden' }}>
