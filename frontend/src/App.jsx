@@ -11,7 +11,7 @@ import ChatPanel from './components/ChatPanel.jsx'
 import NotificationDrawer from './components/NotificationDrawer.jsx'
 import axios from 'axios'
 
-const API = 'http://localhost:8000/api'
+const API = (import.meta.env.VITE_API_URL || 'http://localhost:8000') + '/api'
 
 export default function App() {
   const [screen, setScreen] = useState('home')
