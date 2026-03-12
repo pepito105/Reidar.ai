@@ -13,6 +13,7 @@ class FirmProfile(Base):
     investment_thesis = Column(Text)
     excluded_sectors = Column(JSON, default=list)
     fit_threshold = Column(Integer, default=3)
+    user_id = Column(String(255), nullable=True, index=True)
     is_active = Column(Boolean, default=True)
     notify_top_match = Column(Boolean, default=True)
     notify_diligence_signal = Column(Boolean, default=True)

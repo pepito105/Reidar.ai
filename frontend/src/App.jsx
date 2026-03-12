@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useAuth, UserButton } from '@clerk/clerk-react'
 import Sidebar from './components/Sidebar.jsx'
 import Home from './components/Home.jsx'
 import Coverage from './components/Coverage.jsx'
@@ -14,8 +15,16 @@ import axios from 'axios'
 const API = (import.meta.env.VITE_API_URL || 'http://localhost:8000') + '/api'
 
 export default function App() {
+  const { getToken, isSignedIn, isLoaded } = useAuth()
   const [screen, setScreen] = useState('home')
   const [firmProfile, setFirmProfile] = useState(null)
+
+  const authHeaders = async () => {
+    try {
+      const token = await getToken()
+      return token ? { Authorization: `Bearer ${token}` } : {}
+    } catch { return {} }
+  }
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showFirmSettings, setShowFirmSettings] = useState(false)
   const [showChat, setShowChat] = useState(false)

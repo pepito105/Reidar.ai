@@ -47,6 +47,7 @@ class Startup(Base):
     memo_generated_at = Column(DateTime, nullable=True)
     last_refreshed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     has_unseen_signals: Mapped[bool] = mapped_column(Boolean, default=False)
+    user_id = Column(String(255), nullable=True, index=True)
     scraped_at = Column(DateTime(timezone=False), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     research_status = Column(Text, nullable=True)
