@@ -74,7 +74,7 @@ export default function App() {
   if (!isLoaded) return <div style={{ background: '#0a0a0f', height: '100vh' }} />
   if (!isSignedIn) return (
     <div style={{ background: '#0a0a0f', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <SignIn routing="hash" signUpUrl="/app?signup=true" />
+      <SignUp routing="hash" signInUrl="/app" />
     </div>
   )
 

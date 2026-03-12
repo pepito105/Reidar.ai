@@ -320,7 +320,7 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const handleLaunch = () => { window.location.href = APP_URL; };
+  const handleLaunch = () => { window.location.href = "/app"; };
 
   return (
     <>
