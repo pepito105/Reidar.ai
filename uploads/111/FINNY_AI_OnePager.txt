@@ -1,0 +1,59 @@
+FINNY AI — Investor One-Pager
+Series Seed | Raising $3M
+
+WHAT WE DO
+Finny AI is an AI-native compliance and regulatory automation platform for financial institutions. We replace manual compliance workflows with AI agents that monitor transactions, flag anomalies, generate regulatory filings, and keep financial firms audit-ready in real time.
+
+THE PROBLEM
+Financial institutions spend $270B annually on compliance globally. A mid-size bank employs 15-30 compliance officers who spend 70% of their time on manual documentation, report generation, and regulatory filing. One missed filing can result in $10M+ in fines. The process hasn't changed in 20 years.
+
+OUR SOLUTION
+Finny AI's compliance agents:
+- Monitor transactions in real time against 500+ regulatory rules (SEC, FINRA, FCA, MAS)
+- Auto-generate SAR (Suspicious Activity Reports), CTR (Currency Transaction Reports), and regulatory filings
+- Maintain a live audit trail with explainability for every decision
+- Integrate with core banking systems via API in under 2 weeks
+
+WHY NOW
+- Basel IV and DORA regulations taking effect in 2025 dramatically increase reporting requirements
+- LLMs now powerful enough to understand regulatory language and generate compliant documentation
+- Legacy compliance software (Actimize, Oracle FCCM) costs $500K+/year and requires 6-month implementations
+
+TRACTION
+- 4 paying customers (2 regional banks, 1 credit union, 1 fintech lender)
+- $180K ARR, growing 35% MoM
+- 90% reduction in time-to-file for SAR reports in pilot
+- LOIs from 3 additional institutions totaling $420K ARR
+- Named to Forbes Fintech 50 Watchlist 2024
+
+TEAM
+- CEO: Maria Chen — former Head of Compliance Technology at JPMorgan Chase (8 years), Stanford CS
+- CTO: David Park — ex-Palantir, built AML systems for 3 of the top 10 US banks
+- Head of Regulatory Affairs: James Wright — former SEC enforcement attorney, 12 years
+
+BUSINESS MODEL
+- SaaS subscription: $8K-$45K/month based on transaction volume and modules
+- Implementation fee: $25K-$75K one-time
+- Target ACV: $180K for mid-size institutions
+- Gross margin: 78%
+
+MARKET
+- TAM: $270B global compliance market
+- SAM: $18B AI-addressable compliance automation (US, EU, UK)
+- SOM: $400M in first 5 years targeting 200 mid-size financial institutions
+
+COMPETITION
+- Legacy: Actimize (NICE), Oracle FCCM — expensive, slow, not AI-native
+- New entrants: Comply Advantage (AML only), Hummingbird (SMB focused)
+- Finny AI differentiator: Full-stack compliance automation, not point solutions. The only platform covering both monitoring AND filing generation.
+
+USE OF FUNDS ($3M Seed)
+- 40% — Engineering (3 senior engineers, 1 ML lead)
+- 30% — Sales & GTM (2 enterprise AEs, 1 solutions engineer)
+- 20% — Regulatory partnerships and certifications
+- 10% — Operations
+
+CONTACT
+Maria Chen — maria@finny.ai
+David Park — david@finny.ai
+Website: finny.ai
