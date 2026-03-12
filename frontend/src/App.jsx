@@ -124,7 +124,7 @@ export default function App() {
       </main>
 
       {showOnboarding && (
-        <OnboardingModal API={API} onSaved={handleProfileSaved} onClose={() => { setShowOnboarding(false); setCoverageKey(k => k + 1) }} />
+        <OnboardingModal API={API} onSaved={handleProfileSaved} onClose={() => { window.location.href = "/"; }} />
       )}
       {showFirmSettings && (
         <FirmSettings API={API} onSaved={handleProfileSaved} onClose={() => setShowFirmSettings(false)} onToast={showToast} />
