@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
+import jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import get_db
@@ -8,8 +9,19 @@ from app.models.startup import Startup
 router = APIRouter(prefix="/market-map")
 
 @router.get("/")
-async def get_market_map(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Startup))
+async def get_market_map(request: Request, db: AsyncSession = Depends(get_db)):
+    auth_header = request.headers.get("Authorization", "")
+    user_id = None
+    if auth_header.startswith("Bearer "):
+        try:
+            decoded = jwt.decode(auth_header[7:], options={"verify_signature": False}, algorithms=["RS256", "HS256"])
+            user_id = decoded.get("sub")
+        except Exception:
+            pass
+    if user_id:
+        result = await db.execute(select(Startup).where(Startup.user_id == user_id))
+    else:
+        result = await db.execute(select(Startup))
     startups = result.scalars().all()
 
     stage_counts = {}
