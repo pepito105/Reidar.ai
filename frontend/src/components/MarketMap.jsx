@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "@clerk/clerk-react";
 
 const API = "http://localhost:8000/api";
 
@@ -104,16 +105,22 @@ function Card({ children, style = {} }) {
 }
 
 export default function MarketMap() {
+  const { getToken } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch(`${API}/market-map/`)
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false); })
-      .catch(e => { setError(e.message); setLoading(false); });
-  }, []);
+    const load = async () => {
+      const token = await getToken().catch(() => null);
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      fetch(`${API}/market-map/`, { headers })
+        .then(r => r.json())
+        .then(d => { setData(d); setLoading(false); })
+        .catch(e => { setError(e.message); setLoading(false); });
+    };
+    load();
+  }, [getToken]);
 
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
