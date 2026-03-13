@@ -133,7 +133,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
     return text.trim().split('\n').filter(l => l.trim()).map(line => {
       const parts = line.split(',').map(p => p.trim().replace(/^"|"$/g, ''))
       return { name: parts[0]||'', website: parts[1]||'', description: parts[2]||'', stage: parts[3]||'' }
-    }).filter(c => c.name)
+    }).filter(c => c.name && c.name.toLowerCase() !== 'name')
   }
 
   const handleFileUpload = (e) => {
