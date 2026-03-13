@@ -35,16 +35,21 @@ export default function App() {
   const [toast, setToast] = useState({ message: '', submessage: '', visible: false })
 
   useEffect(() => {
+    if (!isLoaded) return
+    if (!isSignedIn) { setProfileLoading(false); return }
     const params = new URLSearchParams(window.location.search)
     if (params.get('onboarding') === 'true') {
       setShowOnboarding(true)
+      setProfileLoading(false)
       return
     }
-    axios.get(`${API}/firm-profile/`).then(res => {
-      if (res.data) setFirmProfile(res.data)
-      else setShowOnboarding(true)
-    }).catch(() => setShowOnboarding(true)).finally(() => setProfileLoading(false))
-  }, [])
+    authHeaders().then(headers => {
+      axios.get(`${API}/firm-profile/`, { hears }).then(res => {
+        if (res.data) setFirmProfile(res.data)
+        else setShowOnboarding(true)
+      }).catch(() => setShowOnboarding(true)).finally(() => setProfileLoading(false))
+    })
+  }, [isLoaded, isSignedIn])
 
   const showToast = (options) => {
     setToast({

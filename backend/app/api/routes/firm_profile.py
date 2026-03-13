@@ -58,9 +58,7 @@ async def get_firm_profile(
             select(FirmProfile).where(FirmProfile.user_id == user_id, FirmProfile.is_active == True)
         )
     else:
-        result = await db.execute(
-            select(FirmProfile).where(FirmProfile.user_id == None, FirmProfile.is_active == True)
-        )
+        return None
     return result.scalar_one_or_none()
 
 @router.post("/", response_model=FirmProfileResponse)
@@ -76,9 +74,7 @@ async def create_firm_profile(
             select(FirmProfile).where(FirmProfile.user_id == user_id, FirmProfile.is_active == True)
         )
     else:
-        result = await db.execute(
-            select(FirmProfile).where(FirmProfile.user_id == None, FirmProfile.is_active == True)
-        )
+        return None
     existing = result.scalar_one_or_none()
     if existing:
         for key, value in data.model_dump().items():
@@ -105,9 +101,7 @@ async def update_firm_profile(
             select(FirmProfile).where(FirmProfile.user_id == user_id, FirmProfile.is_active == True)
         )
     else:
-        result = await db.execute(
-            select(FirmProfile).where(FirmProfile.user_id == None, FirmProfile.is_active == True)
-        )
+        return None
     profile = result.scalar_one_or_none()
     if not profile:
         raise HTTPException(status_code=404, detail="No active firm profile found")
@@ -131,9 +125,7 @@ async def rescore_companies(
             select(FirmProfile).where(FirmProfile.user_id == user_id, FirmProfile.is_active == True)
         )
     else:
-        profile_result = await db.execute(
-            select(FirmProfile).where(FirmProfile.user_id == None, FirmProfile.is_active == True)
-        )
+        raise HTTPException(status_code=401, detail="Authentication required")
     profile = profile_result.scalar_one_or_none()
     if not profile:
         raise HTTPException(status_code=404, detail="No active firm profile found")
@@ -141,7 +133,7 @@ async def rescore_companies(
     if user_id:
         result = await db.execute(select(Startup).where(Startup.user_id == user_id))
     else:
-        result = await db.execute(select(Startup).where(Startup.user_id == None))
+        raise HTTPException(status_code=401, detail="Authentication required")
     startups = result.scalars().all()
     scored = 0
 
