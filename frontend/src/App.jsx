@@ -18,6 +18,7 @@ export default function App() {
   const { getToken, isSignedIn, isLoaded } = useAuth()
   const [screen, setScreen] = useState('home')
   const [firmProfile, setFirmProfile] = useState(null)
+  const [profileLoading, setProfileLoading] = useState(true)
 
   const authHeaders = async () => {
     try {
@@ -42,7 +43,7 @@ export default function App() {
     axios.get(`${API}/firm-profile/`).then(res => {
       if (res.data) setFirmProfile(res.data)
       else setShowOnboarding(true)
-    }).catch(() => setShowOnboarding(true))
+    }).catch(() => setShowOnboarding(true)).finally(() => setProfileLoading(false))
   }, [])
 
   const showToast = (options) => {
@@ -71,7 +72,7 @@ export default function App() {
     setCoverageKey(k => k + 1)
   }
 
-  if (!isLoaded) return <div style={{ background: '#0a0a0f', height: '100vh' }} />
+  if (!isLoaded || profileLoading) return <div style={{ background: '#0a0a0f', height: '100vh' }} />
   if (!isSignedIn) return (
     <div style={{ background: '#0a0a0f', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <SignUp routing="hash" signInUrl="/app" />
