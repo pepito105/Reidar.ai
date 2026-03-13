@@ -40,9 +40,7 @@ export default function App() {
     if (!isSignedIn) { setProfileLoading(false); return }
     const params = new URLSearchParams(window.location.search)
     if (params.get('onboarding') === 'true') {
-      setShowOnboarding(true)
-      setProfileLoading(false)
-      return
+      window.history.replaceState({}, '', window.location.pathname)
     }
     const fn = async () => {
       const token = await getToken().catch(() => null)
