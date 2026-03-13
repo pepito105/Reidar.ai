@@ -46,9 +46,15 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
   const [totalCompanies, setTotalCompanies] = useState(0)
   const [isFirstRun, setIsFirstRun] = useState(false)
   const [fitThreshold, setFitThreshold] = useState(3)
+  const [portfolioText, setPortfolioText] = useState('')
+  const [portfolioFile, setPortfolioFile] = useState(null)
+  const [portfolioImporting, setPortfolioImporting] = useState(false)
+  const [portfolioImported, setPortfolioImported] = useState(0)
+  const [portfolioError, setPortfolioError] = useState(null)
   const cancelledRef = useRef(false)
   const eventSourceRef = useRef(null)
   const activityFeedRef = useRef(null)
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     cancelledRef.current = false
@@ -121,6 +127,36 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
   }
 
   const handleCloseClick = () => onClose()
+
+
+  const parsePortfolioText = (text) => {
+    return text.trim().split('\n').filter(l => l.trim()).map(line => {
+      const parts = line.split(',').map(p => p.trim().replace(/^"|"$/g, ''))
+      return { name: parts[0]||'', website: parts[1]||'', description: parts[2]||'', stage: parts[3]||'' }
+    }).filter(c => c.name)
+  }
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setPortfolioFile(file.name)
+    const reader = new FileReader()
+    reader.onload = (ev) => setPortfolioText(ev.target.result)
+    reader.readAsText(file)
+  }
+
+  const importPortfolio = async () => {
+    if (!portfolioText.trim()) return
+    setPortfolioImporting(true)
+    setPortfolioError(null)
+    try {
+      const companies = parsePortfolioText(portfolioText)
+      if (companies.length === 0) { setPortfolioError('No companies found.'); setPortfolioImporting(false); return }
+      const res = await axios.post(`${API}/startups/portfolio-import`, { companies })
+      setPortfolioImported(res.data?.imported ?? companies.length)
+    } catch (e) { setPortfolioError('Import failed. Check your format.') }
+    setPortfolioImporting(false)
+  }
 
   const runSourcing = () => {
     setSourcing(true)
@@ -260,9 +296,9 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
             <div style={{ width: 48, height: 48, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, marginBottom: 12 }}>◈</div>
             <h1 style={{ fontSize: 28, fontWeight: 700, color: '#fff', margin: '0 0 4px' }}>Radar</h1>
             <p style={{ fontSize: 13, color: '#8888aa', margin: 0 }}>
-              {step === 1 && 'Step 1 of 3 — Define your mandate'}
-              {step === 2 && 'Step 2 of 3 — Set your parameters'}
-              {step === 3 && 'Step 3 of 3 — Ready to launch'}
+              {step === 1 && 'Step 1 of 4 — Define your mandate'}
+              {step === 2 && 'Step 2 of 4 — Set your parameters'}
+              {step === 3 && 'Step 3 of 4 — Configure filters'}
             </p>
             <div style={{ borderTop: '1px solid #2a2a3d', marginTop: 20, marginBottom: 20 }} />
 
@@ -364,7 +400,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
         <button onClick={handleCloseClick} style={{ position: 'absolute', top: 24, right: 24, background: 'none', border: 'none', color: '#8888aa', fontSize: 20, cursor: 'pointer' }} aria-label="Close">✕</button>
         {/* Progress dots */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 48 }}>
-          {[1, 2, 3].map(s => (
+          {[1, 2, 3, 4].map(s => (
             <div
               key={s}
               style={{
@@ -576,22 +612,68 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
                 </div>
               </div>
               <button
-                onClick={saveAndRescore}
-                disabled={saving || !form.firm_name || !form.investment_thesis}
+                onClick={() => setStep(4)}
+                
                 style={{
                   width: '100%',
                   padding: 16,
                   borderRadius: 8,
                   border: 'none',
-                  background: (saving || !form.firm_name || !form.investment_thesis) ? '#2a2a3d' : '#8b5cf6',
-                  color: (saving || !form.firm_name || !form.investment_thesis) ? '#555577' : '#fff',
-                  fontSize: 16,
-                  fontWeight: 700,
-                  cursor: (saving || !form.firm_name || !form.investment_thesis) ? 'not-allowed' : 'pointer',
+                  background: '#8b5cf6',
+                  color: '#fff',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
                   transition: 'all 0.2s',
                 }}
               >
+                Next →
+              </button>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div style={{ opacity: 1 }}>
+              <h2 style={{ fontSize: 24, fontWeight: 700, color: '#e8e8f0', margin: '0 0 8px' }}>Import your portfolio</h2>
+              <p style={{ fontSize: 14, color: '#8888aa', marginBottom: 24 }}>Optional — skip if starting fresh. Portfolio companies show with a Portfolio badge and no fit score.</p>
+            {portfolioImported > 0 ? (
+                <div style={{ background: '#0d2010', border: '1px solid #065f46', borderRadius: 12, padding: 20, textAlign: 'center', marginBottom: 24 }}>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>✓</div>
+                  <div style={{ color: '#34d399', fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{portfolioImported} companies imported</div>
+                  <div style={{ color: '#8888aa', fontSize: 13 }}>Your portfolio is loaded. Radar will use these as context.</div>
+                </div>
+              ) : (
+                <>
+                  <div onClick={() => fileInputRef.current?.click()}
+                    style={{ border: '2px dashed #2a2a3d', borderRadius: 10, padding: '20px 16px', textAlign: 'center', cursor: 'pointer', marginBottom: 16 }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = '#8b5cf6'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = '#2a2a3d'}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>📂</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#e8e8f0', marginBottom: 4 }}>{portfolioFile || 'Upload CSV'}</div>
+                    <div style={{ fontSize: 12, color: '#555577' }}>Name, Website, Description, Stage</div>
+                    <input ref={fileInputRef} type="file" accept=".csv,.txt" onChange={handleFileUpload} style={{ display: 'none' }} />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                    <div style={{ flex: 1, height: 1, background: '#2a2a3d' }} />
+                    <span style={{ fontSize: 12, color: '#555577' }}>or paste manually</span>
+                    <div style={{ flex: 1, height: 1, background: '#2a2a3d' }} />
+                  </div>
+                  <textarea value={portfolioText} onChange={e => setPortfolioText(e.target.value)}
+                    placeholder="Lotus Health, lotushealth.com, AI-pored primary care, seed"
+                    rows={5} style={{ width: '100%', background: '#13131f', border: '1px solid #2a2a3d', borderRadius: 8, color: '#e8e8f0', fontSize: 13, padding: 12, outline: 'none', boxSizing: 'border-box', resize: 'vertical', minHeight: 120, fontFamily: 'Inter, sans-serif' }} />
+                  {portfolioError && <div style={{ color: '#f87171', fontSize: 12, marginTop: 8 }}>{portfolioError}</div>}
+                  <button onClick={importPortfolio} disabled={portfolioImporting || !portfolioText.trim()}
+                    style={{ width: '100%', marginTop: 12, padding: 12, borderRadius: 8, background: portfolioText.trim() ? '#1a1230' : '#13131f', border: `1px solid ${portfolioText.trim() ? '#8b5cf6' : '#2a2a3d'}`, color: portfolioText.trim() ? '#a78bfa' : '#555577', fontSize: 14, fontWeight: 600, cursor: portfolioText.trim() ? 'pointer' : 'not-allowed' }}>
+                    {portfolioImporting ? 'Importing...' : 'Import Portfolio'}
+                  </button>
+                </>
+              )}
+              <button onClick={saveAndRescore} disabled={saving}
+                style={{ width: '100%', marginTop: 20, padding: 16, borderRadius: 8, border: 'none', background: saving ? '#2a2a3d' : '#8b5cf6', color: saving ? '#555577' : '#fff', fontSize: 16, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer' }}>
                 {saving ? 'Saving...' : 'Launch Radar →'}
+              </button>
+              <button onClick={saveAndRescore} style={{ width: '100%', marginTop: 10, background: 'none', border: 'none', color: '#555577', fontSize: 13, cursor: 'pointer', textDecoration: 'underline' }}>
+                Skip and launch without portfolio
               </button>
             </div>
           )}

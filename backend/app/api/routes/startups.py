@@ -230,6 +230,46 @@ async def add_company(data: AddCompanyRequest, db: AsyncSession = Depends(get_db
     await db.refresh(startup)
     return _startup_to_card(startup)
 
+
+
+class PortfolioCompany(BaseModel):
+    name: str
+    website: str = None
+    description: str = None
+    stage: str = None
+
+class PortfolioImportRequest(BaseModel):
+    companies: list
+
+@router.post("/portfolio-import")
+async def portfolio_import(payload: PortfolioImportRequest, db: AsyncSession = Depends(get_db)):
+    import re as _re, datetime as _dt
+    imported = 0
+    for item in payload.companies:
+        name = (item.get("name") or "").strip()
+        if not name:
+            continue
+        slug = _re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:80]
+        existing = await db.execute(select(Startup).where(Startup.slug == slug))
+        if existing.scalar_one_or_none():
+            continue
+        startup = Startup(
+            name=name,
+            slug=slug,
+            one_liner=item.get("description") or f"{name} — portfolio compa",
+            website=item.get("website") or "",
+            funding_stage=item.get("stage") or "",
+            source="portfolio_import",
+            is_portfolio=True,
+            ai_score=None,
+            fit_score=None,
+            scraped_at=_dt.datetime.now(_dt.timezone.utc),
+        )
+        db.add(startup)
+        imported += 1
+    await db.commit()
+    return {"imported": imported}
+
 @router.get("/last-scrape")
 async def get_last_scrape(db: AsyncSession = Depends(get_db)):
     from sqlalchemy import func as sqlfunc
