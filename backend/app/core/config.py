@@ -2,6 +2,7 @@ from pydantic_settings import BaseSettings
 from typing import Optional
 
 class Settings(BaseSettings):
+    clerk_secret_key: str = ""
     DATABASE_URL: str
     ANTHROPIC_API_KEY: str
     ENVIRONMENT: str = "development"
@@ -15,3 +16,4 @@ class Settings(BaseSettings):
         env_file = ".env"
 
 settings = Settings()
+
