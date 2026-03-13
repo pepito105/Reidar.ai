@@ -238,7 +238,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
                   <div style={{ background: '#0d2010', border: '1px solid #065f46', borderRadius: 12, padding: 24, textAlign: 'center', marginTop: 16 }}>
                     <div style={{ color: '#34d399', fontSize: 20, fontWeight: 700, marginBottom: 8 }}>✓ Radar is Ready</div>
                     <div style={{ color: '#8888aa', fontSize: 14 }}>{sourcingCount} new companies added to your feed.</div>
-                    <button onClick={onClose} style={{ width: '100%', marginTop: 16, padding: 12, borderRadius: 8, border: 'none', background: '#8b5cf6', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Enter Radar →</button>
+                    <button onClick={() => window.location.href = "/app"} style={{ width: '100%', marginTop: 16, padding: 12, borderRadius: 8, border: 'none', background: '#8b5cf6', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Enter Radar →</button>
                   </div>
                 )}
               </div>
