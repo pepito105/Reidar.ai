@@ -44,7 +44,7 @@ export default function App() {
       return
     }
     authHeaders().then(headers => {
-      axios.get(`${API}/firm-profile/`, { hears }).then(res => {
+      axios.get(`${API}/firm-profile/`, { headers }).then(res => {
         if (res.data) setFirmProfile(res.data)
         else setShowOnboarding(true)
       }).catch(() => setShowOnboarding(true)).finally(() => setProfileLoading(false))
