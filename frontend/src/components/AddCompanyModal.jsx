@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { useAuth } from '@clerk/clerk-react'
 import axios from 'axios'
 
 export default function AddCompanyModal({ API, onClose, onAdded }) {
+  const { getToken } = useAuth()
   const [step, setStep] = useState('form') // 'form' | 'classifying' | 'done'
   const [form, setForm] = useState({
     name: '',
@@ -18,8 +20,10 @@ export default function AddCompanyModal({ API, onClose, onAdded }) {
     if (!form.name.trim()) return
     setStep('classifying')
     setError(null)
+    const token = await getToken().catch(() => null)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
-      const res = await axios.post(`${API}/startups/add`, form)
+      const res = await axios.post(`${API}/startups/add`, form, { headers })
       setResult(res.data)
       setStep('done')
     } catch (e) {

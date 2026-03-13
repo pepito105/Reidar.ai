@@ -224,14 +224,28 @@ async def job_run_research():
 
 
 async def job_run_sourcing():
-    logger.info('Scheduler: Starting autonomous sourcing')
+    logger.info('Scheduler: Starting autonomous sourcing (per firm)')
     from app.services.sourcing_service import run_autonomous_sourcing
     async with AsyncSessionLocal() as db:
         try:
-            stats = await run_autonomous_sourcing(db)
-            logger.info(f'Autonomous sourcing complete: {stats}')
+            profiles_result = await db.execute(
+                select(FirmProfile).where(FirmProfile.is_active == True)
+            )
+            profiles = profiles_result.scalars().all()
+            if not profiles:
+                logger.info('No active firm profiles — skipping autonomous sourcing')
+                return
+            for profile in profiles:
+                firm_name = profile.firm_name or 'Unknown'
+                user_id = profile.user_id
+                logger.info(f'Sourcing for firm: {firm_name} (user_id={user_id})')
+                try:
+                    stats = await run_autonomous_sourcing(db, user_id=user_id)
+                    logger.info(f'Autonomous sourcing complete for {firm_name}: {stats}')
+                except Exception as e:
+                    logger.error(f'Autonomous sourcing failed for {firm_name}: {e}', exc_info=True)
         except Exception as e:
-            logger.error(f'Autonomous sourcing failed: {e}', exc_info=True)
+            logger.error(f'Autonomous sourcing job failed: {e}', exc_info=True)
 
 
 async def run_startup_check():

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '@clerk/clerk-react'
 import axios from 'axios'
 
 const SIGNAL_TYPES = [
@@ -45,6 +46,7 @@ function groupByDate(feed) {
 }
 
 export default function ActivityFeed({ API, onSelectCompany }) {
+  const { getToken } = useAuth()
   const [feed, setFeed] = useState([])
   const [loading, setLoading] = useState(true)
   const [unseenCount, setUnseenCount] = useState(0)
@@ -55,9 +57,12 @@ export default function ActivityFeed({ API, onSelectCompany }) {
 
   const fetchFeed = async () => {
     setLoading(true)
+    const token = await getToken().catch(() => null)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
       const res = await axios.get(`${API}/signals/feed`, {
-        params: { days, signal_type: signalType || undefined, unseen_only: unseenOnly }
+        params: { days, signal_type: signalType || undefined, unseen_only: unseenOnly },
+        headers
       })
       setFeed(res.data.feed)
       setUnseenCount(res.data.unseen_count)
@@ -69,7 +74,9 @@ export default function ActivityFeed({ API, onSelectCompany }) {
 
   const markAllSeen = async () => {
     setMarkingAll(true)
-    await axios.post(`${API}/signals/mark-all-seen`)
+    const token = await getToken().catch(() => null)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
+    await axios.post(`${API}/signals/mark-all-seen`, null, { headers })
     await fetchFeed()
     setMarkingAll(false)
   }

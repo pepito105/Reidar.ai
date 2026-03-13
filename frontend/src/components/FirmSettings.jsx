@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '@clerk/clerk-react'
 import axios from 'axios'
 
 const STAGES = ['pre-seed', 'seed', 'Series A', 'Series B']
@@ -6,6 +7,7 @@ const GEOS = ['North America', 'Europe', 'Asia', 'Latin America', 'Global']
 const EXCLUDE_OPTIONS = ['crypto', 'gambling', 'defense', 'hardware', 'consumer', 'social media']
 
 export default function FirmSettings({ API, onSaved, onClose, onToast }) {
+  const { getToken } = useAuth()
   const [firmName, setFirmName] = useState('')
   const [investmentThesis, setInvestmentThesis] = useState('')
   const [investmentStages, setInvestmentStages] = useState(['pre-seed', 'seed'])
@@ -22,9 +24,13 @@ export default function FirmSettings({ API, onSaved, onClose, onToast }) {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    axios.get(`${API}/firm-profile/`).then(res => {
-      const data = res.data
-      if (data) {
+    const fn = async () => {
+      const token = await getToken().catch(() => null)
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      try {
+        const res = await axios.get(`${API}/firm-profile/`, { headers })
+        const data = res.data
+        if (data) {
         setFirmName(data.firm_name || '')
         setInvestmentThesis(data.investment_thesis || '')
         setInvestmentStages(data.investment_stages || ['pre-seed', 'seed'])
@@ -40,9 +46,11 @@ export default function FirmSettings({ API, onSaved, onClose, onToast }) {
         const emails = (data.notification_emails || '').split(',').map(e => e.trim())
         while (emails.length < 3) emails.push('')
         setNotificationEmails(emails)
-      }
-    }).catch(() => {})
-  }, [API])
+        }
+      } catch (_) {}
+    }
+    fn()
+  }, [API, getToken])
 
   const toggleArray = (setter, value) => {
     setter(prev => prev.includes(value) ? prev.filter(x => x !== value) : [...prev, value])
@@ -51,6 +59,8 @@ export default function FirmSettings({ API, onSaved, onClose, onToast }) {
   const handleSave = async () => {
     if (!firmName || !investmentThesis) return
     setSaving(true)
+    const token = await getToken().catch(() => null)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
       const res = await axios.put(`${API}/firm-profile/`, {
         firm_name: firmName,
@@ -66,7 +76,7 @@ export default function FirmSettings({ API, onSaved, onClose, onToast }) {
         notify_weekly_summary: notifyWeeklySummary,
         notify_min_fit_score: notifyMinFitScore,
         notification_emails: notificationEmails.filter(e => e.trim()).join(','),
-      })
+      }, { headers })
       if (onSaved) onSaved(res.data)
       if (onClose) onClose()
     } catch (e) {}
@@ -91,10 +101,12 @@ export default function FirmSettings({ API, onSaved, onClose, onToast }) {
       notification_emails: notificationEmails.filter(e => e.trim()).join(','),
     }
     setSaving(true)
+    const token = await getToken().catch(() => null)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
-      const res = await axios.put(`${API}/firm-profile/`, payload)
+      const res = await axios.put(`${API}/firm-profile/`, payload, { headers })
       const profile = res.data
-      fetch(`${API}/signals/rescore-all`, { method: 'POST' }).catch(() => {})
+      fetch(`${API}/signals/rescore-all`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {} }).catch(() => {})
       if (onSaved) onSaved(profile)
       if (onClose) onClose()
       if (onToast) onToast({

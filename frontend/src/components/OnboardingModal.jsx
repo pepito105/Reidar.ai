@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '@clerk/clerk-react'
 import axios from 'axios'
 
 const STAGES = ['pre-seed', 'seed', 'Series A', 'Series B']
@@ -133,6 +134,7 @@ const LEFT_PANELS = {
 }
 
 export default function OnboardingModal({ API, onSaved, onClose }) {
+  const { getToken } = useAuth()
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({
     firm_name: '',
@@ -162,12 +164,15 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
   const [portfolioFile, setPortfolioFile] = useState(null)
   const [portfolioImporting, setPortfolioImporting] = useState(false)
   const [portfolioImported, setPortfolioImported] = useState(0)
+  const [portfolioImportedNames, setPortfolioImportedNames] = useState([])
+  const [importSuccess, setImportSuccess] = useState(false)
   const [portfolioError, setPortfolioError] = useState(null)
 
   const cancelledRef = useRef(false)
   const eventSourceRef = useRef(null)
   const activityFeedRef = useRef(null)
   const fileInputRef = useRef(null)
+  const fileContentRef = useRef('')
 
   useEffect(() => {
     cancelledRef.current = false
@@ -175,34 +180,42 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
   }, [])
 
   useEffect(() => {
-    axios.get(`${API}/firm-profile/`).then(res => {
-      if (res.data) {
-        setFitThreshold(res.data.fit_threshold ?? 3)
-        setForm(f => ({
-          ...f,
-          firm_name: res.data.firm_name || '',
-          investment_stages: res.data.investment_stages || ['pre-seed', 'seed'],
-          geography_focus: res.data.geography_focus || ['North America'],
-          check_size_min: res.data.check_size_min ?? 250000,
-          check_size_max: res.data.check_size_max ?? 2000000,
-          investment_thesis: res.data.investment_thesis || '',
-          excluded_sectors: res.data.excluded_sectors || [],
-          fit_threshold: res.data.fit_threshold ?? 3,
-          notify_top_match: res.data.notify_top_match ?? true,
-          notify_diligence_signal: res.data.notify_diligence_signal ?? true,
-          notify_weekly_summary: res.data.notify_weekly_summary ?? true,
-          notify_min_fit_score: res.data.notify_min_fit_score ?? 4,
-          notification_emails: res.data.notification_emails || '',
-        }))
-      }
-    }).catch(() => {})
-  }, [])
+    const fn = async () => {
+      try {
+        const res = await axios.get(`${API}/firm-profile/`)
+        if (res.data) {
+          setFitThreshold(res.data.fit_threshold ?? 3)
+          setForm(f => ({
+            ...f,
+            firm_name: res.data.firm_name || '',
+            investment_stages: res.data.investment_stages || ['pre-seed', 'seed'],
+            geography_focus: res.data.geography_focus || ['North America'],
+            check_size_min: res.data.check_size_min ?? 250000,
+            check_size_max: res.data.check_size_max ?? 2000000,
+            investment_thesis: res.data.investment_thesis || '',
+            excluded_sectors: res.data.excluded_sectors || [],
+            fit_threshold: res.data.fit_threshold ?? 3,
+            notify_top_match: res.data.notify_top_match ?? true,
+            notify_diligence_signal: res.data.notify_diligence_signal ?? true,
+            notify_weekly_summary: res.data.notify_weekly_summary ?? true,
+            notify_min_fit_score: res.data.notify_min_fit_score ?? 4,
+            notification_emails: res.data.notification_emails || '',
+          }))
+        }
+      } catch (_) {}
+    }
+    fn()
+  }, [API])
 
   useEffect(() => {
-    axios.get(`${API}/startups/count`).then(res => {
-      setIsFirstRun((res.data?.count ?? 0) === 0)
-    }).catch(() => {})
-  }, [])
+    const fn = async () => {
+      try {
+        const res = await axios.get(`${API}/startups/count`)
+        setIsFirstRun((res.data?.count ?? 0) === 0)
+      } catch (_) {}
+    }
+    fn()
+  }, [API])
 
   useEffect(() => {
     activityFeedRef.current?.scrollTo({ top: activityFeedRef.current.scrollHeight, behavior: 'smooth' })
@@ -215,10 +228,42 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
     }))
   }
 
+  const parseCSVLine = (line) => {
+    const fields = []
+    let current = ''
+    let inQuotes = false
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i]
+      if (inQuotes) {
+        if (c === '"') {
+          if (line[i + 1] === '"') {
+            current += '"'
+            i++
+          } else {
+            inQuotes = false
+          }
+        } else {
+          current += c
+        }
+      } else {
+        if (c === '"') {
+          inQuotes = true
+        } else if (c === ',') {
+          fields.push(current.trim())
+          current = ''
+        } else {
+          current += c
+        }
+      }
+    }
+    fields.push(current.trim())
+    return fields
+  }
+
   const parsePortfolioText = (text) => {
     return text.trim().split('\n').filter(l => l.trim()).map(line => {
-      const parts = line.split(',').map(p => p.trim().replace(/^"|"$/g, ''))
-      return { name: parts[0]||'', website: parts[1]||'', description: parts[2]||'', stage: parts[3]||'' }
+      const parts = parseCSVLine(line).map(p => p.replace(/^"|"$/g, '').trim())
+      return { name: parts[0] || '', website: parts[1] || '', description: parts[2] || '', stage: parts[3] || '' }
     }).filter(c => c.name && c.name.toLowerCase() !== 'name')
   }
 
@@ -226,21 +271,50 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
     const file = e.target.files[0]
     if (!file) return
     setPortfolioFile(file.name)
+    fileContentRef.current = ''
     const reader = new FileReader()
-    reader.onload = (ev) => setPortfolioText(ev.target.result)
-    reader.readAsText(file)
+    reader.onload = (ev) => {
+      const text = ev.target?.result ?? reader.result ?? ''
+      fileContentRef.current = typeof text === 'string' ? text : ''
+      setPortfolioText(fileContentRef.current)
+    }
+    reader.onerror = () => {
+      setPortfolioError('Could not read file.')
+      fileContentRef.current = ''
+    }
+    reader.readAsText(file, 'UTF-8')
   }
 
   const importPortfolio = async () => {
-    if (!portfolioText.trim()) return
+    console.log('portfolioImporting state:', portfolioImporting)
+    const textToImport = (portfolioText.trim() || fileContentRef.current || '').trim()
+    console.log('portfolioText:', portfolioText)
+    if (!textToImport) return
     setPortfolioImporting(true)
     setPortfolioError(null)
     try {
-      const companies = parsePortfolioText(portfolioText)
+      const companies = parsePortfolioText(textToImport)
+      console.log('companies parsed:', companies.length, companies)
       if (companies.length === 0) { setPortfolioError('No companies found. Check your format.'); setPortfolioImporting(false); return }
-      const res = await axios.post(`${API}/startups/portfolio-import`, { companies })
-      setPortfolioImported(res.data?.imported ?? companies.length)
-    } catch (e) { setPortfolioError('Import failed. Check your format and try again.') }
+      console.log('about to call API')
+      console.log('Full URL:', `${API}/startups/portfolio-import`)
+      const res = await fetch(`${API}/startups/portfolio-import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companies })
+      })
+      console.log('fetch response status:', res.status)
+      const data = await res.json().catch(() => ({}))
+      console.log('response data:', data)
+      if (!res.ok) throw new Error(data?.detail || 'Import failed')
+      console.log('setting imported to:', data?.imported)
+      setPortfolioImported(data?.imported ?? companies.length)
+      setPortfolioImportedNames(companies.map(c => c.name).filter(Boolean))
+      setImportSuccess(true)
+    } catch (e) {
+      console.error('Import error:', e)
+      setPortfolioError('Import failed. Check your format and try again.')
+    }
     setPortfolioImporting(false)
   }
 
@@ -303,8 +377,14 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
     if (!form.firm_name || !form.investment_thesis) return
     setSaving(true)
     try {
-      await axios.post(`${API}/firm-profile/`, { ...form, fit_threshold: fitThreshold })
-    } catch (e) {}
+      const token = await getToken().catch(() => null)
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      console.log('token:', token)
+      console.log('headers:', headers)
+      await axios.post(`${API}/firm-profile/`, { ...form, fit_threshold: fitThreshold }, { headers })
+    } catch (e) {
+      console.error('firm profile save failed:', e.response?.status, e.response?.data)
+    }
     setSaving(false)
     runSourcing()
   }
@@ -578,11 +658,21 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
               <h2 style={{ fontSize: 26, fontWeight: 700, color: '#e8e8f0', margin: '0 0 6px' }}>Import your portfolio</h2>
               <p style={{ fontSize: 14, color: '#8888aa', marginBottom: 24, lineHeight: 1.6 }}>Optional but powerful. Your portfolio gives the AI analyst context on what you've backed and what to find more of.</p>
 
-              {portfolioImported > 0 ? (
-                <div style={{ background: '#0d2010', border: '1px solid #065f46', borderRadius: 12, padding: 24, textAlign: 'center', marginBottom: 24 }}>
-                  <div style={{ fontSize: 36, marginBottom: 10 }}>✓</div>
-                  <div style={{ color: '#34d399', fontSize: 18, fontWeight: 700, marginBottom: 6 }}>{portfolioImported} companies imported</div>
-                  <div style={{ color: '#8888aa', fontSize: 13 }}>Your portfolio is loaded. Radar will use these as sourcing context.</div>
+              {importSuccess ? (
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ background: '#0d2010', border: '1px solid #065f46', borderRadius: 12, padding: 24, textAlign: 'center' }}>
+                    <div style={{ fontSize: 36, marginBottom: 10 }}>✓</div>
+                    <div style={{ color: '#34d399', fontSize: 18, fontWeight: 700, marginBottom: 6 }}>{portfolioImported > 0 ? `${portfolioImported} companies imported` : 'Already in your database'}</div>
+                    <div style={{ color: '#8888aa', fontSize: 13, marginBottom: 12 }}>Your portfolio is loaded. Radar will use these as sourcing context.</div>
+                    {portfolioImportedNames.length > 0 && (
+                      <div style={{ textAlign: 'left', maxHeight: 104, overflowY: 'auto', background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: '8px 12px', marginTop: 12 }}>
+                        {portfolioImportedNames.map((name, i) => (
+                          <div key={i} style={{ fontSize: 12, color: '#8888aa', padding: '2px 0' }}>{name}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={() => setStep(5)} style={{ width: '100%', marginTop: 16, padding: 14, borderRadius: 8, border: 'none', background: '#8b5cf6', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Next →</button>
                 </div>
               ) : (
                 <>
@@ -596,30 +686,29 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
                     <input ref={fileInputRef} type="file" accept=".csv,.txt" onChange={handleFileUpload} style={{ display: 'none' }} />
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                    <div style={{ flex: 1, height: 1, background: '#2a2a3d' }} />
-                    <span style={{ fontSize: 12, color: '#444466' }}>or paste manually</span>
-                    <div style={{ flex: 1, height: 1, background: '#2a2a3d' }} />
-                  </div>
+                  {!portfolioFile && <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                      <div style={{ flex: 1, height: 1, background: '#2a2a3d' }} />
+                      <span style={{ fontSize: 12, color: '#444466' }}>or paste manually</span>
+                      <div style={{ flex: 1, height: 1, background: '#2a2a3d' }} />
+                    </div>
 
-                  <textarea value={portfolioText} onChange={e => setPortfolioText(e.target.value)}
-                    placeholder={"Lotus Health, lotushealth.ai, AI-powered primary care, seed\nZettascale, zettascale.ai, AI compute infrastructure, seed"}
-                    rows={4} style={{ ...inputBase, resize: 'vertical', minHeight: 100, fontSize: 13, lineHeight: 1.6 }} />
+                    <textarea value={portfolioText} onChange={e => setPortfolioText(e.target.value)}
+                      placeholder={"Lotus Health, lotushealth.ai, AI-powered primary care, seed\nZettascale, zettascale.ai, AI compute infrastructure, seed"}
+                      rows={4} style={{ ...inputBase, resize: 'vertical', minHeight: 100, fontSize: 13, lineHeight: 1.6 }} />
+                  </>}
 
                   {portfolioError && <div style={{ color: '#f87171', fontSize: 12, marginTop: 6 }}>{portfolioError}</div>}
 
-                  <button onClick={importPortfolio} disabled={portfolioImporting || !portfolioText.trim()}
-                    style={{ width: '100%', marginTop: 10, padding: 12, borderRadius: 8, background: portfolioText.trim() ? '#1a1230' : '#13131f', border: `1px solid ${portfolioText.trim() ? '#8b5cf6' : '#2a2a3d'}`, color: portfolioText.trim() ? '#a78bfa' : '#555577', fontSize: 14, fontWeight: 600, cursor: portfolioText.trim() ? 'pointer' : 'not-allowed' }}>
-                    {portfolioImporting ? 'Importing...' : `Import ${portfolioText.trim() ? parsePortfolioText(portfolioText).length + ' companies' : 'Portfolio'}`}
+                  <button onClick={importPortfolio} disabled={portfolioImporting || !(portfolioText.trim() || fileContentRef.current?.trim())}
+                    style={{ width: '100%', marginTop: 10, padding: 12, borderRadius: 8, background: (portfolioText.trim() || fileContentRef.current?.trim()) ? '#1a1230' : '#13131f', border: `1px solid ${(portfolioText.trim() || fileContentRef.current?.trim()) ? '#8b5cf6' : '#2a2a3d'}`, color: (portfolioText.trim() || fileContentRef.current?.trim()) ? '#a78bfa' : '#555577', fontSize: 14, fontWeight: 600, cursor: (portfolioText.trim() || fileContentRef.current?.trim()) ? 'pointer' : 'not-allowed' }}>
+                    {portfolioImporting ? 'Importing...' : portfolioFile ? `Import ${parsePortfolioText(portfolioText.trim() || fileContentRef.current || '').length} companies from ${portfolioFile}` : (portfolioText.trim() || fileContentRef.current?.trim()) ? `Import ${parsePortfolioText(portfolioText.trim() || fileContentRef.current || '').length} companies` : 'Import Portfolio'}
                   </button>
                 </>
               )}
 
-              <button onClick={() => setStep(5)} style={{ width: '100%', marginTop: 16, padding: 14, borderRadius: 8, border: 'none', background: '#8b5cf6', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
-                Next →
-              </button>
-              {portfolioImported === 0 && (
-                <button onClick={() => setStep(5)} style={{ width: '100%', marginTop: 8, background: 'none', border: 'none', color: '#444466', fontSize: 13, cursor: 'pointer', textDecoration: 'underline' }}>
+              {!importSuccess && (
+                <button onClick={() => setStep(5)} style={{ width: '100%', marginTop: 16, background: 'none', border: 'none', color: '#444466', fontSize: 13, cursor: 'pointer', textDecoration: 'underline' }}>
                   Skip — I'll import later
                 </button>
               )}

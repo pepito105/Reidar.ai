@@ -5,6 +5,7 @@ import Home from './components/Home.jsx'
 import Coverage from './components/Coverage.jsx'
 import Pipeline from './components/Pipeline.jsx'
 import MarketMap from './components/MarketMap.jsx'
+import Portfolio from './components/Portfolio'
 import HotSignals from './components/HotSignals.jsx'
 import OnboardingModal from './components/OnboardingModal.jsx'
 import FirmSettings from './components/FirmSettings.jsx'
@@ -43,12 +44,21 @@ export default function App() {
       setProfileLoading(false)
       return
     }
-    authHeaders().then(headers => {
-      axios.get(`${API}/firm-profile/`, { headers }).then(res => {
+    const fn = async () => {
+      const token = await getToken().catch(() => null)
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      try {
+        const res = await axios.get(`${API}/firm-profile/`, { headers })
+        console.log('firm profile check result:', res.data)
         if (res.data) setFirmProfile(res.data)
         else setShowOnboarding(true)
-      }).catch(() => setShowOnboarding(true)).finally(() => setProfileLoading(false))
-    })
+      } catch {
+        setShowOnboarding(true)
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+    fn()
   }, [isLoaded, isSignedIn])
 
   const showToast = (options) => {
@@ -106,8 +116,10 @@ export default function App() {
               API={API}
               onSelectCompany={async (startupId) => {
                 try {
-                  const res = await axios.get(`${API}/startups/${startupId}`)
-                  await axios.post(`${API}/signals/mark-seen/${startupId}`)
+                  const token = await getToken().catch(() => null)
+                  const headers = token ? { Authorization: `Bearer ${token}` } : {}
+                  const res = await axios.get(`${API}/startups/${startupId}`, { headers })
+                  await axios.post(`${API}/signals/mark-seen/${startupId}`, null, { headers })
                   setSelectedCompany(res.data)
                   setScreen('coverage')
                 } catch (e) {
@@ -127,6 +139,7 @@ export default function App() {
         )}
         {screen === 'pipeline' && <Pipeline API={API} />}
         {screen === 'marketmap' && <MarketMap API={API} />}
+        {screen === 'portfolio' && <Portfolio API={API} />}
       </main>
 
       {showOnboarding && (

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '@clerk/clerk-react'
 import axios from 'axios'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -53,6 +54,7 @@ function isNewThisWeek(scraped_at) {
 }
 
 export default function Home({ API, firmProfile, onNavigate }) {
+  const { getToken } = useAuth()
   const [topMatches, setTopMatches] = useState([])
   const [allCompanies, setAllCompanies] = useState([])
   const [pipeline, setPipeline] = useState({})
@@ -70,12 +72,14 @@ export default function Home({ API, firmProfile, onNavigate }) {
     const fetchData = async () => {
       setLoadingMatches(true)
       setDigestLoading(true)
+      const token = await getToken().catch(() => null)
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
       try {
-        const res5 = await axios.get(`${API}/startups/`, { params: { sort: 'fit_score', limit: 20, min_fit_score: 5 } })
+        const res5 = await axios.get(`${API}/startups/`, { params: { sort: 'fit_score', limit: 20, min_fit_score: 5 }, headers })
         const top5 = Array.isArray(res5.data) ? res5.data.filter(s => s.fit_score === 5) : []
         let picks = top5.slice(0, 4)
         if (picks.length < 4) {
-          const res4 = await axios.get(`${API}/startups/`, { params: { sort: 'fit_score', limit: 20, min_fit_score: 4 } })
+          const res4 = await axios.get(`${API}/startups/`, { params: { sort: 'fit_score', limit: 20, min_fit_score: 4 }, headers })
           const strong = Array.isArray(res4.data)
             ? res4.data.filter(s => s.fit_score === 4 && !picks.some(p => p.id === s.id))
             : []
@@ -83,33 +87,35 @@ export default function Home({ API, firmProfile, onNavigate }) {
         }
         setTopMatches(picks.slice(0, 4))
 
-        const resAll = await axios.get(`${API}/startups/`, { params: { sort: 'fit_score', limit: 200, min_fit_score: 1 } })
+        const resAll = await axios.get(`${API}/startups/`, { params: { sort: 'fit_score', limit: 200, min_fit_score: 1 }, headers })
         setAllCompanies(resAll.data)
 
-        const lastScrapeRes = await axios.get(`${API}/startups/last-scrape`)
+        const lastScrapeRes = await axios.get(`${API}/startups/last-scrape`, { headers })
         setNewCompanies(lastScrapeRes.data.companies || [])
         setLastScrapedAt(lastScrapeRes.data.last_scraped_at || null)
       } catch (e) {}
       finally { setLoadingMatches(false) }
 
       try {
-        const pipeRes = await axios.get(`${API}/pipeline/`)
+        const pipeRes = await axios.get(`${API}/pipeline/`, { headers })
         setPipeline(pipeRes.data)
-        const feedRes = await axios.get(`${API}/signals/feed`, { params: { days: 7, limit: 20 } })
+        const feedRes = await axios.get(`${API}/signals/feed`, { params: { days: 7, limit: 20 }, headers })
         const recent = (feedRes.data.feed || []).slice(0, 5)
         setPipelineSignals(recent)
       } catch (e) {}
       finally { setDigestLoading(false) }
     }
     fetchData()
-  }, [])
+  }, [API, getToken])
 
   const generateBrief = async () => {
     setBriefLoading(true)
     setBrief(null)
     setBriefError(null)
+    const token = await getToken().catch(() => null)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
-      const res = await axios.post(`${API}/signals/hot-signals`, { days: 7 }, { timeout: 120000 })
+      const res = await axios.post(`${API}/signals/hot-signals`, { days: 7 }, { headers, timeout: 120000 })
       setBrief(res.data.brief ?? null)
     } catch (e) {
       const d = e.response?.data?.detail

@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, update, or_
 from pydantic import BaseModel
 from datetime import timedelta, timezone
 from typing import List, Optional, Any, Dict
@@ -18,6 +18,20 @@ def _utc_isoformat(dt) -> Optional[str]:
 from app.core.database import get_db
 from app.models.startup import Startup
 from app.models.firm_profile import FirmProfile
+
+
+def _user_id_from_request(request: Request) -> Optional[str]:
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+        try:
+            import jwt
+            decoded = jwt.decode(token, options={"verify_signature": False}, algorithms=["RS256", "HS256"])
+            return decoded.get("sub")
+        except Exception:
+            return None
+    return None
+
 
 router = APIRouter(prefix="/startups")
 
@@ -127,6 +141,7 @@ def _startup_to_card(startup: Startup) -> Dict[str, Any]:
 
 @router.get("/", response_model=List[StartupResponse])
 async def get_startups(
+    request: Request,
     stage: Optional[str] = Query(None),
     fit_level: Optional[str] = Query(None),
     sector: Optional[str] = Query(None),
@@ -134,11 +149,14 @@ async def get_startups(
     limit: int = Query(100),
     db: AsyncSession = Depends(get_db)
 ):
+    user_id = _user_id_from_request(request)
     profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
     profile = profile_result.scalar_one_or_none()
     threshold = profile.fit_threshold if profile else 3
 
     query = select(Startup)
+    query = query.where(Startup.user_id == user_id)
+    query = query.where(or_(Startup.is_portfolio == False, Startup.is_portfolio.is_(None)))
     query = query.where(Startup.fit_score >= threshold)
     if stage:
         query = query.where(Startup.funding_stage == stage)
@@ -163,9 +181,12 @@ async def get_startups(
 
 
 @router.get("/count")
-async def get_startups_count(db: AsyncSession = Depends(get_db)):
+async def get_startups_count(request: Request, db: AsyncSession = Depends(get_db)):
     from sqlalchemy import func
-    result = await db.execute(select(func.count()).select_from(Startup))
+    user_id = _user_id_from_request(request)
+    result = await db.execute(
+        select(func.count()).select_from(Startup).where(Startup.user_id == user_id)
+    )
     return {"count": result.scalar() or 0}
 
 
@@ -178,11 +199,12 @@ class AddCompanyRequest(BaseModel):
     source: Optional[str] = "manual"
 
 @router.post("/add")
-async def add_company(data: AddCompanyRequest, db: AsyncSession = Depends(get_db)):
+async def add_company(data: AddCompanyRequest, request: Request, db: AsyncSession = Depends(get_db)):
     from app.services.classifier import classify_startup
     from app.models.firm_profile import FirmProfile
     import re as _re, datetime as _dt
 
+    user_id = _user_id_from_request(request)
     firm_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True).limit(1))
     firm = firm_result.scalar_one_or_none()
 
@@ -215,6 +237,7 @@ async def add_company(data: AddCompanyRequest, db: AsyncSession = Depends(get_db
         fit_score=clamp(result.get("fit_score"), 1, 5),
         fit_reasoning=t(result.get("fit_reasoning"), 999),
         sector=t(result.get("sector"), 99),
+        mandate_category=t(result.get("mandate_category"), 99),
         business_model=t(result.get("business_model"), 99),
         target_customer=t(result.get("target_customer"), 199),
         thesis_tags=result.get("thesis_tags", []),
@@ -222,7 +245,8 @@ async def add_company(data: AddCompanyRequest, db: AsyncSession = Depends(get_db
         funding_stage=t(data.funding_stage or result.get("funding_stage") or "unknown", 49),
         source=data.source or "manual",
         meeting_notes=[{"note": data.meeting_notes, "created_at": _dt.datetime.now().isoformat()}] if data.meeting_notes else [],
-        scraped_at=_dt.datetime.now(_dt.timezone.utc),
+        scraped_at=_dt.datetime.utcnow(),
+        user_id=user_id,
     )
 
     db.add(startup)
@@ -237,13 +261,19 @@ class PortfolioCompany(BaseModel):
     website: str = None
     description: str = None
     stage: str = None
+    investment_date: str = None
+    check_size_usd: float = None
+    co_investors: list = []
+    portfolio_status: str = None
+    sector: str = None
 
 class PortfolioImportRequest(BaseModel):
     companies: list
 
 @router.post("/portfolio-import")
-async def portfolio_import(payload: PortfolioImportRequest, db: AsyncSession = Depends(get_db)):
+async def portfolio_import(payload: PortfolioImportRequest, request: Request, db: AsyncSession = Depends(get_db)):
     import re as _re, datetime as _dt
+    user_id = _user_id_from_request(request)
     imported = 0
     for item in payload.companies:
         name = (item.get("name") or "").strip()
@@ -261,25 +291,64 @@ async def portfolio_import(payload: PortfolioImportRequest, db: AsyncSession = D
             funding_stage=item.get("stage") or "",
             source="portfolio_import",
             is_portfolio=True,
+            pipeline_status="invested",
             ai_score=None,
             fit_score=None,
-            scraped_at=_dt.datetime.now(_dt.timezone.utc),
+            scraped_at=_dt.datetime.utcnow(),
+            user_id=user_id,
+            portfolio_status=item.get("portfolio_status") or "active",
+            investment_date=_dt.datetime.fromisoformat(item.get("investment_date")) if item.get("investment_date") else None,
+            check_size_usd=item.get("check_size_usd"),
+            co_investors=item.get("co_investors") or [],
+            sector=item.get("sector") or "",
         )
         db.add(startup)
         imported += 1
     await db.commit()
     return {"imported": imported}
 
+
+@router.get("/portfolio")
+async def get_portfolio(request: Request, db: AsyncSession = Depends(get_db)):
+    user_id = _user_id_from_request(request)
+    result = await db.execute(
+        select(Startup)
+        .where(Startup.user_id == user_id)
+        .where(Startup.is_portfolio == True)
+        .order_by(Startup.name.asc())
+    )
+    startups = result.scalars().all()
+    return [
+        {
+            "id": s.id,
+            "name": s.name,
+            "one_liner": s.one_liner,
+            "website": s.website,
+            "funding_stage": s.funding_stage,
+            "sector": s.sector,
+            "portfolio_status": s.portfolio_status,
+            "investment_date": s.investment_date.isoformat() if s.investment_date else None,
+            "check_size_usd": s.check_size_usd,
+            "co_investors": s.co_investors or [],
+        }
+        for s in startups
+    ]
+
+
 @router.get("/last-scrape")
-async def get_last_scrape(db: AsyncSession = Depends(get_db)):
+async def get_last_scrape(request: Request, db: AsyncSession = Depends(get_db)):
     from sqlalchemy import func as sqlfunc
-    max_result = await db.execute(select(sqlfunc.max(Startup.scraped_at)))
+    user_id = _user_id_from_request(request)
+    max_result = await db.execute(
+        select(sqlfunc.max(Startup.scraped_at)).where(Startup.user_id == user_id)
+    )
     last_scraped_at = max_result.scalar()
     if not last_scraped_at:
         return {"last_scraped_at": None, "companies": [], "count": 0}
 
     result = await db.execute(
         select(Startup)
+        .where(Startup.user_id == user_id)
         .where(Startup.scraped_at >= last_scraped_at.replace(tzinfo=None) - timedelta(hours=12))
         .where(Startup.fit_score >= 1)
         .order_by(Startup.fit_score.desc().nulls_last())
@@ -301,8 +370,9 @@ def _normalize_text_or_list(value):
 
 
 @router.get("/{startup_id}")
-async def get_startup(startup_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Startup).where(Startup.id == startup_id))
+async def get_startup(startup_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user_id = _user_id_from_request(request)
+    result = await db.execute(select(Startup).where(Startup.id == startup_id).where(Startup.user_id == user_id))
     startup = result.scalar_one_or_none()
     if not startup:
         raise HTTPException(status_code=404, detail="Startup not found")
@@ -338,8 +408,9 @@ async def get_startup(startup_id: int, db: AsyncSession = Depends(get_db)):
     return _startup_to_card(startup)
 
 @router.patch("/{startup_id}", response_model=StartupResponse)
-async def update_startup(startup_id: int, data: StartupUpdate, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Startup).where(Startup.id == startup_id))
+async def update_startup(startup_id: int, data: StartupUpdate, request: Request, db: AsyncSession = Depends(get_db)):
+    user_id = _user_id_from_request(request)
+    result = await db.execute(select(Startup).where(Startup.id == startup_id).where(Startup.user_id == user_id))
     startup = result.scalar_one_or_none()
     if not startup:
         raise HTTPException(status_code=404, detail="Startup not found")
@@ -350,10 +421,11 @@ async def update_startup(startup_id: int, data: StartupUpdate, db: AsyncSession 
     return startup
 
 @router.post("/{startup_id}/refresh")
-async def refresh_startup(startup_id: int, db: AsyncSession = Depends(get_db)):
+async def refresh_startup(startup_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     from app.services.classifier import classify_startup
     from app.models.firm_profile import FirmProfile
-    result = await db.execute(select(Startup).where(Startup.id == startup_id))
+    user_id = _user_id_from_request(request)
+    result = await db.execute(select(Startup).where(Startup.id == startup_id).where(Startup.user_id == user_id))
     startup = result.scalar_one_or_none()
     if not startup:
         raise HTTPException(status_code=404, detail="Startup not found")

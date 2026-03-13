@@ -24,6 +24,7 @@ class Startup(Base):
     fit_reasoning = Column(Text)
     thesis_tags = Column(JSON, default=list)
     sector = Column(String(100))
+    mandate_category = Column(String(100), nullable=True)
     business_model = Column(String(100))
     target_customer = Column(String(200))
     team_size = Column(String(50))
@@ -48,6 +49,10 @@ class Startup(Base):
     last_refreshed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     has_unseen_signals: Mapped[bool] = mapped_column(Boolean, default=False)
     is_portfolio = Column(Boolean, default=False, nullable=True)
+    portfolio_status = Column(String(50), nullable=True)  # active, acquired, exited, dead
+    investment_date = Column(DateTime, nullable=True)
+    check_size_usd = Column(Float, nullable=True)
+    co_investors = Column(JSON, default=list)
     user_id = Column(String(255), nullable=True, index=True)
     scraped_at = Column(DateTime(timezone=False), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

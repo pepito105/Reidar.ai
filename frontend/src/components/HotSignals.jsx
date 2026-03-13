@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { useAuth } from '@clerk/clerk-react'
 import axios from 'axios'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
 export default function HotSignals({ API, onClose }) {
+  const { getToken } = useAuth()
   const [days, setDays] = useState(7)
   const [brief, setBrief] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -12,7 +14,9 @@ export default function HotSignals({ API, onClose }) {
   const generate = async () => {
     setLoading(true)
     setBrief(null)
-    const res = await axios.post(`${API}/signals/hot-signals`, { days })
+    const token = await getToken().catch(() => null)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
+    const res = await axios.post(`${API}/signals/hot-signals`, { days }, { headers })
     setBrief(res.data)
     setLoading(false)
   }

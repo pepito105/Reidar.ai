@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '@clerk/clerk-react'
 import axios from 'axios'
 
 const STAGES = ['watching', 'outreach', 'diligence', 'passed', 'invested']
@@ -27,19 +28,23 @@ function relativeTime(dateStr) {
 }
 
 export default function Pipeline({ API }) {
+  const { getToken } = useAuth()
   const [board, setBoard] = useState({})
   const [dragging, setDragging] = useState(null)
   const [dragOverStage, setDragOverStage] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchPipeline = () => {
-    axios.get(`${API}/pipeline/`).then(res => {
+  const fetchPipeline = async () => {
+    const token = await getToken().catch(() => null)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
+    try {
+      const res = await axios.get(`${API}/pipeline/`, { headers })
       setBoard(res.data)
-      setLoading(false)
-    })
+    } catch (_) {}
+    setLoading(false)
   }
 
-  useEffect(() => { fetchPipeline() }, [])
+  useEffect(() => { fetchPipeline() }, [API, getToken])
 
   const onDragStart = (company, fromStage) => setDragging({ company, fromStage })
 
@@ -75,8 +80,10 @@ export default function Pipeline({ API }) {
     setDragging(null)
     setDragOverStage(null)
 
+    const token = await getToken().catch(() => null)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
-      await axios.post(`${API}/pipeline/move`, { startup_id: company.id, new_status: toStage })
+      await axios.post(`${API}/pipeline/move`, { startup_id: company.id, new_status: toStage }, { headers })
     } catch {
       fetchPipeline()
     }

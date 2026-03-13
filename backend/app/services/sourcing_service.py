@@ -2,8 +2,8 @@ import logging
 import asyncio
 import json
 import re
-from datetime import datetime, timezone
-from typing import List
+from datetime import datetime
+from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from anthropic import AsyncAnthropic
@@ -158,8 +158,13 @@ async def is_duplicate(website: str, name: str, db: AsyncSession) -> bool:
     return False
 
 
-async def run_autonomous_sourcing(db: AsyncSession, custom_brief: str = None, limit_per_source: int = 10) -> dict:
-    profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
+async def run_autonomous_sourcing(db: AsyncSession, custom_brief: str = None, limit_per_source: int = 10, user_id: Optional[str] = None) -> dict:
+    if user_id is not None:
+        profile_result = await db.execute(
+            select(FirmProfile).where(FirmProfile.is_active == True).where(FirmProfile.user_id == user_id)
+        )
+    else:
+        profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
     profile = profile_result.scalar_one_or_none()
     if not profile:
         return {"error": "No firm profile configured"}
@@ -212,8 +217,9 @@ async def run_autonomous_sourcing(db: AsyncSession, custom_brief: str = None, li
                 sector=company.get("sector"),
                 source="autonomous_sourcing",
                 source_url=website,
-                scraped_at=datetime.now(timezone.utc),
+                scraped_at=datetime.utcnow(),
                 research_status=None,
+                user_id=user_id,
             )
             db.add(startup)
             await db.flush()

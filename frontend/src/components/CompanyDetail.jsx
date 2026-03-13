@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import ReactDOM from 'react-dom'
+import { useAuth } from '@clerk/clerk-react'
 import axios from 'axios'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -41,65 +42,8 @@ function FitReasoningBullets({ text }) {
   )
 }
 
-function KeyRisksDisplay({ text }) {
-  if (!text || !text.trim()) return <div style={{ fontSize: 12, color: '#6b7280', fontStyle: 'italic' }}>No risks identified.</div>
-  const risks = text.split(/\n\n/).filter(Boolean)
-  const likelihoodRegex = /Likelihood:\s*(High|Medium|Low)/i
-  const impactRegex = /Impact:\s*(Critical|Major|Moderate|Minor)/i
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {risks.map((risk, i) => {
-        const lMatch = risk.match(likelihoodRegex)
-        const likelihood = lMatch ? lMatch[1] : null
-        const imMatch = risk.match(impactRegex)
-        const impact = imMatch ? imMatch[1] : null
-        const liPos = risk.search(likelihoodRegex)
-        const imPos = risk.search(impactRegex)
-        let restEnd = risk.length
-        if (liPos >= 0) restEnd = Math.min(restEnd, liPos)
-        if (imPos >= 0) restEnd = Math.min(restEnd, imPos)
-        const rest = risk.slice(0, restEnd).replace(/\s*[—,]\s*$/g, '').trim()
-        const lColor = likelihood === 'High' ? '#ef4444' : likelihood === 'Medium' ? '#f59e0b' : '#6b7280'
-        const iColor = impact === 'Critical' ? '#ef4444' : impact === 'Major' ? '#f59e0b' : impact === 'Moderate' ? '#6366f1' : '#6b7280'
-        return (
-          <div key={i} style={{ fontSize: 12, color: '#c0c0e0', lineHeight: 1.6 }}>
-            {rest && <span>{rest}</span>}
-            {(likelihood || impact) && (
-              <span style={{ marginLeft: 6 }}>
-                {likelihood && (
-                  <span style={{ fontSize: 10, fontWeight: 600, color: lColor, background: `${lColor}22`, padding: '2px 6px', borderRadius: 4, marginRight: 6 }}>
-                    L: {likelihood}
-                  </span>
-                )}
-                {impact && (
-                  <span style={{ fontSize: 10, fontWeight: 600, color: iColor, background: `${iColor}22`, padding: '2px 6px', borderRadius: 4, marginRight: 6 }}>
-                    I: {impact}
-                  </span>
-                )}
-              </span>
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-function BullCaseDisplay({ text }) {
-  if (!text || !text.trim()) return <div style={{ fontSize: 12, color: '#6b7280', fontStyle: 'italic' }}>No bull case yet.</div>
-  const statements = text.split(/\n\n/).filter(Boolean)
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {statements.map((stmt, i) => (
-        <div key={i} style={{ borderLeft: '3px solid #10b981', paddingLeft: 12, fontSize: 12, color: '#c0c0e0', lineHeight: 1.6 }}>
-          {stmt.trim()}
-        </div>
-      ))}
-    </div>
-  )
-}
-
 export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
+  const { getToken } = useAuth()
   const [notes, setNotes] = useState(s.notes || '')
   const [pipelineStatus, setPipelineStatus] = useState(s.pipeline_status || 'new')
   const [signals, setSignals] = useState([])
@@ -125,20 +69,29 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
   const badge = FIT_BADGES[s.fit_score] || FIT_BADGES[2]
 
   const loadMemo = async () => {
+    const token = await getToken().catch(() => null)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
-      const res = await axios.get(`${API}/memo/${s.id}`)
+      const res = await axios.get(`${API}/memo/${s.id}`, { headers })
       setMemo(res.data.memo)
       setMemoFiles(res.data.memo_files || [])
       setMemoGeneratedAt(res.data.memo_generated_at)
+      setBullCase(res.data.bull_case || '')
+      setKeyRisks(res.data.key_risks || '')
     } catch (e) {}
   }
 
   const generateMemo = async () => {
     setMemoLoading(true)
+    const token = await getToken().catch(() => null)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
-      const res = await axios.post(`${API}/memo/generate/${s.id}`)
+      const res = await axios.post(`${API}/memo/generate/${s.id}`, null, { headers })
       setMemo(res.data.memo)
       setMemoGeneratedAt(res.data.generated_at)
+      if (res.data.bull_case != null) setBullCase(res.data.bull_case)
+      if (res.data.key_risks != null) setKeyRisks(res.data.key_risks)
+      await loadMemo()
     } catch (e) {
       console.error(e)
     }
@@ -147,11 +100,13 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
 
   const uploadFile = async (file) => {
     setUploading(true)
+    const token = await getToken().catch(() => null)
+    const authHeaders = token ? { Authorization: `Bearer ${token}` } : {}
     try {
       const formData = new FormData()
       formData.append('file', file)
       await axios.post(`${API}/memo/upload/${s.id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { ...authHeaders, 'Content-Type': 'multipart/form-data' }
       })
       await loadMemo()
     } catch (e) {
@@ -161,8 +116,10 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
   }
 
   const deleteFile = async (filename) => {
+    const token = await getToken().catch(() => null)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
-      await axios.delete(`${API}/memo/file/${s.id}/${filename}`)
+      await axios.delete(`${API}/memo/file/${s.id}/${filename}`, { headers })
       await loadMemo()
     } catch (e) {}
   }
@@ -180,20 +137,33 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
     setBullCase(s.bull_case || '')
     setMeetingNotes(s.meeting_notes || [])
     setActivityLog(s.activity_log || [])
-axios.get(`${API}/signals/company/${s.id}`)
-      .then(res => setSignals(res.data.signals || []))
-      .catch(() => {})
-    loadMemo()
+    const fn = async () => {
+      const token = await getToken().catch(() => null)
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      try {
+        const res = await axios.get(`${API}/signals/company/${s.id}`, { headers })
+        setSignals(res.data.signals || [])
+      } catch (_) {}
+      loadMemo()
+    }
+    fn()
   }, [s])
 
   useEffect(() => {
     if (!s?.id) return
-    axios.post(`${API}/signals/mark-seen/${s.id}`).catch(() => {})
+    const fn = async () => {
+      const token = await getToken().catch(() => null)
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      await axios.post(`${API}/signals/mark-seen/${s.id}`, null, { headers }).catch(() => {})
+    }
+    fn()
   }, [s?.id])
 
   const save = async () => {
+    const token = await getToken().catch(() => null)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
-      await axios.patch(`${API}/startups/${s.id}`, { notes, pipeline_status: pipelineStatus })
+      await axios.patch(`${API}/startups/${s.id}`, { notes, pipeline_status: pipelineStatus }, { headers })
       setToast(true)
       setTimeout(() => setToast(false), 2000)
       onUpdate()
@@ -203,6 +173,8 @@ axios.get(`${API}/signals/company/${s.id}`)
   }
 
   const saveChanges = async () => {
+    const token = await getToken().catch(() => null)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
       const baseLog = Array.isArray(activityLog) ? activityLog : (Array.isArray(s.activity_log) ? s.activity_log : [])
       const log = [...baseLog]
@@ -228,7 +200,7 @@ axios.get(`${API}/signals/company/${s.id}`)
         next_action_due: nextActionDue || null,
         meeting_notes: meetingNotes,
         activity_log: log,
-      })
+      }, { headers })
       setActivityLog(log)
       setToast(true)
       setTimeout(() => setToast(false), 2000)
@@ -241,11 +213,13 @@ axios.get(`${API}/signals/company/${s.id}`)
   const generateDDQuestions = async () => {
     if (!s) return
     setDdLoading(true)
+    const token = await getToken().catch(() => null)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
       const res = await axios.post(`${API}/chat/`, {
         message: `Generate 5 sharp due diligence questions a VC analyst should ask the founder of ${s.name} in a first call. ${s.name} is: ${s.one_liner}. Business model: ${s.business_model || 'unknown'}. Target customer: ${s.target_customer || 'unknown'}. Thesis fit reasoning: ${s.fit_reasoning || 'unknown'}. Return ONLY a JSON array of 5 question strings, no other text.`,
         context: []
-      })
+      }, { headers })
       const text = res.data.response || res.data.message || ''
       const clean = text.replace(/```json|```/g, '').trim()
       const questions = JSON.parse(clean)
@@ -919,30 +893,6 @@ axios.get(`${API}/signals/company/${s.id}`)
                       </div>
                     )}
 
-                    {/* Bull Case / Key Risks (read-only AI fields) */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                      <div>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: '#10b981', letterSpacing: '0.5px', marginBottom: 8 }}>🟢 BULL CASE</div>
-                        <div style={{
-                          width: '100%', minHeight: 80, background: '#0a0a14', border: '1px solid #1e1e2e',
-                          borderRadius: 8, color: '#c0c0e0', fontSize: 12, padding: '10px 12px',
-                          boxSizing: 'border-box', lineHeight: 1.6
-                        }}>
-                          <BullCaseDisplay text={s.bull_case || bullCase} />
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: '#ef4444', letterSpacing: '0.5px', marginBottom: 8 }}>🔴 KEY RISKS</div>
-                        <div style={{
-                          width: '100%', minHeight: 80, background: '#0a0a14', border: '1px solid #1e1e2e',
-                          borderRadius: 8, color: '#c0c0e0', fontSize: 12, padding: '10px 12px',
-                          boxSizing: 'border-box', lineHeight: 1.6
-                        }}>
-                          <KeyRisksDisplay text={s.key_risks || keyRisks} />
-                        </div>
-                      </div>
-                    </div>
-
                   </div>
                 )}
                 {activeTab === 'signals' && (
@@ -989,7 +939,10 @@ axios.get(`${API}/signals/company/${s.id}`)
                             const updated = [note, ...(Array.isArray(meetingNotes) ? meetingNotes : [])]
                             setMeetingNotes(updated)
                             setNewNote('')
-                            axios.patch(`${API}/startups/${s.id}`, { meeting_notes: updated }).catch(() => {})
+                            getToken().catch(() => null).then(token => {
+                              const headers = token ? { Authorization: `Bearer ${token}` } : {}
+                              return axios.patch(`${API}/startups/${s.id}`, { meeting_notes: updated }, { headers })
+                            }).catch(() => {})
                           }}
                           style={{
                             padding: '8px 16px', borderRadius: 8, border: 'none',

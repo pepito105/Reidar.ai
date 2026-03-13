@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '@clerk/clerk-react'
 import axios from 'axios'
 
 const ICONS = {
@@ -26,6 +27,7 @@ function timeAgo(dateStr) {
 }
 
 export default function NotificationDrawer({ API, onSelectCompany }) {
+  const { getToken } = useAuth()
   const [open, setOpen] = useState(false)
   const [feed, setFeed] = useState([])
   const [unseenCount, setUnseenCount] = useState(0)
@@ -33,8 +35,10 @@ export default function NotificationDrawer({ API, onSelectCompany }) {
   const drawerRef = useRef(null)
 
   const fetchFeed = async () => {
+    const token = await getToken().catch(() => null)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
-      const res = await axios.get(`${API}/signals/feed`, { params: { days: 30, limit: 30 } })
+      const res = await axios.get(`${API}/signals/feed`, { params: { days: 30, limit: 30 }, headers })
       setFeed(res.data.feed)
       setUnseenCount(res.data.unseen_count)
     } catch (e) {}
@@ -125,7 +129,9 @@ export default function NotificationDrawer({ API, onSelectCompany }) {
             {unseenCount > 0 && (
               <button
                 onClick={async () => {
-                  await axios.post(`${API}/signals/mark-all-seen`)
+                  const token = await getToken().catch(() => null)
+                  const headers = token ? { Authorization: `Bearer ${token}` } : {}
+                  await axios.post(`${API}/signals/mark-all-seen`, null, { headers })
                   setUnseenCount(0)
                   setFeed(f => f.map(item => ({ ...item, is_seen: true })))
                 }}

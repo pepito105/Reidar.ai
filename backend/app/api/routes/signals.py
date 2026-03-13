@@ -1,6 +1,6 @@
 import json
 import asyncio
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, func
 from pydantic import BaseModel
@@ -15,6 +15,20 @@ import anthropic
 from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/signals")
+
+
+def _user_id_from_request(request: Request) -> Optional[str]:
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+        try:
+            import jwt
+            decoded = jwt.decode(token, options={"verify_signature": False}, algorithms=["RS256", "HS256"])
+            return decoded.get("sub")
+        except Exception:
+            return None
+    return None
+
 
 class SignalsRequest(BaseModel):
     days: int = 7
@@ -449,12 +463,14 @@ async def test_research(
 
 @router.post("/sourcing/test")
 async def test_sourcing(
+    request: Request,
     custom_brief: str = None,
     db: AsyncSession = Depends(get_db)
 ):
     """Test autonomous sourcing — generates queries and finds new companies."""
+    user_id = _user_id_from_request(request)
     from app.services.sourcing_service import run_autonomous_sourcing
-    stats = await run_autonomous_sourcing(db, custom_brief=custom_brief)
+    stats = await run_autonomous_sourcing(db, custom_brief=custom_brief, user_id=user_id)
     return stats
 
 
@@ -508,6 +524,7 @@ async def rescore_all(db: AsyncSession = Depends(get_db)):
             startup.business_model = (row.get("business_model") or "")[:499]
             startup.target_customer = (row.get("target_customer") or "")[:499]
             startup.sector = (row.get("sector") or "")[:99]
+            startup.mandate_category = (row.get("mandate_category") or "")[:99]
             startup.thesis_tags = row.get("thesis_tags") if isinstance(row.get("thesis_tags"), list) else []
             startup.funding_stage = (row.get("funding_stage") or "unknown")[:49]
             updated += 1
@@ -560,6 +577,7 @@ async def rescore_unscored(db: AsyncSession = Depends(get_db)):
             startup.business_model = (row.get("business_model") or "")[:499]
             startup.target_customer = (row.get("target_customer") or "")[:499]
             startup.sector = (row.get("sector") or "")[:99]
+            startup.mandate_category = (row.get("mandate_category") or "")[:99]
             startup.thesis_tags = row.get("thesis_tags") if isinstance(row.get("thesis_tags"), list) else []
             startup.funding_stage = (row.get("funding_stage") or "unknown")[:49]
             updated += 1
@@ -573,8 +591,9 @@ import asyncio
 from fastapi.responses import StreamingResponse
 
 @router.get("/sourcing/stream")
-async def sourcing_stream(db: AsyncSession = Depends(get_db)):
+async def sourcing_stream(request: Request, db: AsyncSession = Depends(get_db)):
     """SSE endpoint that streams sourcing progress events."""
+    user_id = _user_id_from_request(request)
     queue = asyncio.Queue()
 
     async def event_generator():
@@ -597,7 +616,7 @@ async def sourcing_stream(db: AsyncSession = Depends(get_db)):
                 from app.services.sourcing_service import generate_search_queries, search_and_extract_companies, is_duplicate
                 from app.services.classifier import classify_startup
                 from app.models.startup import Startup
-                from datetime import datetime, timezone
+                from datetime import datetime
 
                 queries = await generate_search_queries(profile.investment_thesis, profile.firm_name)
                 await emit("queries", f"Generated {len(queries)} search queries", {"queries": queries})
@@ -641,7 +660,8 @@ async def sourcing_stream(db: AsyncSession = Depends(get_db)):
                             one_liner=company.get("one_liner"),
                             funding_stage=company.get("funding_stage", "unknown"),
                             sector=company.get("sector"), source="autonomous_sourcing",
-                            source_url=website, scraped_at=datetime.now(timezone.utc),
+                            source_url=website, scraped_at=datetime.utcnow(),
+                            user_id=user_id,
                         )
                         db.add(startup)
                         await db.flush()
@@ -660,6 +680,7 @@ async def sourcing_stream(db: AsyncSession = Depends(get_db)):
                             startup.business_model = (result.get("business_model") or "")[:99]
                             startup.target_customer = (result.get("target_customer") or "")[:199]
                             startup.sector = (result.get("sector") or startup.sector or "")[:99]
+                            startup.mandate_category = (result.get("mandate_category") or "")[:99]
                             startup.thesis_tags = result.get("thesis_tags", [])
                             startup.recommended_next_step = (result.get("recommended_next_step") or "")[:499]
                             if (startup.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):

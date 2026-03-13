@@ -8,14 +8,36 @@ logger = logging.getLogger(__name__)
 client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 MODEL = "claude-haiku-4-5-20251001"
 
+# Universal sector taxonomy — used across all firms
+SECTOR_TAXONOMY = [
+    "AI Infrastructure",
+    "Developer Tools",
+    "FinTech",
+    "HealthTech",
+    "LegalTech",
+    "HRTech",
+    "EdTech",
+    "Enterprise SaaS",
+    "Consumer AI",
+    "CleanTech",
+    "Cybersecurity",
+    "E-commerce & Retail",
+    "PropTech",
+    "MarketingTech",
+    "Supply Chain & Logistics",
+    "Other",
+]
+
+SECTOR_TAXONOMY_STR = ", ".join(SECTOR_TAXONOMY)
+
 
 def _has_meaningful_thesis(firm) -> bool:
     """Returns True if the firm has entered a substantive investment thesis."""
     if not firm or not firm.investment_thesis:
         return False
     thesis = firm.investment_thesis.strip()
-    # Consider it meaningful if it's more than a few words
     return len(thesis.split()) >= 8
+
 
 def _build_firm_context(firm) -> str:
     if not firm:
@@ -28,6 +50,22 @@ def _build_firm_context(firm) -> str:
     if _has_meaningful_thesis(firm):
         base += f"\nInvestment Thesis: {firm.investment_thesis}"
     return base
+
+
+def _build_mandate_category_guide(firm) -> str:
+    """
+    Builds instructions for the mandate_category field.
+    If the firm has a thesis, ask Claude to map the company to one of the firm's
+    own thesis buckets (inferred from the thesis text). Otherwise leave null.
+    """
+    if not firm or not _has_meaningful_thesis(firm):
+        return 'mandate_category: null  // No firm thesis defined'
+    return f"""mandate_category: Map this company to the single most relevant bucket from the firm's thesis below.
+Read the thesis and infer the firm's natural categories (e.g. a thesis mentioning "AI for Work", "AI Advancement", "AI for Life" 
+implies those three buckets). Return a short label like "AI for Work" or "FinTech Automation" — use the firm's own language.
+If the company doesn't map cleanly, return null.
+Firm thesis for reference: {firm.investment_thesis}"""
+
 
 def _build_scoring_guide(firm) -> str:
     """Returns the appropriate scoring guide based on whether firm has a thesis."""
@@ -75,6 +113,8 @@ IMPORTANT: Be generous. If a company is AI-native B2B SaaS automating any knowle
 
 async def classify_startup(name: str, description: str, website: Optional[str], source: str, firm) -> dict:
     firm_context = _build_firm_context(firm)
+    mandate_category_guide = _build_mandate_category_guide(firm)
+
     prompt = f"""{firm_context}
 
 When evaluating thesis fit, use April Dunford's positioning lens:
@@ -109,6 +149,12 @@ ai_score 3 = AI used meaningfully
 ai_score 2 = Some AI elements
 ai_score 1 = No meaningful AI
 
+SECTOR: You must assign exactly one sector from this fixed list — do not invent new labels:
+{SECTOR_TAXONOMY_STR}
+Pick the single best match. If none fit well, use "Other".
+
+MANDATE CATEGORY: {mandate_category_guide}
+
 FIT REASONING: Structure as bullet points. Each point must end with a confidence level: "— High confidence" (multiple clear signals), "— Medium confidence" (some evidence), or "— Low confidence" (inferred). Format: "• [Thesis dimension]: [reasoning] — [High/Medium/Low confidence]"
 Example: "• AI-native architecture: Product is built on LLMs with no legacy layer — High confidence. • Regulated vertical: Mentions healthcare but no specific compliance features evident — Medium confidence."
 
@@ -135,7 +181,8 @@ Respond with ONLY a JSON object, no markdown:
   "fit_reasoning": "Bullet points with • [dimension]: [reasoning] — High/Medium/Low confidence",
   "business_model": "how they make money",
   "target_customer": "primary customer",
-  "sector": "primary sector",
+  "sector": "exactly one value from the fixed sector list above",
+  "mandate_category": "firm's own thesis bucket label, or null",
   "thesis_tags": ["tag1", "tag2"],
   "recommended_next_step": "Use RECOMMENDED_NEXT_STEP format above based on fit_score",
   "funding_stage": "pre-seed or seed or series-a or series-b or unknown",
@@ -169,6 +216,7 @@ Respond with ONLY a JSON object, no markdown:
             "business_model": None,
             "target_customer": None,
             "sector": None,
+            "mandate_category": None,
             "thesis_tags": [],
             "recommended_next_step": "Needs manual review",
             "funding_stage": "unknown",
@@ -218,15 +266,18 @@ If no meaningful signals exist, return an empty array: []"""
 
 
 async def classify_batch(companies: list[dict], firm) -> list[dict]:
-    """Scoring-only batch: 20 companies per call. Returns id, fit_score, ai_score, one_liner, sector, thesis_tags, funding_stage, business_model, target_customer, name."""
+    """Scoring-only batch: 20 companies per call. Returns id, fit_score, ai_score, one_liner, sector, mandate_category, thesis_tags, funding_stage, business_model, target_customer, name."""
     if not companies:
         return []
     firm_context = _build_firm_context(firm)
     scoring_guide = _build_scoring_guide(firm)
+    mandate_category_guide = _build_mandate_category_guide(firm)
+
     companies_block = "\n\n".join(
         f"{i + 1}. ID: {c.get('id')}\n   Name: {c.get('name', '')}\n   Description: {c.get('description', '')}\n   Website: {c.get('website') or 'Unknown'}\n   Source: {c.get('source', '')}"
         for i, c in enumerate(companies)
     )
+
     prompt = f"""{firm_context}
 
 When evaluating thesis fit, use April Dunford's positioning lens:
@@ -242,7 +293,13 @@ Use this analysis to inform fit_score. Do not output the framework explicitly �
 
 IMPORTANT: The 'name' field must be the actual company name only — never a description, headline, or article title. If the input name looks like a headline (e.g. 'Chinese brain interface startup Gestala'), extract just the company name ('Gestala'). If the name contains words like 'startup', 'raises', 'launches', 'announces', 'funding', or descriptive phrases, clean it to just the brand/company name. If you cannot determine a clean company name, set name to null.
 
-COMPANIES TO EVALUATE (score each one). Return ONLY these 10 fields per company:
+SECTOR: For every company, assign exactly one sector from this fixed list — do not invent new labels:
+{SECTOR_TAXONOMY_STR}
+Pick the single best match. If none fit well, use "Other".
+
+MANDATE CATEGORY: {mandate_category_guide}
+
+COMPANIES TO EVALUATE (score each one). Return ONLY these fields per company:
 
 {companies_block}
 
@@ -251,7 +308,8 @@ Per company, output only:
 - fit_score (1-5)
 - ai_score (1-5)
 - one_liner ("We help [customer] [solve problem] by [mechanism]" — max 15 words)
-- sector (string)
+- sector (exactly one value from the fixed sector list above)
+- mandate_category (firm's own thesis bucket label, or null)
 - thesis_tags (array of strings, max 4)
 - funding_stage (pre-seed | seed | series-a | series-b | unknown)
 - business_model (one sentence)
@@ -261,7 +319,7 @@ Per company, output only:
 Respond with ONLY a JSON array of objects, one per company, in the same order as the list above. No markdown.
 Example:
 [
-  {{ "id": 1, "fit_score": 4, "ai_score": 5, "one_liner": "We help ...", "sector": "Legal Tech", "thesis_tags": ["AI", "B2B"], "funding_stage": "seed", "business_model": "SaaS per seat.", "target_customer": "Mid-size law firms.", "name": "CompanyName" }},
+  {{ "id": 1, "fit_score": 4, "ai_score": 5, "one_liner": "We help ...", "sector": "Enterprise SaaS", "mandate_category": "AI for Work", "thesis_tags": ["AI", "B2B"], "funding_stage": "seed", "business_model": "SaaS per seat.", "target_customer": "Mid-size law firms.", "name": "CompanyName" }},
   ...
 ]"""
     try:

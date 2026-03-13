@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
+import { useAuth } from '@clerk/clerk-react'
 import axios from 'axios'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
 export default function ChatPanel({ API, onClose }) {
+  const { getToken } = useAuth()
   const [messages, setMessages] = useState([
     { role: 'assistant', text: "I'm your AI analyst. I know your full deal database and firm mandate. Ask me anything — about specific companies, sectors, or what's worth your attention this week." }
   ])
@@ -19,7 +21,9 @@ export default function ChatPanel({ API, onClose }) {
     setInput('')
     setMessages(m => [...m, { role: 'user', text: userMsg }])
     setLoading(true)
-    const res = await axios.post(`${API}/chat/`, { message: userMsg })
+    const token = await getToken().catch(() => null)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
+    const res = await axios.post(`${API}/chat/`, { message: userMsg }, { headers })
     setMessages(m => [...m, { role: 'assistant', text: res.data.response }])
     setLoading(false)
   }

@@ -198,7 +198,14 @@ Be direct, specific, and analytical. Avoid generic VC language."""
         startup.memo = memo_text
         startup.memo_generated_at = datetime.now()
         await db.commit()
-        return {"success": True, "memo": memo_text, "generated_at": startup.memo_generated_at.isoformat()}
+        await db.refresh(startup)
+        return {
+            "success": True,
+            "memo": memo_text,
+            "generated_at": startup.memo_generated_at.isoformat() if startup.memo_generated_at else None,
+            "bull_case": startup.bull_case or None,
+            "key_risks": startup.key_risks or None,
+        }
     except Exception as e:
         logger.error(f"Memo generation error: {e}")
         raise HTTPException(status_code=500, detail=f"Memo generation failed: {str(e)}")
@@ -212,5 +219,7 @@ async def get_memo(startup_id: int, db: AsyncSession = Depends(get_db)):
     return {
         "memo": startup.memo,
         "memo_files": startup.memo_files or [],
-        "memo_generated_at": startup.memo_generated_at.isoformat() if startup.memo_generated_at else None
+        "memo_generated_at": startup.memo_generated_at.isoformat() if startup.memo_generated_at else None,
+        "bull_case": startup.bull_case or None,
+        "key_risks": startup.key_risks or None,
     }

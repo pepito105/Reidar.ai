@@ -50,16 +50,28 @@ class FirmProfileResponse(BaseModel):
 async def get_firm_profile(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    credentials: HTTPAuthorizationCredentials = Security(HTTPBearer(auto_error=False))
 ):
-    user_id = await get_current_user_id(request, credentials)
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+        try:
+            import jwt
+            decoded = jwt.decode(token, options={"verify_signature": False}, algorithms=["RS256", "HS256"])
+            user_id = decoded.get("sub")
+        except Exception:
+            user_id = None
+    else:
+        user_id = None
     if user_id:
         result = await db.execute(
             select(FirmProfile).where(FirmProfile.user_id == user_id, FirmProfile.is_active == True)
         )
+        existing = result.scalar_one_or_none()
+        print(f"GET firm-profile: user_id={user_id}, found={existing is not None}")
+        return existing
     else:
+        print(f"GET firm-profile: user_id={user_id}, found=False")
         return None
-    return result.scalar_one_or_none()
 
 @router.post("/", response_model=FirmProfileResponse)
 async def create_firm_profile(
@@ -74,14 +86,17 @@ async def create_firm_profile(
             select(FirmProfile).where(FirmProfile.user_id == user_id, FirmProfile.is_active == True)
         )
     else:
-        return None
+        result = await db.execute(
+            select(FirmProfile).where(FirmProfile.user_id.is_(None), FirmProfile.is_active == True)
+        )
     existing = result.scalar_one_or_none()
     if existing:
+        profile = existing
         for key, value in data.model_dump().items():
-            setattr(existing, key, value)
+            setattr(profile, key, value)
         await db.commit()
-        await db.refresh(existing)
-        return existing
+        await db.refresh(profile)
+        return profile
     profile = FirmProfile(**data.model_dump(), user_id=user_id)
     db.add(profile)
     await db.commit()
@@ -157,6 +172,8 @@ async def rescore_companies(
                 startup.fit_score = clamp(data["fit_score"])
             if data.get("ai_score") is not None:
                 startup.ai_score = clamp(data["ai_score"])
+            if data.get("mandate_category"):
+                startup.mandate_category = data["mandate_category"][:99]
             if data.get("fit_reasoning"):
                 startup.fit_reasoning = str(data["fit_reasoning"])[:999]
             if data.get("recommended_next_step"):
