@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useAuth, UserButton } from "@clerk/clerk-react";
 
 const APP_URL = "/app";
 
@@ -313,6 +314,7 @@ const loop = [
 
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
+  const { isSignedIn } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -338,9 +340,18 @@ export default function LandingPage() {
           <a href="#how-it-works" className="nav-link">How it works</a>
           <a href="#why-radar" className="nav-link">Why Radar</a>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button className="btn-ghost" onClick={handleLaunch}>Sign in</button>
-          <button className="btn-primary" onClick={handleLaunch}>Get started</button>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          {isSignedIn ? (
+            <>
+              <button className="btn-primary" onClick={handleLaunch}>Go to Radar →</button>
+              <UserButton afterSignOutUrl="/" />
+            </>
+          ) : (
+            <>
+              <button className="btn-ghost" onClick={() => window.location.href = "/app"}>Sign in</button>
+              <button className="btn-primary" onClick={handleLaunch}>Get started</button>
+            </>
+          )}
         </div>
       </nav>
 
