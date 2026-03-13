@@ -16,8 +16,11 @@ async def get_market_map(request: Request, db: AsyncSession = Depends(get_db)):
         try:
             decoded = jwt.decode(auth_header[7:], options={"verify_signature": False}, algorithms=["RS256", "HS256"])
             user_id = decoded.get("sub")
-        except Exception:
-            pass
+            print(f"MARKET MAP: decoded user_id={user_id}")
+        except Exception as e:
+            print(f"MARKET MAP: jwt decode failed: {e}")
+    else:
+        print(f"MARKET MAP: no auth header found")
     if user_id:
         result = await db.execute(select(Startup).where(Startup.user_id == user_id))
     else:
