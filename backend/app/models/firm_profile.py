@@ -20,3 +20,4 @@ class FirmProfile(Base):
     notify_weekly_summary = Column(Boolean, default=True)
     notify_min_fit_score = Column(Integer, default=4)
     notification_emails = Column(Text, default="remi@balassanian.com")
+    mandate_buckets = Column(JSON, default=list)

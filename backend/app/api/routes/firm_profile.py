@@ -9,6 +9,45 @@ from app.models.firm_profile import FirmProfile
 from app.models.startup import Startup
 from app.core.auth import get_current_user_id
 
+
+async def _generate_mandate_buckets(thesis: str) -> list:
+    """Use Claude to extract 3-5 clean mandate bucket labels from the firm's thesis."""
+    if not thesis or len(thesis.split()) < 8:
+        return []
+    try:
+        from anthropic import AsyncAnthropic
+        from app.core.config import settings
+        client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+        response = await client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=200,
+            messages=[{"role": "user", "content": f"""Extract 3-5 short investment mandate category labels from this VC firm thesis.
+Rules:
+- Each label must be 2-4 words maximum
+- Use title case (e.g. "Health & Wellness", "Consumer Marketplaces")
+- Be specific to this firm's focus areas
+- Always include "Other" as the last bucket as a fallback
+- Return ONLY a JSON array of strings, no explanation
+
+Thesis: {thesis}
+
+Example output: ["Health & Wellness", "Consumer Marketplaces", "Digital Commerce", "Digital Subscriptions", "Other"]"""}]
+        )
+        import json, re
+        raw = response.content[0].text.strip()
+        raw = re.sub(r'^```(?:json)?\s*', '', raw)
+        raw = re.sub(r'\s*```$', '', raw)
+        buckets = json.loads(raw.strip())
+        if isinstance(buckets, list) and len(buckets) > 0:
+            if "Other" not in buckets:
+                buckets.append("Other")
+            return buckets
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Bucket generation failed: {e}")
+    return []
+
+
 router = APIRouter(prefix="/firm-profile")
 
 class FirmProfileCreate(BaseModel):
@@ -42,6 +81,7 @@ class FirmProfileResponse(BaseModel):
     notify_weekly_summary: Optional[bool] = True
     notify_min_fit_score: Optional[int] = 4
     notification_emails: Optional[str] = None
+    mandate_buckets: Optional[List[str]] = []
 
     class Config:
         from_attributes = True
@@ -94,10 +134,13 @@ async def create_firm_profile(
         profile = existing
         for key, value in data.model_dump().items():
             setattr(profile, key, value)
+        if data.investment_thesis:
+            profile.mandate_buckets = await _generate_mandate_buckets(data.investment_thesis)
         await db.commit()
         await db.refresh(profile)
         return profile
-    profile = FirmProfile(**data.model_dump(), user_id=user_id)
+    buckets = await _generate_mandate_buckets(data.investment_thesis or "")
+    profile = FirmProfile(**data.model_dump(), user_id=user_id, mandate_buckets=buckets)
     db.add(profile)
     await db.commit()
     await db.refresh(profile)
@@ -122,6 +165,8 @@ async def update_firm_profile(
         raise HTTPException(status_code=404, detail="No active firm profile found")
     for key, value in data.model_dump().items():
         setattr(profile, key, value)
+    if data.investment_thesis:
+        profile.mandate_buckets = await _generate_mandate_buckets(data.investment_thesis)
     await db.commit()
     await db.refresh(profile)
     return profile

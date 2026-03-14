@@ -53,17 +53,20 @@ def _build_firm_context(firm) -> str:
 
 
 def _build_mandate_category_guide(firm) -> str:
-    """
-    Builds instructions for the mandate_category field.
-    If the firm has a thesis, ask Claude to map the company to one of the firm's
-    own thesis buckets (inferred from the thesis text). Otherwise leave null.
-    """
     if not firm or not _has_meaningful_thesis(firm):
         return 'mandate_category: null  // No firm thesis defined'
-    return f"""mandate_category: Map this company to the single most relevant bucket from the firm's thesis below.
-Read the thesis and infer the firm's natural categories (e.g. a thesis mentioning "AI for Work", "AI Advancement", "AI for Life" 
-implies those three buckets). Return a short label like "AI for Work" or "FinTech Automation" — use the firm's own language.
-If the company doesn't map cleanly, return null.
+
+    # Use stored buckets if available, otherwise fall back to free-form
+    buckets = getattr(firm, 'mandate_buckets', None)
+    if buckets and len(buckets) > 0:
+        bucket_list = ", ".join(f'"{b}"' for b in buckets)
+        return f"""mandate_category: You MUST assign exactly one category from this fixed list: [{bucket_list}]
+Use "Other" if the company does not fit any specific bucket.
+Do not invent new labels — only use the exact labels from the list above."""
+    else:
+        return f"""mandate_category: Map this company to the single most relevant bucket from the firm's thesis below.
+Read the thesis and infer the firm's natural categories. Return a short label like "Health & Wellness" or "Consumer Marketplaces" — use the firm's own language.
+If the company doesn't map cleanly, return "Other".
 Firm thesis for reference: {firm.investment_thesis}"""
 
 
