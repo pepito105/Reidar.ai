@@ -116,8 +116,7 @@ function groupBySector(companies) {
   })
 }
 
-export default function Coverage({ API, selectedCompany, onCompanyViewed, firmProfile }) {
-  const isAiFocused = ['ai', 'artificial intelligence', 'machine learning', 'llm'].some(kw => (firmProfile?.investment_thesis || '').toLowerCase().includes(kw))
+export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
   const { getToken } = useAuth()
   const [startups, setStartups] = useState([])
   const [selected, setSelected] = useState(null)
@@ -280,7 +279,6 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed, firmPr
             </select>
             <select value={filters.sort} onChange={e => setFilters(f => ({ ...f, sort: e.target.value }))} style={selectStyle}>
               <option value="fit_score">Fit Score</option>
-              {isAiFocused && <option value="ai_score">AI Score</option>}
               <option value="newest">Newest</option>
             </select>
             <button onClick={() => setShowAddModal(true)} style={{
@@ -319,7 +317,6 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed, firmPr
                         isSelected={selected?.id === s.id}
                         isInbox={true}
                         onQuickAction={handleQuickAction}
-                        isAiFocused={isAiFocused}
                       />
                     ))}
                   </div>
@@ -349,7 +346,6 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed, firmPr
                             isSelected={selected?.id === s.id}
                             isInbox={false}
                             onQuickAction={handleQuickAction}
-                            isAiFocused={isAiFocused}
                           />
                         ))}
                       </div>
@@ -377,7 +373,6 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed, firmPr
                       isSelected={selected?.id === s.id}
                       isInbox={false}
                       onQuickAction={handleQuickAction}
-                      isAiFocused={isAiFocused}
                     />
                   ))}
                 </div>
@@ -395,7 +390,6 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed, firmPr
             startup={selected}
             onClose={() => setSelected(null)}
             onUpdate={fetchStartups}
-            firmProfile={firmProfile}
           />
         </div>
       )}
@@ -461,7 +455,7 @@ function SectionHeader({ label, count, color, borderColor, countBg, countBorder,
   )
 }
 
-const CompanyCard = forwardRef(function CompanyCard({ startup: s, onClick, isSelected, isInbox, onQuickAction, isAiFocused = false }, ref) {
+const CompanyCard = forwardRef(function CompanyCard({ startup: s, onClick, isSelected, isInbox, onQuickAction }, ref) {
   const badge = FIT_BADGES[s.fit_score] || FIT_BADGES[2]
   const inPipeline = s.pipeline_status && PIPELINE_COLORS[s.pipeline_status]
   const pipelineColor = inPipeline ? PIPELINE_COLORS[s.pipeline_status] : '#2a2a4a'
@@ -536,7 +530,6 @@ const CompanyCard = forwardRef(function CompanyCard({ startup: s, onClick, isSel
           <span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 10, background: '#1a1a2e', color: '#6b7280', border: '1px solid #2a2a4a' }}>Added by you</span>
         )}
         {s.funding_stage && <Tag>{s.funding_stage}</Tag>}
-        {isAiFocused && s.ai_score && <AITag>AI {s.ai_score}/5</AITag>}
         {s.has_unseen_signals && (
           <span style={{
             padding: '2px 6px', borderRadius: 4, fontSize: 10,
@@ -586,10 +579,6 @@ const CompanyCard = forwardRef(function CompanyCard({ startup: s, onClick, isSel
 
 const Tag = ({ children }) => (
   <span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 10, background: '#1a1a2e', color: '#6b7280', border: '1px solid #2a2a4a' }}>{children}</span>
-)
-
-const AITag = ({ children }) => (
-  <span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 10, background: '#1a0a2e', color: '#a78bfa', border: '1px solid #3730a3' }}>{children}</span>
 )
 
 const selectStyle = {

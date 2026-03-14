@@ -42,8 +42,7 @@ function FitReasoningBullets({ text }) {
   )
 }
 
-export default function CompanyDetail({ API, startup: s, onClose, onUpdate, firmProfile }) {
-  const isAiFocused = ['ai', 'artificial intelligence', 'machine learning', 'llm'].some(kw => (firmProfile?.investment_thesis || '').toLowerCase().includes(kw))
+export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
   const { getToken } = useAuth()
   const [notes, setNotes] = useState(s.notes || '')
   const [pipelineStatus, setPipelineStatus] = useState(s.pipeline_status || 'new')
@@ -277,7 +276,6 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, firm
           {s.business_model && <InfoItem label="Business Model" value={s.business_model} />}
           {s.target_customer && <InfoItem label="Target Customer" value={s.target_customer} />}
           {s.team_size && <InfoItem label="Team Size" value={s.team_size} />}
-          {isAiFocused && s.ai_score && <InfoItem label="AI Nativeness" value={`${s.ai_score}/5`} />}
         </div>
         {s.notable_traction && (
           <div style={{ marginTop: 12, padding: '10px 12px', background: '#0f1a0f', borderRadius: 6, border: '1px solid #1a2e1a' }}>
@@ -624,7 +622,6 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, firm
                         {s.business_model && <InfoItem label="Business Model" value={s.business_model} />}
                         {s.target_customer && <InfoItem label="Target Customer" value={s.target_customer} />}
                         {s.team_size && <InfoItem label="Team Size" value={s.team_size} />}
-                        {isAiFocused && s.ai_score && <InfoItem label="AI Nativeness" value={`${s.ai_score}/5`} />}
                       </div>
                     </Section>
                     {s.top_investors?.length > 0 && (

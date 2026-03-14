@@ -120,8 +120,7 @@ function FitBar({ value, maxValue, color, label }) {
   );
 }
 
-export default function MarketMap({ API, firmProfile }) {
-  const isAiFocused = ['ai', 'artificial intelligence', 'machine learning', 'llm'].some(kw => (firmProfile?.investment_thesis || '').toLowerCase().includes(kw))
+export default function MarketMap({ API }) {
   const { getToken } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -180,10 +179,7 @@ export default function MarketMap({ API, firmProfile }) {
         <StatTile label="Total Companies" value={data.total_companies} />
         <StatTile label="Added This Week" value={data.this_week} accent="#6366f1" />
         <StatTile label="Top Match Rate" value={`${data.top_match_rate}%`} accent="#22c55e" />
-        {isAiFocused 
-          ? <StatTile label="Avg AI Score" value={data.avg_ai_score} accent="#f59e0b" />
-          : <StatTile label="Avg Fit Score" value={data.avg_fit_score || "—"} accent="#f59e0b" />
-        }
+        <StatTile label="Avg Fit Score" value={data.avg_fit_score || "—"} accent="#f59e0b" />
       </div>
 
       {/* Sector Heatmap */}
