@@ -319,6 +319,7 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed, firmPr
                         isSelected={selected?.id === s.id}
                         isInbox={true}
                         onQuickAction={handleQuickAction}
+                        isAiFocused={isAiFocused}
                       />
                     ))}
                   </div>
@@ -348,6 +349,7 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed, firmPr
                             isSelected={selected?.id === s.id}
                             isInbox={false}
                             onQuickAction={handleQuickAction}
+                            isAiFocused={isAiFocused}
                           />
                         ))}
                       </div>
@@ -375,6 +377,7 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed, firmPr
                       isSelected={selected?.id === s.id}
                       isInbox={false}
                       onQuickAction={handleQuickAction}
+                      isAiFocused={isAiFocused}
                     />
                   ))}
                 </div>
@@ -458,7 +461,7 @@ function SectionHeader({ label, count, color, borderColor, countBg, countBorder,
   )
 }
 
-const CompanyCard = forwardRef(function CompanyCard({ startup: s, onClick, isSelected, isInbox, onQuickAction }, ref) {
+const CompanyCard = forwardRef(function CompanyCard({ startup: s, onClick, isSelected, isInbox, onQuickAction, isAiFocused = false }, ref) {
   const badge = FIT_BADGES[s.fit_score] || FIT_BADGES[2]
   const inPipeline = s.pipeline_status && PIPELINE_COLORS[s.pipeline_status]
   const pipelineColor = inPipeline ? PIPELINE_COLORS[s.pipeline_status] : '#2a2a4a'
