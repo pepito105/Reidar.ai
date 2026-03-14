@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth, UserButton } from "@clerk/clerk-react";
 
 const APP_URL = "/app";
+const SIGN_IN_URL = "/sign-in";
+const SIGN_UP_URL = "/sign-up";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');`;
 
@@ -755,7 +757,7 @@ export default function LandingPage() {
           {isSignedIn ? (
             <><button className="btn-pri" onClick={goApp}>Go to Radar →</button><UserButton afterSignOutUrl="/" /></>
           ) : (
-            <><button className="btn-ghost" onClick={goApp}>Sign in</button><button className="btn-pri" onClick={goApp}>Get started</button></>
+            <><button className="btn-ghost" onClick={() => window.location.href = SIGN_IN_URL}>Sign in</button><button className="btn-pri" onClick={() => window.location.href = SIGN_UP_URL}>Get started</button></>
           )}
         </div>
       </nav>
@@ -856,7 +858,7 @@ export default function LandingPage() {
       <div className="cta-wrap sr">
         <h2 className="cta-h2">Your mandate.<br />Your pipeline.<br />Your associate.</h2>
         <p className="cta-sub">Set up in two minutes. No credit card required.</p>
-        <button className="btn-lg" onClick={goApp}>Get started free →</button>
+        <button className="btn-lg" onClick={() => window.location.href = SIGN_UP_URL}>Get started free →</button>
       </div>
 
       {/* FOOTER */}
