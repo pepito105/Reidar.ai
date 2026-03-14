@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useClerk } from '@clerk/clerk-react'
 
 export default function Sidebar({ screen, setScreen, firmProfile, setShowSignals, setShowChat, setShowOnboarding, setShowFirmSettings }) {
+  const { signOut } = useClerk()
   const [collapsed, setCollapsed] = useState(false)
 
   const nav = [
@@ -87,6 +89,14 @@ export default function Sidebar({ screen, setScreen, firmProfile, setShowSignals
           display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: 8
         }}>
           <span>💬</span>{!collapsed && ' AI Analyst'}
+        </button>
+        <button onClick={() => signOut(() => window.location.href = '/')} style={{
+          width: '100%', padding: collapsed ? '10px 0' : '9px 12px', borderRadius: 8, border: 'none',
+          background: 'transparent', color: '#555577',
+          fontSize: 11, cursor: 'pointer', marginBottom: 4,
+          display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: 8
+        }}>
+          <span>🚪</span>{!collapsed && ' Sign Out'}
         </button>
         <button onClick={() => setShowFirmSettings(true)} title={collapsed ? 'Firm Settings' : ''} style={{
           width: '100%', padding: collapsed ? '10px 0' : '9px 12px', borderRadius: 8, border: 'none',
