@@ -335,6 +335,47 @@ async def get_portfolio(request: Request, db: AsyncSession = Depends(get_db)):
     ]
 
 
+@router.post("/{startup_id}/import-meeting")
+async def import_meeting_summary(
+    startup_id: int,
+    payload: dict,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    from anthropic import AsyncAnthropic
+    from app.core.config import settings
+    user_id = _user_id_from_request(request)
+    result = await db.execute(
+        select(Startup).where(Startup.id == startup_id, Startup.user_id == user_id)
+    )
+    startup = result.scalar_one_or_none()
+    if not startup:
+        raise HTTPException(status_code=404, detail="Startup not found")
+    summary = payload.get("summary", "").strip()
+    if not summary:
+        raise HTTPException(status_code=400, detail="No summary provided")
+    client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+    response = await client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=1000,
+        messages=[{"role": "user", "content": f"""You are a VC analyst. Structure this meeting summary into clean notes.
+
+Company: {startup.name}
+Summary: {summary}
+
+Format as:
+**Date & Attendees**: [extract if mentioned, otherwise omit]
+**Key Topics**: [bullet points of main discussion topics]
+**Signals**: [positive or negative signals about the company]
+**Action Items**: [next steps mentioned]
+**Other Notes**: [anything else relevant]
+
+Be concise. Use the exact information from the summary — don't invent details."""}]
+    )
+    structured = response.content[0].text.strip()
+    return {"note": structured}
+
+
 @router.get("/last-scrape")
 async def get_last_scrape(request: Request, db: AsyncSession = Depends(get_db)):
     from sqlalchemy import func as sqlfunc

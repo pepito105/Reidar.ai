@@ -65,6 +65,13 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
   const [memoGeneratedAt, setMemoGeneratedAt] = useState(null)
   const [memoLoading, setMemoLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [showImportSummary, setShowImportSummary] = useState(false)
+  const [importSummaryText, setImportSummaryText] = useState('')
+  const [importingNote, setImportingNote] = useState(false)
+  const [showAddContact, setShowAddContact] = useState(false)
+  const [newContact, setNewContact] = useState({})
+  const [showLogOutreach, setShowLogOutreach] = useState(false)
+  const [newOutreach, setNewOutreach] = useState({})
 
   const badge = FIT_BADGES[s.fit_score] || FIT_BADGES[2]
 
@@ -917,18 +924,63 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                 )}
                 {activeTab === 'outreach' && (
                   <div>
+                    {/* MEETING NOTES */}
                     <div style={{ marginBottom: 28 }}>
                       <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 12 }}>MEETING NOTES</div>
+
+                      {/* Import Summary Button */}
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                        <button
+                          onClick={() => setShowImportSummary(v => !v)}
+                          style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #2a2a4a', background: 'transparent', color: '#6366f1', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                        >
+                          ✦ Import Meeting Summary
+                        </button>
+                      </div>
+
+                      {/* Import Summary Panel */}
+                      {showImportSummary && (
+                        <div style={{ background: '#0a0a14', border: '1px solid #2a2a4a', borderRadius: 8, padding: 14, marginBottom: 12 }}>
+                          <div style={{ fontSize: 11, color: '#8888aa', marginBottom: 8 }}>Paste your meeting summary from Fireflies, Otter, or your own notes — Claude will structure it.</div>
+                          <textarea
+                            value={importSummaryText}
+                            onChange={e => setImportSummaryText(e.target.value)}
+                            placeholder="Paste meeting summary here..."
+                            style={{ width: '100%', minHeight: 100, background: '#13131f', border: '1px solid #2a2a4a', borderRadius: 6, color: '#c0c0e0', fontSize: 12, padding: '10px 12px', resize: 'vertical', outline: 'none', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box' }}
+                          />
+                          <button
+                            onClick={async () => {
+                              if (!importSummaryText.trim()) return
+                              setImportingNote(true)
+                              try {
+                                const token = await getToken().catch(() => null)
+                                const headers = token ? { Authorization: `Bearer ${token}` } : {}
+                                const res = await axios.post(`${API}/startups/${s.id}/import-meeting`, { summary: importSummaryText }, { headers })
+                                const structured = res.data.note
+                                const note = { note: structured, created_at: new Date().toISOString(), source: 'import' }
+                                const updated = [note, ...(Array.isArray(meetingNotes) ? meetingNotes : [])]
+                                setMeetingNotes(updated)
+                                await axios.patch(`${API}/startups/${s.id}`, { meeting_notes: updated }, { headers })
+                                setImportSummaryText('')
+                                setShowImportSummary(false)
+                              } catch(e) { console.error(e) }
+                              setImportingNote(false)
+                            }}
+                            disabled={importingNote}
+                            style={{ marginTop: 8, padding: '7px 14px', borderRadius: 6, border: 'none', background: '#4f46e5', color: '#fff', fontSize: 12, fontWeight: 600, cursor: importingNote ? 'not-allowed' : 'pointer', opacity: importingNote ? 0.6 : 1 }}
+                          >
+                            {importingNote ? 'Processing...' : 'Structure with Claude'}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Manual Note Input */}
                       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                         <textarea
                           value={newNote}
                           onChange={e => setNewNote(e.target.value)}
                           placeholder="Add a note from your call, meeting, or research..."
-                          style={{
-                            flex: 1, minHeight: 72, background: '#0a0a14', border: '1px solid #2a2a4a',
-                            borderRadius: 8, color: '#c0c0e0', fontSize: 12, padding: '10px 12px',
-                            resize: 'none', outline: 'none', fontFamily: 'Inter, sans-serif'
-                          }}
+                          style={{ flex: 1, minHeight: 72, background: '#0a0a14', border: '1px solid #2a2a4a', borderRadius: 8, color: '#c0c0e0', fontSize: 12, padding: '10px 12px', resize: 'none', outline: 'none', fontFamily: 'Inter, sans-serif' }}
                         />
                         <button
                           onClick={() => {
@@ -942,59 +994,192 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                               return axios.patch(`${API}/startups/${s.id}`, { meeting_notes: updated }, { headers })
                             }).catch(() => {})
                           }}
-                          style={{
-                            padding: '8px 16px', borderRadius: 8, border: 'none',
-                            background: '#4f46e5', color: '#fff', fontSize: 12, fontWeight: 600,
-                            cursor: 'pointer', alignSelf: 'flex-end'
-                          }}
+                          style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#4f46e5', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', alignSelf: 'flex-end' }}
                         >
                           Add
                         </button>
                       </div>
+
+                      {/* Notes List */}
                       {(!meetingNotes || meetingNotes.length === 0) ? (
                         <div style={{ fontSize: 12, color: '#555577' }}>No notes yet — add your first note above</div>
                       ) : meetingNotes.map((n, i) => (
-                        <div key={i} style={{ background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8, padding: '12px 14px', marginBottom: 8 }}>
-                          <div style={{ fontSize: 13, color: '#c0c0e0', lineHeight: 1.6, marginBottom: 6 }}>{n.note}</div>
-                          <div style={{ fontSize: 10, color: '#3a3a5a' }}>
-                            {n.created_at ? new Date(n.created_at).toLocaleDateString('en-US', {
-                              month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                            }) : ''}
+                        <div key={i} style={{ background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8, padding: '12px 14px', marginBottom: 8, position: 'relative' }}>
+                          {n.source === 'import' && (
+                            <div style={{ fontSize: 10, color: '#6366f1', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>✦ Imported</div>
+                          )}
+                          <div style={{ fontSize: 13, color: '#c0c0e0', lineHeight: 1.6, marginBottom: 6, whiteSpace: 'pre-wrap' }}>{n.note}</div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ fontSize: 10, color: '#3a3a5a' }}>
+                              {n.created_at ? new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                            </div>
+                            <button
+                              onClick={() => {
+                                const updated = meetingNotes.filter((_, idx) => idx !== i)
+                                setMeetingNotes(updated)
+                                getToken().catch(() => null).then(token => {
+                                  const headers = token ? { Authorization: `Bearer ${token}` } : {}
+                                  return axios.patch(`${API}/startups/${s.id}`, { meeting_notes: updated }, { headers })
+                                }).catch(() => {})
+                              }}
+                              style={{ background: 'transparent', border: 'none', color: '#3a3a5a', fontSize: 11, cursor: 'pointer', padding: '2px 6px' }}
+                            >
+                              Delete
+                            </button>
                           </div>
                         </div>
                       ))}
                     </div>
 
-                    <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 12 }}>FOUNDER CONTACTS</div>
-                    {Array.isArray(s.founder_contacts) && s.founder_contacts.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
-                        {s.founder_contacts.map((contact, i) => (
-                          <div key={i} style={{ background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8, padding: '10px 14px' }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: '#f0f0ff' }}>{contact.name}</div>
-                            <div style={{ fontSize: 11, color: '#6b7280' }}>
-                              {contact.role} {contact.email && `· ${contact.email}`}
+                    {/* FOUNDER CONTACTS */}
+                    <div style={{ marginBottom: 28 }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 12 }}>FOUNDER CONTACTS</div>
+                      {Array.isArray(s.founder_contacts) && s.founder_contacts.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                          {s.founder_contacts.map((contact, i) => (
+                            <div key={i} style={{ background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <div>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: '#f0f0ff' }}>{contact.name}</div>
+                                <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>
+                                  {contact.role}{contact.email && ` · ${contact.email}`}{contact.linkedin && ` · `}
+                                  {contact.linkedin && <a href={contact.linkedin} target="_blank" rel="noopener noreferrer" style={{ color: '#6366f1', fontSize: 11 }}>LinkedIn</a>}
+                                </div>
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  const updated = s.founder_contacts.filter((_, idx) => idx !== i)
+                                  const token = await getToken().catch(() => null)
+                                  const headers = token ? { Authorization: `Bearer ${token}` } : {}
+                                  await axios.patch(`${API}/startups/${s.id}`, { founder_contacts: updated }, { headers })
+                                  onUpdate && onUpdate({ ...s, founder_contacts: updated })
+                                }}
+                                style={{ background: 'transparent', border: 'none', color: '#3a3a5a', fontSize: 11, cursor: 'pointer' }}
+                              >Delete</button>
                             </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* Add Contact Form */}
+                      {showAddContact ? (
+                        <div style={{ background: '#0a0a14', border: '1px solid #2a2a4a', borderRadius: 8, padding: 14, marginBottom: 8 }}>
+                          {[['contactName', 'Name *'], ['contactRole', 'Role'], ['contactEmail', 'Email'], ['contactLinkedin', 'LinkedIn URL']].map(([key, placeholder]) => (
+                            <input
+                              key={key}
+                              value={newContact[key] || ''}
+                              onChange={e => setNewContact(v => ({ ...v, [key]: e.target.value }))}
+                              placeholder={placeholder}
+                              style={{ width: '100%', marginBottom: 8, padding: '8px 10px', background: '#13131f', border: '1px solid #2a2a4a', borderRadius: 6, color: '#c0c0e0', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
+                            />
+                          ))}
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                              onClick={async () => {
+                                if (!newContact.contactName?.trim()) return
+                                const contact = { name: newContact.contactName, role: newContact.contactRole, email: newContact.contactEmail, linkedin: newContact.contactLinkedin }
+                                const updated = [...(Array.isArray(s.founder_contacts) ? s.founder_contacts : []), contact]
+                                const token = await getToken().catch(() => null)
+                                const headers = token ? { Authorization: `Bearer ${token}` } : {}
+                                await axios.patch(`${API}/startups/${s.id}`, { founder_contacts: updated }, { headers })
+                                onUpdate && onUpdate({ ...s, founder_contacts: updated })
+                                setNewContact({})
+                                setShowAddContact(false)
+                              }}
+                              style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: '#4f46e5', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                            >Save</button>
+                            <button onClick={() => { setShowAddContact(false); setNewContact({}) }} style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #2a2a4a', background: 'transparent', color: '#8888aa', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 12, color: '#555577', marginBottom: 24 }}>No founder contacts added yet</div>
-                    )}
-                    <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 12 }}>OUTREACH LOG</div>
-                    {Array.isArray(s.outreach_log) && s.outreach_log.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {s.outreach_log.map((entry, i) => (
-                          <div key={i} style={{ background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8, padding: '10px 14px' }}>
-                            <div style={{ fontSize: 12, color: '#c0c0e0', lineHeight: 1.5 }}>{entry.note}</div>
-                            <div style={{ fontSize: 10, color: '#3a3a5a', marginTop: 4 }}>
-                              {entry.logged_at ? new Date(entry.logged_at).toLocaleDateString() : ''}
+                        </div>
+                      ) : (
+                        <button onClick={() => setShowAddContact(true)} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #2a2a4a', background: 'transparent', color: '#6366f1', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                          + Add Contact
+                        </button>
+                      )}
+                    </div>
+
+                    {/* OUTREACH LOG */}
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 12 }}>OUTREACH LOG</div>
+                      {showLogOutreach ? (
+                        <div style={{ background: '#0a0a14', border: '1px solid #2a2a4a', borderRadius: 8, padding: 14, marginBottom: 12 }}>
+                          <select
+                            value={newOutreach.type || 'email'}
+                            onChange={e => setNewOutreach(v => ({ ...v, type: e.target.value }))}
+                            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', background: '#13131f', border: '1px solid #2a2a4a', borderRadius: 6, color: '#c0c0e0', fontSize: 12, outline: 'none' }}
+                          >
+                            {['Email', 'Call', 'Meeting', 'Intro Request', 'LinkedIn', 'Other'].map(t => <option key={t} value={t.toLowerCase()}>{t}</option>)}
+                          </select>
+                          <input
+                            type="date"
+                            value={newOutreach.date || new Date().toISOString().split('T')[0]}
+                            onChange={e => setNewOutreach(v => ({ ...v, date: e.target.value }))}
+                            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', background: '#13131f', border: '1px solid #2a2a4a', borderRadius: 6, color: '#c0c0e0', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
+                          />
+                          <input
+                            value={newOutreach.outcome || ''}
+                            onChange={e => setNewOutreach(v => ({ ...v, outcome: e.target.value }))}
+                            placeholder="Outcome (e.g. No reply, Intro made, Call scheduled)"
+                            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', background: '#13131f', border: '1px solid #2a2a4a', borderRadius: 6, color: '#c0c0e0', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
+                          />
+                          <textarea
+                            value={newOutreach.notes || ''}
+                            onChange={e => setNewOutreach(v => ({ ...v, notes: e.target.value }))}
+                            placeholder="Notes..."
+                            style={{ width: '100%', minHeight: 60, marginBottom: 8, padding: '8px 10px', background: '#13131f', border: '1px solid #2a2a4a', borderRadius: 6, color: '#c0c0e0', fontSize: 12, outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
+                          />
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                              onClick={async () => {
+                                const entry = { type: newOutreach.type || 'email', date: newOutreach.date || new Date().toISOString().split('T')[0], outcome: newOutreach.outcome, notes: newOutreach.notes, logged_at: new Date().toISOString() }
+                                const current = Array.isArray(activityLog) ? activityLog : []
+                                const updated = [entry, ...current]
+                                setActivityLog(updated)
+                                const token = await getToken().catch(() => null)
+                                const headers = token ? { Authorization: `Bearer ${token}` } : {}
+                                await axios.patch(`${API}/startups/${s.id}`, { activity_log: updated }, { headers })
+                                setNewOutreach({})
+                                setShowLogOutreach(false)
+                              }}
+                              style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: '#4f46e5', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                            >Log</button>
+                            <button onClick={() => { setShowLogOutreach(false); setNewOutreach({}) }} style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #2a2a4a', background: 'transparent', color: '#8888aa', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button onClick={() => setShowLogOutreach(true)} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #2a2a4a', background: 'transparent', color: '#6366f1', fontSize: 11, fontWeight: 600, cursor: 'pointer', marginBottom: 12 }}>
+                          + Log Outreach
+                        </button>
+                      )}
+                      {Array.isArray(activityLog) && activityLog.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {activityLog.map((entry, i) => (
+                            <div key={i} style={{ background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8, padding: '10px 14px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                  <span style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', textTransform: 'capitalize' }}>{entry.type}</span>
+                                  {entry.outcome && <span style={{ fontSize: 11, color: '#8888aa' }}>· {entry.outcome}</span>}
+                                </div>
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                  <span style={{ fontSize: 10, color: '#3a3a5a' }}>{entry.date || (entry.logged_at ? new Date(entry.logged_at).toLocaleDateString() : '')}</span>
+                                  <button
+                                    onClick={async () => {
+                                      const updated = activityLog.filter((_, idx) => idx !== i)
+                                      setActivityLog(updated)
+                                      const token = await getToken().catch(() => null)
+                                      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+                                      await axios.patch(`${API}/startups/${s.id}`, { activity_log: updated }, { headers })
+                                    }}
+                                    style={{ background: 'transparent', border: 'none', color: '#3a3a5a', fontSize: 11, cursor: 'pointer' }}
+                                  >Delete</button>
+                                </div>
+                              </div>
+                              {entry.notes && <div style={{ fontSize: 12, color: '#c0c0e0', lineHeight: 1.5 }}>{entry.notes}</div>}
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 12, color: '#555577' }}>No outreach logged yet</div>
-                    )}
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 12, color: '#555577' }}>No outreach logged yet</div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
