@@ -41,6 +41,8 @@ async def get_market_map(request: Request, db: AsyncSession = Depends(get_db)):
     top_match_count = 0
     ai_score_sum = 0
     ai_score_count = 0
+    fit_score_sum = 0
+    fit_score_count = 0
 
     for s in startups:
         # Stage
@@ -74,6 +76,9 @@ async def get_market_map(request: Request, db: AsyncSession = Depends(get_db)):
         if s.ai_score is not None:
             ai_score_sum += s.ai_score
             ai_score_count += 1
+        if s.fit_score is not None:
+            fit_score_sum += s.fit_score
+            fit_score_count += 1
 
     # Build sector data
     stage_data = [{"name": k, "value": v} for k, v in sorted(stage_counts.items(), key=lambda x: -x[1])]
@@ -107,6 +112,7 @@ async def get_market_map(request: Request, db: AsyncSession = Depends(get_db)):
         "this_week": this_week_count,
         "top_match_rate": top_match_rate,
         "avg_ai_score": avg_ai_score,
+        "avg_fit_score": round(fit_score_sum / fit_score_count, 1) if fit_score_count else 0,
         "stage_breakdown": stage_data,
         "sector_breakdown": sector_data,
         "mandate_breakdown": mandate_data,

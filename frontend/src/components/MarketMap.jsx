@@ -120,7 +120,7 @@ function FitBar({ value, maxValue, color, label }) {
   );
 }
 
-export default function MarketMap({ API }) {
+export default function MarketMap({ API, isAiFocused = false }) {
   const { getToken } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -179,7 +179,10 @@ export default function MarketMap({ API }) {
         <StatTile label="Total Companies" value={data.total_companies} />
         <StatTile label="Added This Week" value={data.this_week} accent="#6366f1" />
         <StatTile label="Top Match Rate" value={`${data.top_match_rate}%`} accent="#22c55e" />
-        <StatTile label="Avg AI Score" value={data.avg_ai_score} accent="#f59e0b" />
+        {isAiFocused 
+          ? <StatTile label="Avg AI Score" value={data.avg_ai_score} accent="#f59e0b" />
+          : <StatTile label="Avg Fit Score" value={data.avg_fit_score || "—"} accent="#f59e0b" />
+        }
       </div>
 
       {/* Sector Heatmap */}

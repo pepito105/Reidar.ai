@@ -48,6 +48,14 @@ Example output: ["Health & Wellness", "Consumer Marketplaces", "Digital Commerce
     return []
 
 
+def _detect_ai_focus(thesis: str) -> bool:
+    if not thesis:
+        return False
+    keywords = ["ai", "artificial intelligence", "machine learning", "llm", "large language model", "ml", "deep learning", "neural", "generative ai", "ai-native", "ai native"]
+    thesis_lower = thesis.lower()
+    return any(kw in thesis_lower for kw in keywords)
+
+
 router = APIRouter(prefix="/firm-profile")
 
 class FirmProfileCreate(BaseModel):
@@ -82,6 +90,7 @@ class FirmProfileResponse(BaseModel):
     notify_min_fit_score: Optional[int] = 4
     notification_emails: Optional[str] = None
     mandate_buckets: Optional[List[str]] = []
+    is_ai_focused: Optional[bool] = False
 
     class Config:
         from_attributes = True
@@ -136,11 +145,13 @@ async def create_firm_profile(
             setattr(profile, key, value)
         if data.investment_thesis:
             profile.mandate_buckets = await _generate_mandate_buckets(data.investment_thesis)
+            profile.is_ai_focused = _detect_ai_focus(data.investment_thesis)
         await db.commit()
         await db.refresh(profile)
         return profile
     buckets = await _generate_mandate_buckets(data.investment_thesis or "")
-    profile = FirmProfile(**data.model_dump(), user_id=user_id, mandate_buckets=buckets)
+    ai_focused = _detect_ai_focus(data.investment_thesis or "")
+    profile = FirmProfile(**data.model_dump(), user_id=user_id, mandate_buckets=buckets, is_ai_focused=ai_focused)
     db.add(profile)
     await db.commit()
     await db.refresh(profile)
@@ -167,6 +178,7 @@ async def update_firm_profile(
         setattr(profile, key, value)
     if data.investment_thesis:
         profile.mandate_buckets = await _generate_mandate_buckets(data.investment_thesis)
+        profile.is_ai_focused = _detect_ai_focus(data.investment_thesis)
     await db.commit()
     await db.refresh(profile)
     return profile

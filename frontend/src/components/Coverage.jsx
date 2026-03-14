@@ -116,7 +116,7 @@ function groupBySector(companies) {
   })
 }
 
-export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
+export default function Coverage({ API, selectedCompany, onCompanyViewed, isAiFocused = false }) {
   const { getToken } = useAuth()
   const [startups, setStartups] = useState([])
   const [selected, setSelected] = useState(null)
@@ -279,7 +279,7 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
             </select>
             <select value={filters.sort} onChange={e => setFilters(f => ({ ...f, sort: e.target.value }))} style={selectStyle}>
               <option value="fit_score">Fit Score</option>
-              <option value="ai_score">AI Score</option>
+              {isAiFocused && <option value="ai_score">AI Score</option>}
               <option value="newest">Newest</option>
             </select>
             <button onClick={() => setShowAddModal(true)} style={{
@@ -391,6 +391,7 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
             startup={selected}
             onClose={() => setSelected(null)}
             onUpdate={fetchStartups}
+            isAiFocused={isAiFocused}
           />
         </div>
       )}
@@ -531,7 +532,7 @@ const CompanyCard = forwardRef(function CompanyCard({ startup: s, onClick, isSel
           <span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 10, background: '#1a1a2e', color: '#6b7280', border: '1px solid #2a2a4a' }}>Added by you</span>
         )}
         {s.funding_stage && <Tag>{s.funding_stage}</Tag>}
-        {s.ai_score && <AITag>AI {s.ai_score}/5</AITag>}
+        {isAiFocused && s.ai_score && <AITag>AI {s.ai_score}/5</AITag>}
         {s.has_unseen_signals && (
           <span style={{
             padding: '2px 6px', borderRadius: 4, fontSize: 10,
