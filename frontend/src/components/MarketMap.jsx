@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 
-const API = "http://localhost:8000/api";
-
 const FIT_COLORS = {
   "Score 1": "#4b4b6b",
   "Score 2": "#6b5b8b",
@@ -104,7 +102,7 @@ function Card({ children, style = {} }) {
   );
 }
 
-export default function MarketMap() {
+export default function MarketMap({ API }) {
   const { getToken } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
