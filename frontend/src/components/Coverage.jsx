@@ -116,7 +116,8 @@ function groupBySector(companies) {
   })
 }
 
-export default function Coverage({ API, selectedCompany, onCompanyViewed, isAiFocused = false }) {
+export default function Coverage({ API, selectedCompany, onCompanyViewed, firmProfile }) {
+  const isAiFocused = ['ai', 'artificial intelligence', 'machine learning', 'llm'].some(kw => (firmProfile?.investment_thesis || '').toLowerCase().includes(kw))
   const { getToken } = useAuth()
   const [startups, setStartups] = useState([])
   const [selected, setSelected] = useState(null)
@@ -391,7 +392,7 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed, isAiFo
             startup={selected}
             onClose={() => setSelected(null)}
             onUpdate={fetchStartups}
-            isAiFocused={isAiFocused}
+            firmProfile={firmProfile}
           />
         </div>
       )}

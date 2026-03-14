@@ -42,7 +42,8 @@ function FitReasoningBullets({ text }) {
   )
 }
 
-export default function CompanyDetail({ API, startup: s, onClose, onUpdate, isAiFocused = false }) {
+export default function CompanyDetail({ API, startup: s, onClose, onUpdate, firmProfile }) {
+  const isAiFocused = ['ai', 'artificial intelligence', 'machine learning', 'llm'].some(kw => (firmProfile?.investment_thesis || '').toLowerCase().includes(kw))
   const { getToken } = useAuth()
   const [notes, setNotes] = useState(s.notes || '')
   const [pipelineStatus, setPipelineStatus] = useState(s.pipeline_status || 'new')

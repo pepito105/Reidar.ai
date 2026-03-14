@@ -120,7 +120,8 @@ function FitBar({ value, maxValue, color, label }) {
   );
 }
 
-export default function MarketMap({ API, isAiFocused = false }) {
+export default function MarketMap({ API, firmProfile }) {
+  const isAiFocused = ['ai', 'artificial intelligence', 'machine learning', 'llm'].some(kw => (firmProfile?.investment_thesis || '').toLowerCase().includes(kw))
   const { getToken } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);

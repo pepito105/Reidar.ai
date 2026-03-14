@@ -133,11 +133,11 @@ export default function App() {
             API={API}
             selectedCompany={selectedCompany}
             onCompanyViewed={() => setSelectedCompany(null)}
-            isAiFocused={firmProfile?.is_ai_focused}
+            firmProfile={firmProfile}
           />
         )}
         {screen === 'pipeline' && <Pipeline API={API} />}
-        {screen === 'marketmap' && <MarketMap API={API} isAiFocused={firmProfile?.is_ai_focused} />}
+        {screen === 'marketmap' && <MarketMap API={API} firmProfile={firmProfile} />}
         {screen === 'portfolio' && <Portfolio API={API} />}
       </main>
 
