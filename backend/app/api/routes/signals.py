@@ -591,9 +591,16 @@ import asyncio
 from fastapi.responses import StreamingResponse
 
 @router.get("/sourcing/stream")
-async def sourcing_stream(request: Request, db: AsyncSession = Depends(get_db)):
+async def sourcing_stream(request: Request, db: AsyncSession = Depends(get_db), token: Optional[str] = None):
     """SSE endpoint that streams sourcing progress events."""
     user_id = _user_id_from_request(request)
+    if not user_id and token:
+        try:
+            import jwt
+            decoded = jwt.decode(token, options={"verify_signature": False}, algorithms=["RS256", "HS256"])
+            user_id = decoded.get("sub")
+        except Exception:
+            pass
     queue = asyncio.Queue()
 
     async def event_generator():
@@ -603,7 +610,12 @@ async def sourcing_stream(request: Request, db: AsyncSession = Depends(get_db)):
 
         async def run_sourcing_with_events():
             try:
-                profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
+                if user_id:
+                    profile_result = await db.execute(
+                        select(FirmProfile).where(FirmProfile.is_active == True).where(FirmProfile.user_id == user_id)
+                    )
+                else:
+                    profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
                 profile = profile_result.scalar_one_or_none()
                 if not profile:
                     await emit("error", "No firm profile configured")
@@ -614,7 +626,7 @@ async def sourcing_stream(request: Request, db: AsyncSession = Depends(get_db)):
                 await asyncio.sleep(0.5)
 
                 from app.services.sourcing_service import generate_search_queries, search_and_extract_companies, is_duplicate
-                from app.services.classifier import classify_startup
+                from app.services.classifier import classify_startup, classify_batch
                 from app.models.startup import Startup
                 from datetime import datetime
 
@@ -630,47 +642,73 @@ async def sourcing_stream(request: Request, db: AsyncSession = Depends(get_db)):
                     new = []
                     for c in companies:
                         name = c.get("name", "").strip()
-                        if name and name.lower() not in seen_names:
+                        if name and name.lower() not in seen_names and len(all_companies) < 20:
                             seen_names.add(name.lower())
                             all_companies.append(c)
                             new.append(c)
                     await emit("found", f"Found {len(new)} candidates from this search", {"count": len(new)})
                     if i < len(queries) - 1:
-                        await emit("waiting", "Pausing to respect rate limits...")
-                        await asyncio.sleep(30)
+                        await emit("waiting", "Pausing between searches...")
+                        await asyncio.sleep(5)
 
-                await emit("scoring", f"Evaluating {len(all_companies)} companies against your thesis...")
-
-                added = 0
-                skipped = 0
-
+                # Deduplicate against DB
+                new_companies = []
                 for company in all_companies:
                     name = company.get("name")
                     website = company.get("website")
                     if not name:
-                        skipped += 1
                         continue
-                    if await is_duplicate(website, name, db):
-                        await emit("skip", f"Already in database: {name}", {"name": name})
-                        skipped += 1
+                    if await is_duplicate(website, name, db, user_id=user_id):
                         continue
+                    new_companies.append(company)
+
+                if not new_companies:
+                    await emit("complete", "No new companies found this session", {"added": 0, "skipped": len(all_companies)})
+                    await queue.put(None)
+                    return
+
+                # Split: classify top 8 immediately, save rest as background
+                immediate = new_companies[:8]
+                background = new_companies[8:]
+
+                await emit("scoring", f"Evaluating {len(immediate)} companies against your thesis...")
+
+                # Save and classify immediate batch
+                added = 0
+                immediate_startups = []
+                for company in immediate:
+                    name = company.get("name")
+                    website = company.get("website")
                     try:
                         startup = Startup(
                             name=name, website=website,
                             one_liner=company.get("one_liner"),
                             funding_stage=company.get("funding_stage", "unknown"),
-                            sector=company.get("sector"), source="autonomous_sourcing",
-                            source_url=website, scraped_at=datetime.utcnow(),
+                            sector=company.get("sector"),
+                            source="autonomous_sourcing",
+                            source_url=website,
+                            scraped_at=datetime.utcnow(),
                             user_id=user_id,
                         )
                         db.add(startup)
                         await db.flush()
-                        result = await classify_startup(
-                            name=startup.name,
-                            description=startup.one_liner or startup.name,
-                            website=startup.website,
-                            source="autonomous_sourcing", firm=profile,
-                        )
+                        immediate_startups.append((startup, company.get("one_liner") or name))
+                    except Exception as e:
+                        print(f"Failed to save {name}: {e}")
+                        await db.rollback()
+
+                await db.commit()
+
+                # Classify immediate batch
+                companies_input = [
+                    {"id": s.id, "name": s.name, "description": desc, "website": s.website, "source": s.source}
+                    for s, desc in immediate_startups
+                ]
+                try:
+                    results = await classify_batch(companies_input, profile)
+                    result_map = {r.get("id"): r for r in results if r.get("id")}
+                    for startup, _ in immediate_startups:
+                        result = result_map.get(startup.id)
                         if result:
                             startup.one_liner = (result.get("one_liner") or startup.one_liner or "")[:499]
                             startup.ai_summary = (result.get("ai_summary") or "")[:2000]
@@ -687,15 +725,35 @@ async def sourcing_stream(request: Request, db: AsyncSession = Depends(get_db)):
                                 startup.funding_stage = (result["funding_stage"] or "")[:49]
                             fit = result.get("fit_score", 0) or 0
                             fit_label = "Top Match" if fit >= 5 else "Strong Fit" if fit >= 4 else "Possible Fit" if fit >= 3 else "Low Fit"
-                            await emit("added", f"✓ {name} — {fit_label} ({fit}/5)", {"name": name, "fit_score": fit, "fit_label": fit_label})
-                        added += 1
-                    except Exception as e:
-                        print(f"Failed to add {name}: {e}")
-                        await db.rollback()
-                        continue
+                            await emit("added", f"✓ {startup.name} — {fit_label} ({fit}/5)", {"name": startup.name, "fit_score": fit, "fit_label": fit_label})
+                            added += 1
+                    await db.commit()
+                except Exception as e:
+                    print(f"Batch classification error: {e}")
 
-                await db.commit()
-                await emit("complete", f"Done — {added} companies added to your feed", {"added": added, "skipped": skipped})
+                # Save background companies without classification
+                if background:
+                    for company in background:
+                        name = company.get("name")
+                        website = company.get("website")
+                        try:
+                            startup = Startup(
+                                name=name, website=website,
+                                one_liner=company.get("one_liner"),
+                                funding_stage=company.get("funding_stage", "unknown"),
+                                sector=company.get("sector"),
+                                source="autonomous_sourcing",
+                                source_url=website,
+                                scraped_at=datetime.utcnow(),
+                                user_id=user_id,
+                            )
+                            db.add(startup)
+                        except Exception as e:
+                            print(f"Failed to save background company {name}: {e}")
+                    await db.commit()
+                    await emit("background", f"{len(background)} more companies are being analyzed in the background", {"count": len(background)})
+
+                await emit("complete", f"Done — {added} companies ready in your feed", {"added": added, "skipped": len(all_companies) - len(new_companies), "background": len(background)})
                 await queue.put(None)
 
             except Exception as e:

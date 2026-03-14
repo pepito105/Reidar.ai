@@ -16,23 +16,33 @@ client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
 
 async def generate_search_queries(thesis: str, firm_name: str, custom_brief: str = None) -> List[str]:
-    prompt = f"""You are a VC analyst generating Google search queries to find early-stage startups.
+    prompt = f"""You are a VC analyst generating search queries to find real early-stage startups.
 
 FIRM: {firm_name}
 INVESTMENT THESIS: {thesis}
 {f'CUSTOM SEARCH BRIEF: {custom_brief}' if custom_brief else ''}
 
-Generate 3 search queries that will find real startup websites and coverage.
-Queries should sound like natural Google searches, not VC jargon.
-Use terms startups actually use to describe themselves. Always use 2025 or 2026 as the year, never older years.
-Mix query styles: one broad category search, one problem-focused, one recent funding angle.
+Generate exactly 3 search queries to find startups that match this thesis.
 
-Examples of good queries:
-- "AI software for healthcare compliance startups 2026"
-- "startup automating legal document review"
-- "seed stage AI company insurance underwriting 2026"
+Rules:
+- Be highly specific to the thesis — target the exact verticals, problems, and customer types mentioned
+- Use language founders actually use to describe their product, not investor jargon
+- Each query should target a different angle: (1) product category, (2) problem being solved, (3) recent funding/launch
+- Always include 2025 or 2026 in at least one query
+- Never use words like "best", "top", "leading", "innovative"
+- Queries should find startup websites and founder coverage, not news articles or directories
 
-Return ONLY a valid JSON array of 3 strings, nothing else.
+Good examples for a legal AI thesis:
+- "AI contract review software law firms seed 2025"
+- "startup automating legal due diligence founders"
+- "LegalTech AI compliance automation funding 2026"
+
+Bad examples (too generic):
+- "AI startup 2025"
+- "best legal technology companies"
+- "top AI software startups"
+
+Return ONLY a valid JSON array of exactly 3 strings, nothing else.
 Example: ["query one", "query two", "query three"]"""
 
     try:
@@ -42,7 +52,6 @@ Example: ["query one", "query two", "query three"]"""
             messages=[{"role": "user", "content": prompt}]
         )
         raw = response.content[0].text.strip()
-        # Strip markdown code blocks if present
         raw = re.sub(r'^```(?:json)?\s*', '', raw)
         raw = re.sub(r'\s*```$', '', raw)
         queries = json.loads(raw.strip())
@@ -124,7 +133,7 @@ Example of valid response:
         return []
 
 
-async def is_duplicate(website: str, name: str, db: AsyncSession) -> bool:
+async def is_duplicate(website: str, name: str, db: AsyncSession, user_id: Optional[str] = None) -> bool:
     def normalize(s):
         if not s:
             return ""
@@ -133,14 +142,17 @@ async def is_duplicate(website: str, name: str, db: AsyncSession) -> bool:
         s = re.sub(r'\s+', ' ', s).strip()
         return s
 
+    base = select(Startup)
+    if user_id is not None:
+        base = base.where(Startup.user_id == user_id)
+
     if website:
         try:
             from urllib.parse import urlparse
             domain = urlparse(website).netloc.replace('www.', '')
             if domain:
-                result = await db.execute(
-                    select(Startup).where(Startup.website.ilike(f"%{domain}%")).limit(1)
-                )
+                q = base.where(Startup.website.ilike(f"%{domain}%")).limit(1)
+                result = await db.execute(q)
                 if result.scalar_one_or_none():
                     return True
         except Exception:
@@ -150,7 +162,7 @@ async def is_duplicate(website: str, name: str, db: AsyncSession) -> bool:
         norm_name = normalize(name)
         if len(norm_name) < 3:
             return False
-        result = await db.execute(select(Startup))
+        result = await db.execute(base)
         all_companies = result.scalars().all()
         for company in all_companies:
             if company.name and normalize(company.name) == norm_name:

@@ -329,12 +329,14 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
     return '#8888aa'
   }
 
-  const runSourcing = () => {
+  const runSourcing = async () => {
     setSourcing(true)
     setSourcingComplete(false)
     setSourcingError(null)
     setActivityFeed([])
-    const eventSource = new EventSource(`${API}/signals/sourcing/stream`)
+    const token = await getToken().catch(() => null)
+    const url = token ? `${API}/signals/sourcing/stream?token=${token}` : `${API}/signals/sourcing/stream`
+    const eventSource = new EventSource(url)
     eventSourceRef.current = eventSource
     eventSource.onmessage = (e) => {
       if (cancelledRef.current) return
