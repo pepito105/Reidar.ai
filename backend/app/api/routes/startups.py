@@ -161,7 +161,7 @@ async def get_startups(
     if min_fit_score is not None and min_fit_score == 0:
         query = query.where(or_(Startup.fit_score.is_(None), Startup.fit_score >= threshold))
     else:
-        query = query.where(Startup.fit_score >= threshold)
+        query = query.where(or_(Startup.source == 'manual', Startup.fit_score >= threshold))
     if stage:
         query = query.where(Startup.funding_stage == stage)
     if sector:
@@ -209,7 +209,7 @@ async def add_company(data: AddCompanyRequest, request: Request, db: AsyncSessio
     import re as _re, datetime as _dt
 
     user_id = _user_id_from_request(request)
-    firm_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True).limit(1))
+    firm_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True).where(FirmProfile.user_id == user_id).limit(1))
     firm = firm_result.scalar_one_or_none()
 
     slug = _re.sub(r"[^a-z0-9]+", "-", data.name.lower()).strip("-")
