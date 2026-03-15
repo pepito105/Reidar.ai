@@ -390,8 +390,11 @@ async def analyze_startup(startup_id: int, request: Request, db: AsyncSession = 
         startup.mandate_category = (result.get("mandate_category") or "")[:99]
         startup.thesis_tags = result.get("thesis_tags", [])
         startup.recommended_next_step = (result.get("recommended_next_step") or "")[:499]
-        startup.key_risks = result.get("key_risks")
-        startup.bull_case = result.get("bull_case")
+        import json
+        key_risks = result.get("key_risks")
+        startup.key_risks = json.dumps(key_risks) if isinstance(key_risks, list) else (key_risks or None)
+        bull_case = result.get("bull_case")
+        startup.bull_case = json.dumps(bull_case) if isinstance(bull_case, list) else (bull_case or None)
         startup.comparable_companies = result.get("comparable_companies", [])
         if (startup.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):
             startup.funding_stage = result["funding_stage"][:49]
