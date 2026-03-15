@@ -391,7 +391,6 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
             onClose={() => setSelected(null)}
             onUpdate={(updatedCompany) => {
               setSelected(updatedCompany)
-              fetchStartups()
             }}
           />
         </div>
