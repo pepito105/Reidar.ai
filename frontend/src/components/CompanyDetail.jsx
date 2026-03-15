@@ -425,7 +425,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
           </div>
         )}
 
-        {startup.research_status === 'failed' && (
+        {false && startup.research_status === 'failed' && (
           <div style={{
             background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8,
             padding: '14px 16px', marginBottom: 24,
@@ -882,7 +882,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                       </div>
                     )}
 
-                    {startup.research_status === 'failed' && (
+                    {false && startup.research_status === 'failed' && (
                       <div style={{
                         background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8,
                         padding: '16px', display: 'flex', alignItems: 'center', gap: 10

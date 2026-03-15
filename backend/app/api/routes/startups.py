@@ -362,7 +362,7 @@ async def analyze_startup(startup_id: int, request: Request, db: AsyncSession = 
     startup = startup_result.scalar_one_or_none()
     if not startup:
         raise HTTPException(status_code=404, detail="Startup not found")
-    if startup.fit_score is not None:
+    if startup.fit_reasoning is not None:
         return _startup_to_card(startup)
     firm_result = await db.execute(
         select(FirmProfile).where(FirmProfile.is_active == True).where(FirmProfile.user_id == user_id)
