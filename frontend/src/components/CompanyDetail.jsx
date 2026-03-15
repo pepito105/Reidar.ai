@@ -309,24 +309,12 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
 
         <Divider />
 
-        {startup.fit_score == null ? (
-          <div style={{ padding: '24px 0' }}>
-            {analyzing ? (
+        {!startup.fit_reasoning ? (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6366f1', animation: 'pulse 1.5s infinite' }} />
-                  <span style={{ fontSize: 14, color: '#8888aa' }}>Research agents are working...</span>
-                </div>
-                <div style={{ height: 4, background: '#1a1a2e', borderRadius: 4, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: '60%', background: 'linear-gradient(90deg, #6366f1, #8b5cf6)', borderRadius: 4, animation: 'slide 1.8s ease-in-out infinite' }} />
-                </div>
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
-                <div style={{ fontSize: 16, fontWeight: 600, color: '#f0f0ff', marginBottom: 8 }}>Not yet analyzed</div>
-                <div style={{ fontSize: 13, color: '#6b6b8a', marginBottom: 20, lineHeight: 1.5 }}>
-                  Run AI research agents on this company — thesis fit scoring, investment reasoning, comparable companies, key risks, and a recommended next step.
+                <div style={{ fontSize: 13, color: '#6b6b8a', marginBottom: 12, lineHeight: 1.6 }}>
+                  Deploy research agents to unlock a full investment analysis of this company.
                 </div>
                 <button
                   onClick={async () => {
@@ -343,16 +331,48 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                     setAnalyzing(false)
                   }}
                   style={{
-                    padding: '12px 28px', borderRadius: 8, border: 'none',
-                    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                    color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                    letterSpacing: '-0.2px'
+                    padding: '10px 20px', borderRadius: 8, border: 'none',
+                    background: analyzing ? '#1e1b4b' : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                    color: '#fff', fontSize: 13, fontWeight: 700, cursor: analyzing ? 'default' : 'pointer',
                   }}
+                  disabled={analyzing}
                 >
-                  ⚡ Deploy Research Agents
+                  {analyzing ? '⏳ Research agents working...' : '⚡ Deploy Research Agents'}
                 </button>
               </div>
-            )}
+            </div>
+
+            {/* Preview of what gets unlocked */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, opacity: 0.35, pointerEvents: 'none', userSelect: 'none' }}>
+              <div style={{ background: '#0d0d18', border: '1px solid #1e1e30', borderRadius: 8, padding: '14px 16px' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#6366f1', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Thesis Fit Reasoning</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {[90, 75, 85].map((w, i) => (
+                    <div key={i} style={{ height: 10, background: '#2a2a4a', borderRadius: 4, width: `${w}%` }} />
+                  ))}
+                </div>
+              </div>
+              <div style={{ background: '#0d0d18', border: '1px solid #1e1e30', borderRadius: 8, padding: '14px 16px' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#34d399', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Recommended Next Step</div>
+                <div style={{ height: 10, background: '#2a2a4a', borderRadius: 4, width: '80%' }} />
+              </div>
+              <div style={{ background: '#0d0d18', border: '1px solid #1e1e30', borderRadius: 8, padding: '14px 16px' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Comparable Companies</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {[60, 70].map((w, i) => (
+                    <div key={i} style={{ height: 10, background: '#2a2a4a', borderRadius: 4, width: `${w}%` }} />
+                  ))}
+                </div>
+              </div>
+              <div style={{ background: '#0d0d18', border: '1px solid #1e1e30', borderRadius: 8, padding: '14px 16px' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Key Risks</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {[80, 65].map((w, i) => (
+                    <div key={i} style={{ height: 10, background: '#2a2a4a', borderRadius: 4, width: `${w}%` }} />
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
           <div>
@@ -364,7 +384,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
             <div style={{ height: 6, background: '#1a1a2e', borderRadius: 3, marginBottom: 16, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${(startup.fit_score / 5) * 100}%`, background: badge.color, borderRadius: 3 }} />
             </div>
-            <FitReasoningBullets text={startup.fit_reasoning} />
+            {startup.fit_reasoning && <FitReasoningBullets text={startup.fit_reasoning} />}
             {startup.recommended_next_step && (
               <div style={{ background: '#0d1a0d', border: '1px solid #1a3a1a', borderRadius: 10, padding: '16px 18px', marginTop: 16 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#34d399', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Recommended Next Step</div>
@@ -608,7 +628,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                   <div style={{ height: 4, background: '#1e1e2e', borderRadius: 2, marginBottom: 12 }}>
                     <div style={{ height: '100%', width: `${startup.fit_score != null ? (startup.fit_score / 5) * 100 : 0}%`, background: badge.color, borderRadius: 2 }} />
                   </div>
-                  <FitReasoningBullets text={startup.fit_reasoning} />
+                  {startup.fit_reasoning && <FitReasoningBullets text={startup.fit_reasoning} />}
                 </div>
 
                 <div>
