@@ -64,8 +64,9 @@ const InfoItem = ({ label, value }) => (
 
 export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
   const { getToken } = useAuth()
-  const [notes, setNotes] = useState(startup.notes || '')
-  const [pipelineStatus, setPipelineStatus] = useState(startup.pipeline_status || 'new')
+  const [startup, setStartup] = useState(s)
+  const [notes, setNotes] = useState(s.notes || '')
+  const [pipelineStatus, setPipelineStatus] = useState(s.pipeline_status || 'new')
   const [signals, setSignals] = useState([])
   const [expanded, setExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
@@ -93,7 +94,6 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
   const [showLogOutreach, setShowLogOutreach] = useState(false)
   const [newOutreach, setNewOutreach] = useState({})
   const [analyzing, setAnalyzing] = useState(false)
-  const [startup, setStartup] = useState(s)
 
   const badge = startup.fit_score != null ? (FIT_BADGES[startup.fit_score] || FIT_BADGES[2]) : { label: 'Pending', color: '#555577', bg: '#1a1a2e' }
 
