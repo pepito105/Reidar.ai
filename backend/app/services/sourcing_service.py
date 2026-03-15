@@ -235,28 +235,6 @@ async def run_autonomous_sourcing(db: AsyncSession, custom_brief: str = None, li
             )
             db.add(startup)
             await db.flush()
-
-            from app.services.classifier import classify_startup
-            result = await classify_startup(
-                name=startup.name,
-                description=startup.one_liner or startup.name,
-                website=startup.website,
-                source=startup.source or "autonomous_sourcing",
-                firm=profile,
-            )
-            if result:
-                startup.one_liner = (result.get("one_liner") or startup.one_liner or "")[:499]
-                startup.ai_summary = (result.get("ai_summary") or "")[:2000]
-                startup.ai_score = result.get("ai_score")
-                startup.fit_score = result.get("fit_score")
-                startup.fit_reasoning = (result.get("fit_reasoning") or "")[:1000]
-                startup.business_model = (result.get("business_model") or "")[:99]
-                startup.target_customer = (result.get("target_customer") or "")[:199]
-                startup.sector = (result.get("sector") or startup.sector or "")[:99]
-                startup.thesis_tags = result.get("thesis_tags", [])
-                startup.recommended_next_step = (result.get("recommended_next_step") or "")[:499]
-                if (startup.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):
-                    startup.funding_stage = (result["funding_stage"] or "")[:49]
             added += 1
         except Exception as e:
             logger.error(f"Failed to add {name}: {e}")
@@ -264,6 +242,43 @@ async def run_autonomous_sourcing(db: AsyncSession, custom_brief: str = None, li
             continue
 
     await db.commit()
+
+    # Fast batch scoring — fit_score only, no deep analysis
+    from app.services.classifier import classify_batch
+    from sqlalchemy import select as sa_select
+    unscored_result = await db.execute(
+        sa_select(Startup).where(
+            Startup.user_id == user_id,
+            Startup.source == "autonomous_sourcing",
+            Startup.fit_score == None
+        )
+    )
+    unscored = unscored_result.scalars().all()
+    if unscored:
+        companies_input = [
+            {"id": s.id, "name": s.name, "description": s.one_liner or s.name, "website": s.website, "source": s.source}
+            for s in unscored
+        ]
+        try:
+            results = await classify_batch(companies_input, profile)
+            result_map = {r.get("id"): r for r in results if r.get("id")}
+            for startup in unscored:
+                result = result_map.get(startup.id)
+                if result:
+                    startup.one_liner = (result.get("one_liner") or startup.one_liner or "")[:499]
+                    startup.ai_score = result.get("ai_score")
+                    startup.fit_score = result.get("fit_score")
+                    startup.sector = (result.get("sector") or startup.sector or "")[:99]
+                    startup.mandate_category = (result.get("mandate_category") or "")[:99]
+                    startup.thesis_tags = result.get("thesis_tags", [])
+                    startup.business_model = (result.get("business_model") or "")[:499]
+                    startup.target_customer = (result.get("target_customer") or "")[:499]
+                    if (startup.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):
+                        startup.funding_stage = result["funding_stage"][:49]
+            await db.commit()
+        except Exception as e:
+            logger.error(f"Batch classification failed in nightly sourcing: {e}")
+
     logger.info(f"Sourcing complete: {added} added, {skipped} skipped")
 
     return {
