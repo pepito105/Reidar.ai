@@ -309,27 +309,70 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
 
         <Divider />
 
-        {analyzing && (
+        {startup.fit_score == null ? (
           <div style={{ padding: '24px 0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6366f1', animation: 'pulse 1.5s infinite' }} />
-              <span style={{ fontSize: 14, color: '#8888aa' }}>Analyzing this company against your mandate...</span>
+            {analyzing ? (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6366f1', animation: 'pulse 1.5s infinite' }} />
+                  <span style={{ fontSize: 14, color: '#8888aa' }}>Research agents are working...</span>
+                </div>
+                <div style={{ height: 4, background: '#1a1a2e', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: '60%', background: 'linear-gradient(90deg, #6366f1, #8b5cf6)', borderRadius: 4, animation: 'slide 1.8s ease-in-out infinite' }} />
+                </div>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: '#f0f0ff', marginBottom: 8 }}>Not yet analyzed</div>
+                <div style={{ fontSize: 13, color: '#6b6b8a', marginBottom: 20, lineHeight: 1.5 }}>
+                  Run AI research agents on this company — thesis fit scoring, investment reasoning, comparable companies, key risks, and a recommended next step.
+                </div>
+                <button
+                  onClick={async () => {
+                    setAnalyzing(true)
+                    try {
+                      const token = await getToken().catch(() => null)
+                      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+                      const res = await axios.post(`${API}/startups/${startup.id}/analyze`, {}, { headers })
+                      setStartup(res.data)
+                      onUpdate && onUpdate(res.data)
+                    } catch(e) {
+                      console.error('Analysis failed:', e)
+                    }
+                    setAnalyzing(false)
+                  }}
+                  style={{
+                    padding: '12px 28px', borderRadius: 8, border: 'none',
+                    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                    color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                    letterSpacing: '-0.2px'
+                  }}
+                >
+                  ⚡ Deploy Research Agents
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#6366f1', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12 }}>Thesis Fit</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+              <div style={{ fontSize: 36, fontWeight: 700, color: badge.color, lineHeight: 1 }}>{startup.fit_score}/5</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: badge.color }}>{badge.label}</div>
             </div>
-            <div style={{ height: 4, background: '#1a1a2e', borderRadius: 4, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: '60%', background: 'linear-gradient(90deg, #6366f1, #8b5cf6)', borderRadius: 4, animation: 'slide 1.8s ease-in-out infinite' }} />
+            <div style={{ height: 6, background: '#1a1a2e', borderRadius: 3, marginBottom: 16, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${(startup.fit_score / 5) * 100}%`, background: badge.color, borderRadius: 3 }} />
             </div>
+            <FitReasoningBullets text={startup.fit_reasoning} />
+            {startup.recommended_next_step && (
+              <div style={{ background: '#0d1a0d', border: '1px solid #1a3a1a', borderRadius: 10, padding: '16px 18px', marginTop: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#34d399', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Recommended Next Step</div>
+                <div style={{ fontSize: 14, color: '#e0e0f0', lineHeight: 1.6 }}>{startup.recommended_next_step}</div>
+              </div>
+            )}
           </div>
         )}
-
-        <Section title="Thesis Fit" accent="#6366f1">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <div style={{ fontSize: 24, fontWeight: 700, color: badge.color }}>{startup.fit_score != null ? `${startup.fit_score}/5` : '—/5'}</div>
-          <div style={{ flex: 1, height: 6, background: '#1e1e2e', borderRadius: 3, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${startup.fit_score != null ? (startup.fit_score / 5) * 100 : 0}%`, background: badge.color, borderRadius: 3 }} />
-          </div>
-        </div>
-        <FitReasoningBullets text={startup.fit_reasoning} />
-        </Section>
 
       <Divider />
 
