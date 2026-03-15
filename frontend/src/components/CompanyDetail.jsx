@@ -42,6 +42,26 @@ function FitReasoningBullets({ text }) {
   )
 }
 
+const Section = ({ title, children, accent = '#3730a3' }) => (
+  <div style={{ marginBottom: 20 }}>
+    <div style={{ fontSize: 11, fontWeight: 700, color: accent, letterSpacing: '0.8px', marginBottom: 10 }}>{title.toUpperCase()}</div>
+    {children}
+  </div>
+)
+
+const Divider = () => <div style={{ height: 1, background: '#1e1e2e', margin: '16px 0' }} />
+
+const Tag = ({ children }) => (
+  <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 11, background: '#1a1a2e', color: '#6b7280', border: '1px solid #2a2a4a' }}>{children}</span>
+)
+
+const InfoItem = ({ label, value }) => (
+  <div style={{ padding: '8px 10px', background: '#0f0f1a', borderRadius: 6, border: '1px solid #1e1e2e' }}>
+    <div style={{ fontSize: 10, color: '#555577', fontWeight: 600, marginBottom: 3 }}>{label.toUpperCase()}</div>
+    <div style={{ fontSize: 13, color: '#c0c0e0' }}>{value}</div>
+  </div>
+)
+
 export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
   const { getToken } = useAuth()
   const [notes, setNotes] = useState(startup.notes || '')
@@ -1239,23 +1259,3 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
     </>
   )
 }
-
-const Section = ({ title, children, accent = '#3730a3' }) => (
-  <div style={{ marginBottom: 20 }}>
-    <div style={{ fontSize: 11, fontWeight: 700, color: accent, letterSpacing: '0.8px', marginBottom: 10 }}>{title.toUpperCase()}</div>
-    {children}
-  </div>
-)
-
-const Divider = () => <div style={{ height: 1, background: '#1e1e2e', margin: '16px 0' }} />
-
-const Tag = ({ children }) => (
-  <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 11, background: '#1a1a2e', color: '#6b7280', border: '1px solid #2a2a4a' }}>{children}</span>
-)
-
-const InfoItem = ({ label, value }) => (
-  <div style={{ padding: '8px 10px', background: '#0f0f1a', borderRadius: 6, border: '1px solid #1e1e2e' }}>
-    <div style={{ fontSize: 10, color: '#555577', fontWeight: 600, marginBottom: 3 }}>{label.toUpperCase()}</div>
-    <div style={{ fontSize: 13, color: '#c0c0e0' }}>{value}</div>
-  </div>
-)
