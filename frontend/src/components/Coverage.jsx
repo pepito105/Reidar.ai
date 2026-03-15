@@ -139,7 +139,7 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
     const headers = token ? { Authorization: `Bearer ${token}` } : {}
     const params = Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
     try {
-      const res = await axios.get(`${API}/startups/`, { params: { ...params, limit: 200 }, headers })
+      const res = await axios.get(`${API}/startups/`, { params: { ...params, limit: 200, min_fit_score: 0 }, headers })
       setStartups(res.data)
       setSelected(prev => {
         if (!prev?.id) return prev
@@ -474,7 +474,9 @@ function SectionHeader({ label, count, color, borderColor, countBg, countBorder,
 }
 
 const CompanyCard = forwardRef(function CompanyCard({ startup: s, onClick, isSelected, isInbox, onQuickAction }, ref) {
-  const badge = FIT_BADGES[s.fit_score] || FIT_BADGES[2]
+  const badge = s.fit_score != null
+    ? (FIT_BADGES[s.fit_score] || FIT_BADGES[2])
+    : { label: 'Pending', color: '#555577', bg: '#1a1a2e' }
   const inPipeline = s.pipeline_status && PIPELINE_COLORS[s.pipeline_status]
   const pipelineColor = inPipeline ? PIPELINE_COLORS[s.pipeline_status] : '#2a2a4a'
   const showActions = isInbox && !s.pipeline_status

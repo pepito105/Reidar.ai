@@ -44,8 +44,8 @@ function FitReasoningBullets({ text }) {
 
 export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
   const { getToken } = useAuth()
-  const [notes, setNotes] = useState(s.notes || '')
-  const [pipelineStatus, setPipelineStatus] = useState(s.pipeline_status || 'new')
+  const [notes, setNotes] = useState(startup.notes || '')
+  const [pipelineStatus, setPipelineStatus] = useState(startup.pipeline_status || 'new')
   const [signals, setSignals] = useState([])
   const [expanded, setExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
@@ -72,14 +72,17 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
   const [newContact, setNewContact] = useState({})
   const [showLogOutreach, setShowLogOutreach] = useState(false)
   const [newOutreach, setNewOutreach] = useState({})
+  const [analyzing, setAnalyzing] = useState(false)
+  const [startup, setStartup] = useState(s)
 
-  const badge = FIT_BADGES[s.fit_score] || FIT_BADGES[2]
+  const badge = startup.fit_score != null ? (FIT_BADGES[startup.fit_score] || FIT_BADGES[2]) : { label: 'Pending', color: '#555577', bg: '#1a1a2e' }
 
-  const loadMemo = async () => {
+  const loadMemo = async (id) => {
     const token = await getToken().catch(() => null)
     const headers = token ? { Authorization: `Bearer ${token}` } : {}
+    const startupId = id ?? startup.id
     try {
-      const res = await axios.get(`${API}/memo/${s.id}`, { headers })
+      const res = await axios.get(`${API}/memo/${startupId}`, { headers })
       setMemo(res.data.memo)
       setMemoFiles(res.data.memo_files || [])
       setMemoGeneratedAt(res.data.memo_generated_at)
@@ -93,7 +96,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
     const token = await getToken().catch(() => null)
     const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
-      const res = await axios.post(`${API}/memo/generate/${s.id}`, null, { headers })
+      const res = await axios.post(`${API}/memo/generate/${startup.id}`, null, { headers })
       setMemo(res.data.memo)
       setMemoGeneratedAt(res.data.generated_at)
       if (res.data.bull_case != null) setBullCase(res.data.bull_case)
@@ -112,7 +115,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
     try {
       const formData = new FormData()
       formData.append('file', file)
-      await axios.post(`${API}/memo/upload/${s.id}`, formData, {
+      await axios.post(`${API}/memo/upload/${startup.id}`, formData, {
         headers: { ...authHeaders, 'Content-Type': 'multipart/form-data' }
       })
       await loadMemo()
@@ -126,13 +129,14 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
     const token = await getToken().catch(() => null)
     const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
-      await axios.delete(`${API}/memo/file/${s.id}/${filename}`, { headers })
+      await axios.delete(`${API}/memo/file/${startup.id}/${filename}`, { headers })
       await loadMemo()
     } catch (e) {}
   }
 
   useEffect(() => {
     if (!s?.id) return
+    setStartup(s)
     setDdQuestions(null)
     setDdLoading(false)
     setNotes(s.notes || '')
@@ -151,7 +155,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
         const res = await axios.get(`${API}/signals/company/${s.id}`, { headers })
         setSignals(res.data.signals || [])
       } catch (_) {}
-      loadMemo()
+      loadMemo(s.id)
     }
     fn()
   }, [s])
@@ -166,11 +170,30 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
     fn()
   }, [s?.id])
 
+  useEffect(() => {
+    if (startup.fit_score == null && !analyzing) {
+      const analyze = async () => {
+        setAnalyzing(true)
+        try {
+          const token = await getToken().catch(() => null)
+          const headers = token ? { Authorization: `Bearer ${token}` } : {}
+          const res = await axios.post(`${API}/startups/${startup.id}/analyze`, {}, { headers })
+          setStartup(res.data)
+          onUpdate && onUpdate(res.data)
+        } catch (e) {
+          console.error('Analysis failed:', e)
+        }
+        setAnalyzing(false)
+      }
+      analyze()
+    }
+  }, [startup.id])
+
   const save = async () => {
     const token = await getToken().catch(() => null)
     const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
-      await axios.patch(`${API}/startups/${s.id}`, { notes, pipeline_status: pipelineStatus }, { headers })
+      await axios.patch(`${API}/startups/${startup.id}`, { notes, pipeline_status: pipelineStatus }, { headers })
       setToast(true)
       setTimeout(() => setToast(false), 2000)
       onUpdate()
@@ -183,23 +206,23 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
     const token = await getToken().catch(() => null)
     const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
-      const baseLog = Array.isArray(activityLog) ? activityLog : (Array.isArray(s.activity_log) ? s.activity_log : [])
+      const baseLog = Array.isArray(activityLog) ? activityLog : (Array.isArray(startup.activity_log) ? startup.activity_log : [])
       const log = [...baseLog]
-      if (convictionScore !== s.conviction_score && convictionScore != null) {
+      if (convictionScore !== startup.conviction_score && convictionScore != null) {
         log.push({
           action: 'conviction_updated',
           detail: `Conviction set to ${convictionScore}/5`,
           created_at: new Date().toISOString(),
         })
       }
-      if (nextAction !== s.next_action && nextAction) {
+      if (nextAction !== startup.next_action && nextAction) {
         log.push({
           action: 'next_action_set',
           detail: nextAction,
           created_at: new Date().toISOString(),
         })
       }
-      await axios.patch(`${API}/startups/${s.id}`, {
+      await axios.patch(`${API}/startups/${startup.id}`, {
         pipeline_status: pipelineStatus,
         notes,
         conviction_score: convictionScore,
@@ -224,7 +247,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
     const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
       const res = await axios.post(`${API}/chat/`, {
-        message: `Generate 5 sharp due diligence questions a VC analyst should ask the founder of ${s.name} in a first call. ${s.name} is: ${s.one_liner}. Business model: ${s.business_model || 'unknown'}. Target customer: ${s.target_customer || 'unknown'}. Thesis fit reasoning: ${s.fit_reasoning || 'unknown'}. Return ONLY a JSON array of 5 question strings, no other text.`,
+        message: `Generate 5 sharp due diligence questions a VC analyst should ask the founder of ${startup.name} in a first call. ${startup.name} is: ${startup.one_liner}. Business model: ${startup.business_model || 'unknown'}. Target customer: ${startup.target_customer || 'unknown'}. Thesis fit reasoning: ${startup.fit_reasoning || 'unknown'}. Return ONLY a JSON array of 5 question strings, no other text.`,
         context: []
       }, { headers })
       const text = res.data.response || res.data.message || ''
@@ -232,7 +255,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
       const questions = JSON.parse(clean)
       setDdQuestions(questions)
     } catch (e) {
-      setDdQuestions(['Could not generate questions. Please try again.'])
+      setDdQuestions(['Could not generate questionstartup. Please try again.'])
     }
     setDdLoading(false)
   }
@@ -245,55 +268,67 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
 
           <div style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: '#f0f0ff', margin: 0 }}>{s.name}</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: '#f0f0ff', margin: 0 }}>{startup.name}</h2>
             <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 600, background: badge.bg, color: badge.color }}>
               {badge.label}
             </span>
           </div>
-        <p style={{ fontSize: 13, color: '#8888aa', margin: 0, lineHeight: 1.5 }}>{(s.enriched_one_liner || s.one_liner)}</p>
+        <p style={{ fontSize: 13, color: '#8888aa', margin: 0, lineHeight: 1.5 }}>{(startup.enriched_one_liner || startup.one_liner)}</p>
         <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-          {s.funding_stage && <Tag>{s.funding_stage}</Tag>}
-          {s.sector && <Tag>{s.sector}</Tag>}
-          {s.founding_year && <Tag>Founded {s.founding_year}</Tag>}
-          {s.funding_amount_usd > 0 && <Tag>${(s.funding_amount_usd / 1000000).toFixed(1)}M raised</Tag>}
+          {startup.funding_stage && <Tag>{startup.funding_stage}</Tag>}
+          {startup.sector && <Tag>{startup.sector}</Tag>}
+          {startup.founding_year && <Tag>Founded {startup.founding_year}</Tag>}
+          {startup.funding_amount_usd > 0 && <Tag>${(startup.funding_amount_usd / 1000000).toFixed(1)}M raised</Tag>}
         </div>
-          {s.website && (
-            <a href={s.website} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#6366f1', marginTop: 8, display: 'block' }}>
-              {s.website} ↗
+          {startup.website && (
+            <a href={startup.website} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#6366f1', marginTop: 8, display: 'block' }}>
+              {startup.website} ↗
             </a>
           )}
         </div>
 
         <Divider />
 
+        {analyzing && (
+          <div style={{ padding: '24px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6366f1', animation: 'pulse 1.5s infinite' }} />
+              <span style={{ fontSize: 14, color: '#8888aa' }}>Analyzing this company against your mandate...</span>
+            </div>
+            <div style={{ height: 4, background: '#1a1a2e', borderRadius: 4, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: '60%', background: 'linear-gradient(90deg, #6366f1, #8b5cf6)', borderRadius: 4, animation: 'slide 1.8s ease-in-out infinite' }} />
+            </div>
+          </div>
+        )}
+
         <Section title="Thesis Fit" accent="#6366f1">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <div style={{ fontSize: 24, fontWeight: 700, color: badge.color }}>{s.fit_score}/5</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: badge.color }}>{startup.fit_score != null ? `${startup.fit_score}/5` : '—/5'}</div>
           <div style={{ flex: 1, height: 6, background: '#1e1e2e', borderRadius: 3, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${(s.fit_score / 5) * 100}%`, background: badge.color, borderRadius: 3 }} />
+            <div style={{ height: '100%', width: `${startup.fit_score != null ? (startup.fit_score / 5) * 100 : 0}%`, background: badge.color, borderRadius: 3 }} />
           </div>
         </div>
-        <FitReasoningBullets text={s.fit_reasoning} />
+        <FitReasoningBullets text={startup.fit_reasoning} />
         </Section>
 
       <Divider />
 
         <Section title="Company Overview">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          {s.business_model && <InfoItem label="Business Model" value={s.business_model} />}
-          {s.target_customer && <InfoItem label="Target Customer" value={s.target_customer} />}
-          {s.team_size && <InfoItem label="Team Size" value={s.team_size} />}
+          {startup.business_model && <InfoItem label="Business Model" value={startup.business_model} />}
+          {startup.target_customer && <InfoItem label="Target Customer" value={startup.target_customer} />}
+          {startup.team_size && <InfoItem label="Team Size" value={startup.team_size} />}
         </div>
-        {s.notable_traction && (
+        {startup.notable_traction && (
           <div style={{ marginTop: 12, padding: '10px 12px', background: '#0f1a0f', borderRadius: 6, border: '1px solid #1a2e1a' }}>
             <div style={{ fontSize: 11, color: '#10b981', fontWeight: 600, marginBottom: 4 }}>TRACTION</div>
-            <p style={{ fontSize: 13, color: '#a0a0cc', margin: 0 }}>{s.notable_traction}</p>
+            <p style={{ fontSize: 13, color: '#a0a0cc', margin: 0 }}>{startup.notable_traction}</p>
           </div>
         )}
         </Section>
 
         {/* Research pending state */}
-        {!s.business_model && !s.research_status && (
+        {!startup.business_model && !startup.research_status && (
           <div style={{
             background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8,
             padding: '14px 16px', marginBottom: 24,
@@ -307,7 +342,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
           </div>
         )}
 
-        {s.research_status === 'failed' && (
+        {startup.research_status === 'failed' && (
           <div style={{
             background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8,
             padding: '14px 16px', marginBottom: 24,
@@ -321,12 +356,12 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
           </div>
         )}
 
-        {s.top_investors?.length > 0 && (
+        {startup.top_investors?.length > 0 && (
         <>
           <Divider />
             <Section title="Key Investors">
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {s.top_investors.map((inv, i) => (
+              {startup.top_investorstartup.map((inv, i) => (
                 <span key={i} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, background: '#1a1a2e', color: '#a5b4fc', border: '1px solid #3730a3' }}>{inv}</span>
               ))}
             </div>
@@ -334,12 +369,12 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
           </>
         )}
 
-        {s.thesis_tags?.length > 0 && (
+        {startup.thesis_tags?.length > 0 && (
         <>
           <Divider />
             <Section title="Thesis Tags">
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {s.thesis_tags.map((tag, i) => (
+              {startup.thesis_tagstartup.map((tag, i) => (
                 <span key={i} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, background: '#1a0a2e', color: '#c4b5fd', border: '1px solid #4c1d95' }}>{tag}</span>
               ))}
             </div>
@@ -347,24 +382,24 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
           </>
         )}
 
-        {s.recommended_next_step && (
+        {startup.recommended_next_step && (
         <>
           <Divider />
             <Section title="Recommended Next Step" accent="#10b981">
             <div style={{ padding: '12px 14px', background: '#061a10', borderRadius: 8, border: '1px solid #065f46' }}>
-              <p style={{ fontSize: 13, color: '#6ee7b7', margin: 0, lineHeight: 1.5 }}>→ {s.recommended_next_step}</p>
+              <p style={{ fontSize: 13, color: '#6ee7b7', margin: 0, lineHeight: 1.5 }}>→ {startup.recommended_next_step}</p>
             </div>
             </Section>
           </>
         )}
 
-        {signals.length > 0 && (
+        {signalstartup.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 12 }}>
             RECENT SIGNALS
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {signals.slice(0, 5).map(signal => (
+            {signalstartup.slice(0, 5).map(signal => (
               <div key={signal.id} style={{
                 background: '#0a0a14', border: '1px solid #1e1e2e',
                 borderLeft: `3px solid ${signal.is_seen ? '#1e1e2e' : '#6366f1'}`,
@@ -468,11 +503,11 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
           }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #1e1e2e', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: '#f0f0ff' }}>{s.name}</div>
-                <div style={{ fontSize: 12, color: '#8888aa', marginTop: 4 }}>{s.one_liner}</div>
-                {s.website && (
-                  <a href={s.website} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#6366f1', textDecoration: 'none', marginTop: 4, display: 'inline-block' }}>
-                    🔗 {s.website}
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#f0f0ff' }}>{startup.name}</div>
+                <div style={{ fontSize: 12, color: '#8888aa', marginTop: 4 }}>{startup.one_liner}</div>
+                {startup.website && (
+                  <a href={startup.website} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#6366f1', textDecoration: 'none', marginTop: 4, display: 'inline-block' }}>
+                    🔗 {startup.website}
                   </a>
                 )}
               </div>
@@ -486,31 +521,31 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
               <div style={{ width: '38%', borderRight: '1px solid #1e1e2e', padding: '32px 28px', overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                    <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f0f0ff', margin: 0 }}>{s.name}</h2>
+                    <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f0f0ff', margin: 0 }}>{startup.name}</h2>
                     <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: badge.bg, color: badge.color }}>
                       {badge.label}
                     </span>
                   </div>
-                  <p style={{ fontSize: 13, color: '#8888aa', margin: '0 0 10px' }}>{s.one_liner}</p>
+                  <p style={{ fontSize: 13, color: '#8888aa', margin: '0 0 10px' }}>{startup.one_liner}</p>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {s.funding_stage && <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, background: '#1a1a2e', color: '#6b7280' }}>{s.funding_stage}</span>}
-                    {s.funding_amount_usd && <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, background: '#1a1a2e', color: '#6b7280' }}>${(s.funding_amount_usd / 1000000).toFixed(1)}M raised</span>}
-                    {s.founding_year && <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, background: '#1a1a2e', color: '#6b7280' }}>Founded {s.founding_year}</span>}
+                    {startup.funding_stage && <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, background: '#1a1a2e', color: '#6b7280' }}>{startup.funding_stage}</span>}
+                    {startup.funding_amount_usd && <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, background: '#1a1a2e', color: '#6b7280' }}>${(startup.funding_amount_usd / 1000000).toFixed(1)}M raised</span>}
+                    {startup.founding_year && <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, background: '#1a1a2e', color: '#6b7280' }}>Founded {startup.founding_year}</span>}
                   </div>
-                  {s.website && (
-                    <a href={s.website} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#6366f1', textDecoration: 'none', display: 'block', marginTop: 8 }}>
-                      🔗 {s.website}
+                  {startup.website && (
+                    <a href={startup.website} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#6366f1', textDecoration: 'none', display: 'block', marginTop: 8 }}>
+                      🔗 {startup.website}
                     </a>
                   )}
                 </div>
 
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 10 }}>THESIS FIT</div>
-                  <div style={{ fontSize: 28, fontWeight: 700, color: badge.color, marginBottom: 8 }}>{s.fit_score}/5</div>
+                  <div style={{ fontSize: 28, fontWeight: 700, color: badge.color, marginBottom: 8 }}>{startup.fit_score != null ? `${startup.fit_score}/5` : '—/5'}</div>
                   <div style={{ height: 4, background: '#1e1e2e', borderRadius: 2, marginBottom: 12 }}>
-                    <div style={{ height: '100%', width: `${(s.fit_score / 5) * 100}%`, background: badge.color, borderRadius: 2 }} />
+                    <div style={{ height: '100%', width: `${startup.fit_score != null ? (startup.fit_score / 5) * 100 : 0}%`, background: badge.color, borderRadius: 2 }} />
                   </div>
-                  <FitReasoningBullets text={s.fit_reasoning} />
+                  <FitReasoningBullets text={startup.fit_reasoning} />
                 </div>
 
                 <div>
@@ -558,20 +593,20 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                   />
                 </div>
 
-                {s.recommended_next_step && (
+                {startup.recommended_next_step && (
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 10 }}>RECOMMENDED NEXT STEP</div>
                     <div style={{ background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#86efac' }}>
-                      → {s.recommended_next_step}
+                      → {startup.recommended_next_step}
                     </div>
                   </div>
                 )}
 
-                {signals.length > 0 && (
+                {signalstartup.length > 0 && (
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 10 }}>RECENT SIGNALS</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {signals.map(signal => (
+                      {signalstartup.map(signal => (
                         <div key={signal.id} style={{ background: '#0a0a14', border: '1px solid #1e1e2e', borderLeft: `3px solid ${signal.is_seen ? '#1e1e2e' : '#6366f1'}`, borderRadius: 8, padding: '10px 12px' }}>
                           <div style={{ display: 'flex', gap: 8, marginBottom: 3 }}>
                             <span style={{ fontSize: 14 }}>{signal.icon}</span>
@@ -626,34 +661,34 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <Section title="Company Overview">
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                        {s.business_model && <InfoItem label="Business Model" value={s.business_model} />}
-                        {s.target_customer && <InfoItem label="Target Customer" value={s.target_customer} />}
-                        {s.team_size && <InfoItem label="Team Size" value={s.team_size} />}
+                        {startup.business_model && <InfoItem label="Business Model" value={startup.business_model} />}
+                        {startup.target_customer && <InfoItem label="Target Customer" value={startup.target_customer} />}
+                        {startup.team_size && <InfoItem label="Team Size" value={startup.team_size} />}
                       </div>
                     </Section>
-                    {s.top_investors?.length > 0 && (
+                    {startup.top_investors?.length > 0 && (
                       <Section title="Key Investors">
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          {s.top_investors.map((inv, i) => (
+                          {startup.top_investorstartup.map((inv, i) => (
                             <span key={i} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, background: '#1a1a2e', color: '#a5b4fc', border: '1px solid #3730a3' }}>{inv}</span>
                           ))}
                         </div>
                       </Section>
                     )}
-                    {s.thesis_tags?.length > 0 && (
+                    {startup.thesis_tags?.length > 0 && (
                       <Section title="Thesis Tags">
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          {s.thesis_tags.map((tag, i) => (
+                          {startup.thesis_tagstartup.map((tag, i) => (
                             <span key={i} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, background: '#1a0a2e', color: '#c4b5fd', border: '1px solid #4c1d95' }}>{tag}</span>
                           ))}
                         </div>
                       </Section>
                     )}
-                    {Array.isArray(s.comparable_companies) && s.comparable_companies.length > 0 && (
+                    {Array.isArray(startup.comparable_companies) && startup.comparable_companiestartup.length > 0 && (
                       <div style={{ marginTop: 24 }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 12 }}>COMPARABLE COMPANIES</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {s.comparable_companies.map((c, i) => (
+                          {startup.comparable_companiestartup.map((c, i) => (
                             <div key={i} style={{ background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <div>
@@ -687,7 +722,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
                     {/* Traction Signals */}
-                    {s.traction_signals && (
+                    {startup.traction_signals && (
                       <div style={{ marginBottom: 20 }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: '#10b981', letterSpacing: 0.5, marginBottom: 10 }}>
                           ⚡ TRACTION SIGNALS
@@ -696,13 +731,13 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                           background: '#0a1a0f', border: '1px solid #10b98130',
                           borderRadius: 8, padding: '14px 16px'
                         }}>
-                          <div style={{ fontSize: 13, color: '#8888aa', lineHeight: 1.7 }}>{s.traction_signals}</div>
+                          <div style={{ fontSize: 13, color: '#8888aa', lineHeight: 1.7 }}>{startup.traction_signals}</div>
                         </div>
                       </div>
                     )}
 
                     {/* Red Flags */}
-                    {s.red_flags && s.red_flags !== 'None identified' && (
+                    {startup.red_flags && startup.red_flags !== 'None identified' && (
                       <div style={{ marginBottom: 20 }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', letterSpacing: 0.5, marginBottom: 10 }}>
                           ⚠ RED FLAGS
@@ -711,13 +746,13 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                           background: '#1a0a0a', border: '1px solid #ef444430',
                           borderRadius: 8, padding: '14px 16px'
                         }}>
-                          <div style={{ fontSize: 13, color: '#8888aa', lineHeight: 1.7 }}>{s.red_flags}</div>
+                          <div style={{ fontSize: 13, color: '#8888aa', lineHeight: 1.7 }}>{startup.red_flags}</div>
                         </div>
                       </div>
                     )}
 
                     {/* Research pending state */}
-                    {!s.business_model && !s.research_status && (
+                    {!startup.business_model && !startup.research_status && (
                       <div style={{
                         background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8,
                         padding: '16px', display: 'flex', alignItems: 'center', gap: 10
@@ -734,7 +769,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                       </div>
                     )}
 
-                    {s.research_status === 'failed' && (
+                    {startup.research_status === 'failed' && (
                       <div style={{
                         background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8,
                         padding: '16px', display: 'flex', alignItems: 'center', gap: 10
@@ -752,9 +787,9 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                     )}
 
                     {/* Research badge */}
-                    {s.research_completed_at && (
+                    {startup.research_completed_at && (
                       <div style={{ marginTop: 16, fontSize: 11, color: '#3a3a5a', textAlign: 'right' }}>
-                        🤖 Autonomously researched by Radar · {new Date(s.research_completed_at).toLocaleDateString()}
+                        🤖 Autonomously researched by Radar · {new Date(startup.research_completed_at).toLocaleDateString()}
                       </div>
                     )}
 
@@ -768,7 +803,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                           const file = e.dataTransfer.files[0]
                           if (file) uploadFile(file)
                         }}
-                        onClick={() => document.getElementById(`file-input-${s.id}`).click()}
+                        onClick={() => document.getElementById(`file-input-${startup.id}`).click()}
                         style={{
                           border: '2px dashed #2a2a4a', borderRadius: 10, padding: '20px',
                           textAlign: 'center', cursor: 'pointer', background: '#0a0a14',
@@ -777,16 +812,16 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                       >
                         {uploading ? '⏳ Uploading...' : '📎 Drop files here or click to upload (PDF, TXT, MD)'}
                         <input
-                          id={`file-input-${s.id}`}
+                          id={`file-input-${startup.id}`}
                           type="file"
                           accept=".pdf,.txt,.md"
                           style={{ display: 'none' }}
                           onChange={e => { if (e.target.files[0]) uploadFile(e.target.files[0]) }}
                         />
                       </div>
-                      {memoFiles.length > 0 && (
+                      {memoFilestartup.length > 0 && (
                         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {memoFiles.map((f, i) => (
+                          {memoFilestartup.map((f, i) => (
                             <div key={i} style={{
                               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                               background: '#0f0f1a', border: '1px solid #1e1e2e', borderRadius: 7,
@@ -849,7 +884,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                         {memo.split('\n## ').filter(Boolean).map((section, i) => {
                           const lines = section.replace(/^## /, '').split('\n')
                           const title = lines[0]
-                          const body = lines.slice(1).join('\n').trim()
+                          const body = linestartup.slice(1).join('\n').trim()
                           const isRecommendation = title.toLowerCase().includes('recommendation')
                           const isRisk = title.toLowerCase().includes('risk')
                           return (
@@ -902,9 +937,9 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                 )}
                 {activeTab === 'signals' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {signals.length === 0 ? (
+                    {signalstartup.length === 0 ? (
                       <div style={{ textAlign: 'center', padding: '40px 0', color: '#555577', fontSize: 13 }}>No signals detected yet</div>
-                    ) : signals.map(signal => (
+                    ) : signalstartup.map(signal => (
                       <div key={signal.id} style={{
                         background: '#0a0a14', border: '1px solid #1e1e2e',
                         borderLeft: `3px solid ${signal.is_seen ? '#1e1e2e' : '#6366f1'}`,
@@ -955,12 +990,12 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                               try {
                                 const token = await getToken().catch(() => null)
                                 const headers = token ? { Authorization: `Bearer ${token}` } : {}
-                                const res = await axios.post(`${API}/startups/${s.id}/import-meeting`, { summary: importSummaryText }, { headers })
+                                const res = await axios.post(`${API}/startups/${startup.id}/import-meeting`, { summary: importSummaryText }, { headers })
                                 const structured = res.data.note
                                 const note = { note: structured, created_at: new Date().toISOString(), source: 'import' }
                                 const updated = [note, ...(Array.isArray(meetingNotes) ? meetingNotes : [])]
                                 setMeetingNotes(updated)
-                                await axios.patch(`${API}/startups/${s.id}`, { meeting_notes: updated }, { headers })
+                                await axios.patch(`${API}/startups/${startup.id}`, { meeting_notes: updated }, { headers })
                                 setImportSummaryText('')
                                 setShowImportSummary(false)
                               } catch(e) { console.error(e) }
@@ -991,7 +1026,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                             setNewNote('')
                             getToken().catch(() => null).then(token => {
                               const headers = token ? { Authorization: `Bearer ${token}` } : {}
-                              return axios.patch(`${API}/startups/${s.id}`, { meeting_notes: updated }, { headers })
+                              return axios.patch(`${API}/startups/${startup.id}`, { meeting_notes: updated }, { headers })
                             }).catch(() => {})
                           }}
                           style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#4f46e5', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', alignSelf: 'flex-end' }}
@@ -1001,9 +1036,9 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                       </div>
 
                       {/* Notes List */}
-                      {(!meetingNotes || meetingNotes.length === 0) ? (
+                      {(!meetingNotes || meetingNotestartup.length === 0) ? (
                         <div style={{ fontSize: 12, color: '#555577' }}>No notes yet — add your first note above</div>
-                      ) : meetingNotes.map((n, i) => (
+                      ) : meetingNotestartup.map((n, i) => (
                         <div key={i} style={{ background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8, padding: '12px 14px', marginBottom: 8, position: 'relative' }}>
                           {n.source === 'import' && (
                             <div style={{ fontSize: 10, color: '#6366f1', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>✦ Imported</div>
@@ -1015,11 +1050,11 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                             </div>
                             <button
                               onClick={() => {
-                                const updated = meetingNotes.filter((_, idx) => idx !== i)
+                                const updated = meetingNotestartup.filter((_, idx) => idx !== i)
                                 setMeetingNotes(updated)
                                 getToken().catch(() => null).then(token => {
                                   const headers = token ? { Authorization: `Bearer ${token}` } : {}
-                                  return axios.patch(`${API}/startups/${s.id}`, { meeting_notes: updated }, { headers })
+                                  return axios.patch(`${API}/startups/${startup.id}`, { meeting_notes: updated }, { headers })
                                 }).catch(() => {})
                               }}
                               style={{ background: 'transparent', border: 'none', color: '#3a3a5a', fontSize: 11, cursor: 'pointer', padding: '2px 6px' }}
@@ -1034,9 +1069,9 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                     {/* FOUNDER CONTACTS */}
                     <div style={{ marginBottom: 28 }}>
                       <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 12 }}>FOUNDER CONTACTS</div>
-                      {Array.isArray(s.founder_contacts) && s.founder_contacts.length > 0 && (
+                      {Array.isArray(startup.founder_contacts) && startup.founder_contactstartup.length > 0 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-                          {s.founder_contacts.map((contact, i) => (
+                          {startup.founder_contactstartup.map((contact, i) => (
                             <div key={i} style={{ background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                               <div>
                                 <div style={{ fontSize: 13, fontWeight: 600, color: '#f0f0ff' }}>{contact.name}</div>
@@ -1047,10 +1082,10 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                               </div>
                               <button
                                 onClick={async () => {
-                                  const updated = s.founder_contacts.filter((_, idx) => idx !== i)
+                                  const updated = startup.founder_contactstartup.filter((_, idx) => idx !== i)
                                   const token = await getToken().catch(() => null)
                                   const headers = token ? { Authorization: `Bearer ${token}` } : {}
-                                  await axios.patch(`${API}/startups/${s.id}`, { founder_contacts: updated }, { headers })
+                                  await axios.patch(`${API}/startups/${startup.id}`, { founder_contacts: updated }, { headers })
                                   onUpdate && onUpdate({ ...s, founder_contacts: updated })
                                 }}
                                 style={{ background: 'transparent', border: 'none', color: '#3a3a5a', fontSize: 11, cursor: 'pointer' }}
@@ -1076,10 +1111,10 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                               onClick={async () => {
                                 if (!newContact.contactName?.trim()) return
                                 const contact = { name: newContact.contactName, role: newContact.contactRole, email: newContact.contactEmail, linkedin: newContact.contactLinkedin }
-                                const updated = [...(Array.isArray(s.founder_contacts) ? s.founder_contacts : []), contact]
+                                const updated = [...(Array.isArray(startup.founder_contacts) ? startup.founder_contacts : []), contact]
                                 const token = await getToken().catch(() => null)
                                 const headers = token ? { Authorization: `Bearer ${token}` } : {}
-                                await axios.patch(`${API}/startups/${s.id}`, { founder_contacts: updated }, { headers })
+                                await axios.patch(`${API}/startups/${startup.id}`, { founder_contacts: updated }, { headers })
                                 onUpdate && onUpdate({ ...s, founder_contacts: updated })
                                 setNewContact({})
                                 setShowAddContact(false)
@@ -1123,7 +1158,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                           <textarea
                             value={newOutreach.notes || ''}
                             onChange={e => setNewOutreach(v => ({ ...v, notes: e.target.value }))}
-                            placeholder="Notes..."
+                            placeholder="Notestartup..."
                             style={{ width: '100%', minHeight: 60, marginBottom: 8, padding: '8px 10px', background: '#13131f', border: '1px solid #2a2a4a', borderRadius: 6, color: '#c0c0e0', fontSize: 12, outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
                           />
                           <div style={{ display: 'flex', gap: 8 }}>
@@ -1135,7 +1170,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                                 setActivityLog(updated)
                                 const token = await getToken().catch(() => null)
                                 const headers = token ? { Authorization: `Bearer ${token}` } : {}
-                                await axios.patch(`${API}/startups/${s.id}`, { activity_log: updated }, { headers })
+                                await axios.patch(`${API}/startups/${startup.id}`, { activity_log: updated }, { headers })
                                 setNewOutreach({})
                                 setShowLogOutreach(false)
                               }}
@@ -1166,7 +1201,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                                       setActivityLog(updated)
                                       const token = await getToken().catch(() => null)
                                       const headers = token ? { Authorization: `Bearer ${token}` } : {}
-                                      await axios.patch(`${API}/startups/${s.id}`, { activity_log: updated }, { headers })
+                                      await axios.patch(`${API}/startups/${startup.id}`, { activity_log: updated }, { headers })
                                     }}
                                     style={{ background: 'transparent', border: 'none', color: '#3a3a5a', fontSize: 11, cursor: 'pointer' }}
                                   >Delete</button>

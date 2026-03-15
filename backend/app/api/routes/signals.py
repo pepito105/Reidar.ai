@@ -535,13 +535,22 @@ async def rescore_all(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/rescore-unscored")
-async def rescore_unscored(db: AsyncSession = Depends(get_db)):
+async def rescore_unscored(request: Request, db: AsyncSession = Depends(get_db)):
     """Rescore only startups where fit_score IS NULL, in batches of 20."""
-    profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
+    user_id = _user_id_from_request(request)
+    if user_id:
+        profile_result = await db.execute(
+            select(FirmProfile).where(FirmProfile.is_active == True).where(FirmProfile.user_id == user_id)
+        )
+    else:
+        profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True).limit(1))
     profile = profile_result.scalar_one_or_none()
     if not profile:
         raise HTTPException(status_code=400, detail="No active firm profile")
-    result = await db.execute(select(Startup).where(Startup.fit_score == None))
+    if user_id:
+        result = await db.execute(select(Startup).where(Startup.fit_score == None).where(Startup.user_id == user_id))
+    else:
+        result = await db.execute(select(Startup).where(Startup.fit_score == None))
     startups = result.scalars().all()
     total = len(startups)
     if total == 0:
@@ -626,7 +635,6 @@ async def sourcing_stream(request: Request, db: AsyncSession = Depends(get_db), 
                 await asyncio.sleep(0.5)
 
                 from app.services.sourcing_service import generate_search_queries, search_and_extract_companies, is_duplicate
-                from app.services.classifier import classify_startup, classify_batch
                 from app.models.startup import Startup
                 from datetime import datetime
 
@@ -671,10 +679,7 @@ async def sourcing_stream(request: Request, db: AsyncSession = Depends(get_db), 
                 immediate = new_companies[:8]
                 background = new_companies[8:]
 
-                await emit("scoring", f"Evaluating {len(immediate)} companies against your thesis...")
-
-                # Save and classify immediate batch
-                added = 0
+                # Save immediate batch
                 immediate_startups = []
                 for company in immediate:
                     name = company.get("name")
@@ -699,39 +704,10 @@ async def sourcing_stream(request: Request, db: AsyncSession = Depends(get_db), 
 
                 await db.commit()
 
-                # Classify immediate batch
-                companies_input = [
-                    {"id": s.id, "name": s.name, "description": desc, "website": s.website, "source": s.source}
-                    for s, desc in immediate_startups
-                ]
-                try:
-                    results = await classify_batch(companies_input, profile)
-                    result_map = {r.get("id"): r for r in results if r.get("id")}
-                    for startup, _ in immediate_startups:
-                        result = result_map.get(startup.id)
-                        if result:
-                            startup.one_liner = (result.get("one_liner") or startup.one_liner or "")[:499]
-                            startup.ai_summary = (result.get("ai_summary") or "")[:2000]
-                            startup.ai_score = result.get("ai_score")
-                            startup.fit_score = result.get("fit_score")
-                            startup.fit_reasoning = (result.get("fit_reasoning") or "")[:1000]
-                            startup.business_model = (result.get("business_model") or "")[:99]
-                            startup.target_customer = (result.get("target_customer") or "")[:199]
-                            startup.sector = (result.get("sector") or startup.sector or "")[:99]
-                            startup.mandate_category = (result.get("mandate_category") or "")[:99]
-                            startup.thesis_tags = result.get("thesis_tags", [])
-                            startup.recommended_next_step = (result.get("recommended_next_step") or "")[:499]
-                            if (startup.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):
-                                startup.funding_stage = (result["funding_stage"] or "")[:49]
-                            fit = result.get("fit_score", 0) or 0
-                            fit_label = "Top Match" if fit >= 5 else "Strong Fit" if fit >= 4 else "Possible Fit" if fit >= 3 else "Low Fit"
-                            await emit("added", f"✓ {startup.name} — {fit_label} ({fit}/5)", {"name": startup.name, "fit_score": fit, "fit_label": fit_label})
-                            added += 1
-                    await db.commit()
-                except Exception as e:
-                    print(f"Batch classification error: {e}")
+                for startup, desc in immediate_startups:
+                    await emit("added", f"✓ {startup.name} — saved", {"name": startup.name, "fit_score": None, "fit_label": "Pending"})
 
-                # Save background companies without classification
+                # Save background companies
                 if background:
                     for company in background:
                         name = company.get("name")
@@ -753,7 +729,7 @@ async def sourcing_stream(request: Request, db: AsyncSession = Depends(get_db), 
                     await db.commit()
                     await emit("background", f"{len(background)} more companies are being analyzed in the background", {"count": len(background)})
 
-                await emit("complete", f"Done — {added} companies ready in your feed", {"added": added, "skipped": len(all_companies) - len(new_companies), "background": len(background)})
+                await emit("complete", f"Done — {len(immediate_startups) + len(background)} companies added to your feed", {"added": len(immediate_startups) + len(background), "skipped": len(all_companies) - len(new_companies), "background": 0})
                 await queue.put(None)
 
             except Exception as e:

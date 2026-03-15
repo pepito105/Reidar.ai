@@ -147,6 +147,7 @@ async def get_startups(
     sector: Optional[str] = Query(None),
     sort: Optional[str] = Query("fit_score"),
     limit: int = Query(100),
+    min_fit_score: Optional[int] = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
     user_id = _user_id_from_request(request)
@@ -157,7 +158,10 @@ async def get_startups(
     query = select(Startup)
     query = query.where(Startup.user_id == user_id)
     query = query.where(or_(Startup.is_portfolio == False, Startup.is_portfolio.is_(None)))
-    query = query.where(Startup.fit_score >= threshold)
+    if min_fit_score is not None and min_fit_score == 0:
+        query = query.where(or_(Startup.fit_score.is_(None), Startup.fit_score >= threshold))
+    else:
+        query = query.where(Startup.fit_score >= threshold)
     if stage:
         query = query.where(Startup.funding_stage == stage)
     if sector:
@@ -346,6 +350,54 @@ async def get_pending_analysis(request: Request, db: AsyncSession = Depends(get_
     )
     count = result.scalar() or 0
     return {"pending": count}
+
+
+@router.post("/{startup_id}/analyze")
+async def analyze_startup(startup_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    """Run on-demand classification for a single startup."""
+    user_id = _user_id_from_request(request)
+    startup_result = await db.execute(
+        select(Startup).where(Startup.id == startup_id).where(Startup.user_id == user_id)
+    )
+    startup = startup_result.scalar_one_or_none()
+    if not startup:
+        raise HTTPException(status_code=404, detail="Startup not found")
+    if startup.fit_score is not None:
+        return _startup_to_card(startup)
+    firm_result = await db.execute(
+        select(FirmProfile).where(FirmProfile.is_active == True).where(FirmProfile.user_id == user_id)
+    )
+    firm = firm_result.scalar_one_or_none()
+    if not firm:
+        raise HTTPException(status_code=400, detail="No firm profile found")
+    from app.services.classifier import classify_startup as run_classify
+    result = await run_classify(
+        name=startup.name,
+        description=startup.one_liner or startup.name,
+        website=startup.website,
+        source=startup.source or "sourced",
+        firm=firm,
+    )
+    if result:
+        startup.one_liner = (result.get("one_liner") or startup.one_liner or "")[:499]
+        startup.ai_summary = (result.get("ai_summary") or "")[:2000]
+        startup.ai_score = result.get("ai_score")
+        startup.fit_score = result.get("fit_score")
+        startup.fit_reasoning = (result.get("fit_reasoning") or "")[:1000]
+        startup.business_model = (result.get("business_model") or "")[:499]
+        startup.target_customer = (result.get("target_customer") or "")[:499]
+        startup.sector = (result.get("sector") or startup.sector or "")[:99]
+        startup.mandate_category = (result.get("mandate_category") or "")[:99]
+        startup.thesis_tags = result.get("thesis_tags", [])
+        startup.recommended_next_step = (result.get("recommended_next_step") or "")[:499]
+        startup.key_risks = result.get("key_risks")
+        startup.bull_case = result.get("bull_case")
+        startup.comparable_companies = result.get("comparable_companies", [])
+        if (startup.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):
+            startup.funding_stage = result["funding_stage"][:49]
+        await db.commit()
+        await db.refresh(startup)
+    return _startup_to_card(startup)
 
 
 @router.post("/{startup_id}/import-meeting")
