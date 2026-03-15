@@ -352,6 +352,12 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
           setSourcingComplete(true)
           setSourcing(false)
           eventSource.close()
+          // Trigger background classification of unscored companies
+          getToken().catch(() => null).then(token => {
+            const headers = token ? { Authorization: `Bearer ${token}` } : {}
+            fetch(`${API}/signals/rescore-unscored`, { method: 'POST', headers })
+              .catch(() => {})
+          })
         }
         if (event.type === 'error') {
           setSourcingError(event.message || 'Sourcing failed.')

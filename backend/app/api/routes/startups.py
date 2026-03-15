@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, or_
+from sqlalchemy import select, update, or_, func
 from pydantic import BaseModel
 from datetime import timedelta, timezone
 from typing import List, Optional, Any, Dict
@@ -333,6 +333,19 @@ async def get_portfolio(request: Request, db: AsyncSession = Depends(get_db)):
         }
         for s in startups
     ]
+
+
+@router.get("/pending-analysis")
+async def get_pending_analysis(request: Request, db: AsyncSession = Depends(get_db)):
+    user_id = _user_id_from_request(request)
+    result = await db.execute(
+        select(func.count()).select_from(Startup)
+        .where(Startup.user_id == user_id)
+        .where(Startup.fit_score == None)
+        .where(Startup.is_portfolio == False)
+    )
+    count = result.scalar() or 0
+    return {"pending": count}
 
 
 @router.post("/{startup_id}/import-meeting")
