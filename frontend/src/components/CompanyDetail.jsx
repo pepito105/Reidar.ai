@@ -628,7 +628,37 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                   <div style={{ height: 4, background: '#1e1e2e', borderRadius: 2, marginBottom: 12 }}>
                     <div style={{ height: '100%', width: `${startup.fit_score != null ? (startup.fit_score / 5) * 100 : 0}%`, background: badge.color, borderRadius: 2 }} />
                   </div>
-                  {startup.fit_reasoning && <FitReasoningBullets text={startup.fit_reasoning} />}
+                  {startup.fit_reasoning
+                    ? <FitReasoningBullets text={startup.fit_reasoning} />
+                    : <div>
+                        <p style={{ fontSize: 13, color: '#6b6b8a', marginBottom: 12, lineHeight: 1.6 }}>
+                          Deploy research agents to unlock a full investment analysis.
+                        </p>
+                        <button
+                          onClick={async () => {
+                            setAnalyzing(true)
+                            try {
+                              const token = await getToken().catch(() => null)
+                              const headers = token ? { Authorization: `Bearer ${token}` } : {}
+                              const res = await axios.post(`${API}/startups/${startup.id}/analyze`, {}, { headers })
+                              setStartup(res.data)
+                              onUpdate && onUpdate(res.data)
+                            } catch(e) {
+                              console.error('Analysis failed:', e)
+                            }
+                            setAnalyzing(false)
+                          }}
+                          disabled={analyzing}
+                          style={{
+                            padding: '10px 20px', borderRadius: 8, border: 'none',
+                            background: analyzing ? '#1e1b4b' : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                            color: '#fff', fontSize: 13, fontWeight: 700, cursor: analyzing ? 'default' : 'pointer',
+                          }}
+                        >
+                          {analyzing ? '⏳ Research agents working...' : '⚡ Deploy Research Agents'}
+                        </button>
+                      </div>
+                  }
                 </div>
 
                 <div>

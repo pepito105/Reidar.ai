@@ -389,7 +389,10 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
             API={API}
             startup={selected}
             onClose={() => setSelected(null)}
-            onUpdate={fetchStartups}
+            onUpdate={(updatedCompany) => {
+              setSelected(updatedCompany)
+              fetchStartups()
+            }}
           />
         </div>
       )}
