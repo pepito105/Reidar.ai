@@ -342,22 +342,18 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
       if (cancelledRef.current) return
       try {
         const event = JSON.parse(e.data)
-        setActivityFeed(prev => [...prev, {
-          type: event.type,
-          message: event.message,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        }])
+        if (event.type !== 'background') {
+          setActivityFeed(prev => [...prev, {
+            type: event.type,
+            message: event.message,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          }])
+        }
         if (event.type === 'complete') {
           setSourcingCount(event.data?.added ?? event.added ?? 0)
           setSourcingComplete(true)
           setSourcing(false)
           eventSource.close()
-          // Trigger background classification of unscored companies
-          getToken().catch(() => null).then(token => {
-            const headers = token ? { Authorization: `Bearer ${token}` } : {}
-            fetch(`${API}/signals/rescore-unscored`, { method: 'POST', headers })
-              .catch(() => {})
-          })
         }
         if (event.type === 'error') {
           setSourcingError(event.message || 'Sourcing failed.')

@@ -130,7 +130,6 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
   const [showNewOnly, setShowNewOnly] = useState(false)
   const [showUnseenOnly, setShowUnseenOnly] = useState(false)
   const [showTodayOnly, setShowTodayOnly] = useState(false)
-  const [pendingCount, setPendingCount] = useState(0)
   const cardRefs = useRef({})
 
   const fetchStartups = useCallback(async () => {
@@ -148,11 +147,6 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
       })
     } catch (_) {}
     setLoading(false)
-    const token2 = await getToken().catch(() => null)
-    const headers2 = token2 ? { Authorization: `Bearer ${token2}` } : {}
-    axios.get(`${API}/startups/pending-analysis`, { headers: headers2 })
-      .then(r => setPendingCount(r.data.pending || 0))
-      .catch(() => {})
   }, [filters, API, getToken])
 
   useEffect(() => { fetchStartups() }, [fetchStartups])
@@ -294,18 +288,6 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
             }}>+ Add Company</button>
           </div>
         </div>
-
-        {pendingCount > 0 && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            background: '#0d0d1a', border: '1px solid #2a2a4a',
-            borderRadius: 8, padding: '10px 16px', marginBottom: 16,
-            fontSize: 13, color: '#8888aa'
-          }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6366f1', animation: 'pulse 2s infinite' }} />
-            <span><strong style={{ color: '#a5b4fc' }}>{pendingCount} companies</strong> are being analyzed in the background — they'll appear here once scored.</span>
-          </div>
-        )}
 
         {loading ? (
           <div style={{ textAlign: 'center', color: '#555577', padding: 80, fontSize: 14 }}>Loading companies...</div>
