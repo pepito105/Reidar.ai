@@ -675,13 +675,9 @@ async def sourcing_stream(request: Request, db: AsyncSession = Depends(get_db), 
                     await queue.put(None)
                     return
 
-                # Split: classify top 8 immediately, save rest as background
-                immediate = new_companies[:8]
-                background = new_companies[8:]
-
-                # Save immediate batch
-                immediate_startups = []
-                for company in immediate:
+                # Save all companies first
+                saved_startups = []
+                for company in new_companies:
                     name = company.get("name")
                     website = company.get("website")
                     try:
@@ -697,39 +693,48 @@ async def sourcing_stream(request: Request, db: AsyncSession = Depends(get_db), 
                         )
                         db.add(startup)
                         await db.flush()
-                        immediate_startups.append((startup, company.get("one_liner") or name))
+                        saved_startups.append((startup, company.get("one_liner") or name))
                     except Exception as e:
                         print(f"Failed to save {name}: {e}")
                         await db.rollback()
 
                 await db.commit()
+                await emit("scoring", f"Scoring {len(saved_startups)} companies against your mandate...")
 
-                for startup, desc in immediate_startups:
-                    await emit("added", f"✓ {startup.name} — saved", {"name": startup.name, "fit_score": None, "fit_label": "Pending"})
-
-                # Save background companies
-                if background:
-                    for company in background:
-                        name = company.get("name")
-                        website = company.get("website")
-                        try:
-                            startup = Startup(
-                                name=name, website=website,
-                                one_liner=company.get("one_liner"),
-                                funding_stage=company.get("funding_stage", "unknown"),
-                                sector=company.get("sector"),
-                                source="autonomous_sourcing",
-                                source_url=website,
-                                scraped_at=datetime.utcnow(),
-                                user_id=user_id,
-                            )
-                            db.add(startup)
-                        except Exception as e:
-                            print(f"Failed to save background company {name}: {e}")
+                # Fast batch scoring with Haiku — fit_score only, no deep analysis
+                from app.services.classifier import classify_batch
+                companies_input = [
+                    {"id": s.id, "name": s.name, "description": desc, "website": s.website, "source": s.source}
+                    for s, desc in saved_startups
+                ]
+                try:
+                    results = await classify_batch(companies_input, profile)
+                    result_map = {r.get("id"): r for r in results if r.get("id")}
+                    added = 0
+                    for startup, _ in saved_startups:
+                        result = result_map.get(startup.id)
+                        if result:
+                            startup.one_liner = (result.get("one_liner") or startup.one_liner or "")[:499]
+                            startup.fit_score = result.get("fit_score")
+                            startup.ai_score = result.get("ai_score")
+                            startup.sector = (result.get("sector") or startup.sector or "")[:99]
+                            startup.mandate_category = (result.get("mandate_category") or "")[:99]
+                            startup.thesis_tags = result.get("thesis_tags", [])
+                            startup.business_model = (result.get("business_model") or "")[:499]
+                            startup.target_customer = (result.get("target_customer") or "")[:499]
+                            if (startup.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):
+                                startup.funding_stage = result["funding_stage"][:49]
+                            fit = result.get("fit_score", 0) or 0
+                            if fit >= (profile.fit_threshold or 3):
+                                fit_label = "Top Match" if fit >= 5 else "Strong Fit" if fit >= 4 else "Possible Fit"
+                                await emit("added", f"✓ {startup.name} — {fit_label} ({fit}/5)", {"name": startup.name, "fit_score": fit, "fit_label": fit_label})
+                                added += 1
                     await db.commit()
-                    await emit("background", f"{len(background)} more companies are being analyzed in the background", {"count": len(background)})
+                except Exception as e:
+                    print(f"Batch classification error: {e}")
+                    added = len(saved_startups)
 
-                await emit("complete", f"Done — {len(immediate_startups) + len(background)} companies added to your feed", {"added": len(immediate_startups) + len(background), "skipped": len(all_companies) - len(new_companies), "background": 0})
+                await emit("complete", f"Done — {added} companies matched your mandate", {"added": added, "skipped": len(all_companies) - len(new_companies)})
                 await queue.put(None)
 
             except Exception as e:
