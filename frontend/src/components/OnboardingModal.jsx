@@ -435,7 +435,14 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
                 ) : activityFeed.map((item, i) => (
                   <div key={i} style={{ padding: '10px 16px', borderBottom: i < activityFeed.length - 1 ? '1px solid #1a1a2e' : 'none', display: 'flex', gap: 10 }}>
                     <span style={{ color: '#444466', fontSize: 11, fontFamily: 'monospace', minWidth: 70, flexShrink: 0 }}>{item.time}</span>
-                    <span style={{ color: getMessageColor(item.type), fontSize: 13, fontWeight: item.type === 'complete' ? 700 : 400 }}>{item.message}</span>
+                    {item.type === 'searching' ? (
+                      <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <span style={{ color: getMessageColor(item.type), fontSize: 13, fontWeight: 500 }}>Running search agent...</span>
+                        <span style={{ color: '#555577', fontSize: 11 }}>{item.message.replace(/^Search \d+\/\d+: /, '').replace(/^"|"$/g, '')}</span>
+                      </span>
+                    ) : (
+                      <span style={{ color: getMessageColor(item.type), fontSize: 13, fontWeight: item.type === 'complete' ? 700 : 400 }}>{item.message}</span>
+                    )}
                   </div>
                 ))}
               </div>

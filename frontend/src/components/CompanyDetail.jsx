@@ -255,7 +255,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
       const questions = JSON.parse(clean)
       setDdQuestions(questions)
     } catch (e) {
-      setDdQuestions(['Could not generate questionstartup. Please try again.'])
+      setDdQuestions(['Could not generate questions. Please try again.'])
     }
     setDdLoading(false)
   }
@@ -361,7 +361,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
           <Divider />
             <Section title="Key Investors">
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {startup.top_investorstartup.map((inv, i) => (
+              {startup.top_investors.map((inv, i) => (
                 <span key={i} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, background: '#1a1a2e', color: '#a5b4fc', border: '1px solid #3730a3' }}>{inv}</span>
               ))}
             </div>
@@ -374,7 +374,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
           <Divider />
             <Section title="Thesis Tags">
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {startup.thesis_tagstartup.map((tag, i) => (
+              {startup.thesis_tags.map((tag, i) => (
                 <span key={i} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, background: '#1a0a2e', color: '#c4b5fd', border: '1px solid #4c1d95' }}>{tag}</span>
               ))}
             </div>
@@ -393,13 +393,13 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
           </>
         )}
 
-        {signalstartup.length > 0 && (
+        {signals.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 12 }}>
             RECENT SIGNALS
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {signalstartup.slice(0, 5).map(signal => (
+            {signals.slice(0, 5).map(signal => (
               <div key={signal.id} style={{
                 background: '#0a0a14', border: '1px solid #1e1e2e',
                 borderLeft: `3px solid ${signal.is_seen ? '#1e1e2e' : '#6366f1'}`,
@@ -602,11 +602,11 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                   </div>
                 )}
 
-                {signalstartup.length > 0 && (
+                {signals.length > 0 && (
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 10 }}>RECENT SIGNALS</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {signalstartup.map(signal => (
+                      {signals.map(signal => (
                         <div key={signal.id} style={{ background: '#0a0a14', border: '1px solid #1e1e2e', borderLeft: `3px solid ${signal.is_seen ? '#1e1e2e' : '#6366f1'}`, borderRadius: 8, padding: '10px 12px' }}>
                           <div style={{ display: 'flex', gap: 8, marginBottom: 3 }}>
                             <span style={{ fontSize: 14 }}>{signal.icon}</span>
@@ -669,7 +669,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                     {startup.top_investors?.length > 0 && (
                       <Section title="Key Investors">
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          {startup.top_investorstartup.map((inv, i) => (
+                          {startup.top_investors.map((inv, i) => (
                             <span key={i} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, background: '#1a1a2e', color: '#a5b4fc', border: '1px solid #3730a3' }}>{inv}</span>
                           ))}
                         </div>
@@ -678,17 +678,17 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                     {startup.thesis_tags?.length > 0 && (
                       <Section title="Thesis Tags">
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          {startup.thesis_tagstartup.map((tag, i) => (
+                          {startup.thesis_tags.map((tag, i) => (
                             <span key={i} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, background: '#1a0a2e', color: '#c4b5fd', border: '1px solid #4c1d95' }}>{tag}</span>
                           ))}
                         </div>
                       </Section>
                     )}
-                    {Array.isArray(startup.comparable_companies) && startup.comparable_companiestartup.length > 0 && (
+                    {Array.isArray(startup.comparable_companies) && startup.comparable_companies.length > 0 && (
                       <div style={{ marginTop: 24 }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 12 }}>COMPARABLE COMPANIES</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {startup.comparable_companiestartup.map((c, i) => (
+                          {startup.comparable_companies.map((c, i) => (
                             <div key={i} style={{ background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <div>
@@ -819,9 +819,9 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                           onChange={e => { if (e.target.files[0]) uploadFile(e.target.files[0]) }}
                         />
                       </div>
-                      {memoFilestartup.length > 0 && (
+                      {memoFiles.length > 0 && (
                         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {memoFilestartup.map((f, i) => (
+                          {memoFiles.map((f, i) => (
                             <div key={i} style={{
                               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                               background: '#0f0f1a', border: '1px solid #1e1e2e', borderRadius: 7,
@@ -884,7 +884,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                         {memo.split('\n## ').filter(Boolean).map((section, i) => {
                           const lines = section.replace(/^## /, '').split('\n')
                           const title = lines[0]
-                          const body = linestartup.slice(1).join('\n').trim()
+                          const body = lines.slice(1).join('\n').trim()
                           const isRecommendation = title.toLowerCase().includes('recommendation')
                           const isRisk = title.toLowerCase().includes('risk')
                           return (
@@ -937,9 +937,9 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                 )}
                 {activeTab === 'signals' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {signalstartup.length === 0 ? (
+                    {signals.length === 0 ? (
                       <div style={{ textAlign: 'center', padding: '40px 0', color: '#555577', fontSize: 13 }}>No signals detected yet</div>
-                    ) : signalstartup.map(signal => (
+                    ) : signals.map(signal => (
                       <div key={signal.id} style={{
                         background: '#0a0a14', border: '1px solid #1e1e2e',
                         borderLeft: `3px solid ${signal.is_seen ? '#1e1e2e' : '#6366f1'}`,
@@ -1036,9 +1036,9 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                       </div>
 
                       {/* Notes List */}
-                      {(!meetingNotes || meetingNotestartup.length === 0) ? (
+                      {(!meetingNotes || meetingNotes.length === 0) ? (
                         <div style={{ fontSize: 12, color: '#555577' }}>No notes yet — add your first note above</div>
-                      ) : meetingNotestartup.map((n, i) => (
+                      ) : meetingNotes.map((n, i) => (
                         <div key={i} style={{ background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8, padding: '12px 14px', marginBottom: 8, position: 'relative' }}>
                           {n.source === 'import' && (
                             <div style={{ fontSize: 10, color: '#6366f1', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>✦ Imported</div>
@@ -1050,7 +1050,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                             </div>
                             <button
                               onClick={() => {
-                                const updated = meetingNotestartup.filter((_, idx) => idx !== i)
+                                const updated = meetingNotes.filter((_, idx) => idx !== i)
                                 setMeetingNotes(updated)
                                 getToken().catch(() => null).then(token => {
                                   const headers = token ? { Authorization: `Bearer ${token}` } : {}
@@ -1069,9 +1069,9 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                     {/* FOUNDER CONTACTS */}
                     <div style={{ marginBottom: 28 }}>
                       <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 12 }}>FOUNDER CONTACTS</div>
-                      {Array.isArray(startup.founder_contacts) && startup.founder_contactstartup.length > 0 && (
+                      {Array.isArray(startup.founder_contacts) && startup.founder_contacts.length > 0 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-                          {startup.founder_contactstartup.map((contact, i) => (
+                          {startup.founder_contacts.map((contact, i) => (
                             <div key={i} style={{ background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                               <div>
                                 <div style={{ fontSize: 13, fontWeight: 600, color: '#f0f0ff' }}>{contact.name}</div>
@@ -1082,7 +1082,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                               </div>
                               <button
                                 onClick={async () => {
-                                  const updated = startup.founder_contactstartup.filter((_, idx) => idx !== i)
+                                  const updated = startup.founder_contacts.filter((_, idx) => idx !== i)
                                   const token = await getToken().catch(() => null)
                                   const headers = token ? { Authorization: `Bearer ${token}` } : {}
                                   await axios.patch(`${API}/startups/${startup.id}`, { founder_contacts: updated }, { headers })
@@ -1158,7 +1158,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                           <textarea
                             value={newOutreach.notes || ''}
                             onChange={e => setNewOutreach(v => ({ ...v, notes: e.target.value }))}
-                            placeholder="Notestartup..."
+                            placeholder="Notes..."
                             style={{ width: '100%', minHeight: 60, marginBottom: 8, padding: '8px 10px', background: '#13131f', border: '1px solid #2a2a4a', borderRadius: 6, color: '#c0c0e0', fontSize: 12, outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
                           />
                           <div style={{ display: 'flex', gap: 8 }}>
