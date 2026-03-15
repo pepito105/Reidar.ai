@@ -5,6 +5,7 @@ import { ClerkProvider, SignIn, SignUp } from '@clerk/clerk-react'
 import App from './App.jsx'
 import LandingPage from './pages/LandingPage.jsx'
 import HowItWorks from './HowItWorks'
+import Pricing from './pages/Pricing'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
@@ -19,6 +20,7 @@ createRoot(document.getElementById('root')).render(
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/pricing" element={<Pricing />} />
           <Route path="/app/*" element={<App />} />
           <Route path="/sign-in/*" element={
             <div style={{ minHeight: '100vh', background: '#0a0a0f', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>

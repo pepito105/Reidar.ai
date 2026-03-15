@@ -752,6 +752,7 @@ export default function LandingPage() {
         <div className="nav-links">
           <a href="/how-it-works" className="nav-a">How it works</a>
           <a href="/#product" className="nav-a">Product</a>
+          <a href="/pricing" className="nav-a">Pricing</a>
         </div>
         <div className="nav-right">
           {isSignedIn ? (
