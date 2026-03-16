@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
+import { useQuery } from "@tanstack/react-query";
 
 const STAGE_COLORS = {
   "pre-seed": "#8b5cf6",
@@ -122,21 +123,17 @@ function FitBar({ value, maxValue, color, label }) {
 
 export default function MarketMap({ API }) {
   const { getToken } = useAuth();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const load = async () => {
+  const { data, isLoading: loading, error } = useQuery({
+    queryKey: ["market-map"],
+    queryFn: async () => {
       const token = await getToken().catch(() => null);
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      fetch(`${API}/market-map/`, { headers })
-        .then(r => r.json())
-        .then(d => { setData(d); setLoading(false); })
-        .catch(e => { setError(e.message); setLoading(false); });
-    };
-    load();
-  }, [getToken]);
+      const res = await fetch(`${API}/market-map/`, { headers });
+      if (!res.ok) throw new Error("Failed to load market data");
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 30,
+  });
 
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
@@ -145,7 +142,7 @@ export default function MarketMap({ API }) {
   );
 
   if (error) return (
-    <div style={{ padding: 32, color: "#ef4444", fontSize: 14 }}>Failed to load: {error}</div>
+    <div style={{ padding: 32, color: "#ef4444", fontSize: 14 }}>Failed to load: {error?.message}</div>
   );
 
   const sectors = data.sector_breakdown || [];

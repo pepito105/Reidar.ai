@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAuth } from '@clerk/clerk-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 
 const STAGES = ['watching', 'outreach', 'diligence', 'passed', 'invested']
@@ -29,22 +30,19 @@ function relativeTime(dateStr) {
 
 export default function Pipeline({ API }) {
   const { getToken } = useAuth()
-  const [board, setBoard] = useState({})
+  const queryClient = useQueryClient()
+  const { data: board = {}, isLoading: loading, refetch: fetchPipeline } = useQuery({
+    queryKey: ['pipeline'],
+    queryFn: async () => {
+      const token = await getToken().catch(() => null)
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      const res = await axios.get(`${API}/pipeline/`, { headers })
+      return res.data
+    },
+    staleTime: 1000 * 60 * 2,
+  })
   const [dragging, setDragging] = useState(null)
   const [dragOverStage, setDragOverStage] = useState(null)
-  const [loading, setLoading] = useState(true)
-
-  const fetchPipeline = async () => {
-    const token = await getToken().catch(() => null)
-    const headers = token ? { Authorization: `Bearer ${token}` } : {}
-    try {
-      const res = await axios.get(`${API}/pipeline/`, { headers })
-      setBoard(res.data)
-    } catch (_) {}
-    setLoading(false)
-  }
-
-  useEffect(() => { fetchPipeline() }, [API, getToken])
 
   const onDragStart = (company, fromStage) => setDragging({ company, fromStage })
 
@@ -67,11 +65,11 @@ export default function Pipeline({ API }) {
     const fromStage = dragging.fromStage
     const company = dragging.company
 
-    // Optimistic update: single setState
-    setBoard(prev => {
+    // Optimistic update
+    queryClient.setQueryData(['pipeline'], prev => {
       const next = {}
       STAGES.forEach(s => {
-        next[s] = [...(prev[s] || [])]
+        next[s] = [...((prev || {})[s] || [])]
       })
       next[fromStage] = next[fromStage].filter(c => c.id !== company.id)
       next[toStage] = [...next[toStage], { ...company }]
