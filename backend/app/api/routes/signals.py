@@ -638,7 +638,7 @@ async def sourcing_stream(request: Request, db: AsyncSession = Depends(get_db), 
                 from app.models.startup import Startup
                 from datetime import datetime
 
-                queries = await generate_search_queries(profile.investment_thesis, profile.firm_name)
+                queries = await generate_search_queries(profile.investment_thesis, profile.firm_name, firm_website=profile.firm_website, firm_context=profile.firm_context)
                 await emit("queries", f"Generated {len(queries)} search queries", {"queries": queries})
 
                 all_companies = []

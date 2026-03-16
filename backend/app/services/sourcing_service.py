@@ -15,14 +15,15 @@ logger = logging.getLogger(__name__)
 client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
 
-async def generate_search_queries(thesis: str, firm_name: str, custom_brief: str = None) -> List[str]:
+async def generate_search_queries(thesis: str, firm_name: str, firm_website: str = None, firm_context: dict = None, custom_brief: str = None, count: int = 3) -> List[str]:
     prompt = f"""You are a VC analyst generating search queries to find real early-stage startups.
 
 FIRM: {firm_name}
 INVESTMENT THESIS: {thesis}
+{f'FIRM WEBSITE: {firm_website}\n' if firm_website else ''}{f'PORTFOLIO COMPANIES (already invested — do not source these): {", ".join(firm_context.get("portfolio_companies") or [])}\n' if firm_context and firm_context.get("portfolio_companies") else ''}{f'INVESTMENT THEMES: {", ".join(firm_context.get("investment_themes") or [])}\n' if firm_context and firm_context.get("investment_themes") else ''}
 {f'CUSTOM SEARCH BRIEF: {custom_brief}' if custom_brief else ''}
 
-Generate exactly 3 search queries to find startups that match this thesis.
+Generate exactly {count} search queries to find startups that match this thesis.
 
 Rules:
 - Be highly specific to the thesis — target the exact verticals, problems, and customer types mentioned
@@ -47,8 +48,8 @@ Example: ["query one", "query two", "query three"]"""
 
     try:
         response = await client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=300,
+            model="claude-sonnet-4-6",
+            max_tokens=500,
             messages=[{"role": "user", "content": prompt}]
         )
         raw = response.content[0].text.strip()
@@ -56,7 +57,7 @@ Example: ["query one", "query two", "query three"]"""
         raw = re.sub(r'\s*```$', '', raw)
         queries = json.loads(raw.strip())
         logger.info(f"Generated {len(queries)} search queries for {firm_name}")
-        return queries[:3]
+        return queries[:count]
     except Exception as e:
         logger.error(f"Failed to generate search queries: {e}")
         return [
@@ -170,7 +171,7 @@ async def is_duplicate(website: str, name: str, db: AsyncSession, user_id: Optio
     return False
 
 
-async def run_autonomous_sourcing(db: AsyncSession, custom_brief: str = None, limit_per_source: int = 10, user_id: Optional[str] = None) -> dict:
+async def run_autonomous_sourcing(db: AsyncSession, custom_brief: str = None, limit_per_source: int = 10, user_id: Optional[str] = None, nightly: bool = False) -> dict:
     if user_id is not None:
         profile_result = await db.execute(
             select(FirmProfile).where(FirmProfile.is_active == True).where(FirmProfile.user_id == user_id)
@@ -185,7 +186,8 @@ async def run_autonomous_sourcing(db: AsyncSession, custom_brief: str = None, li
     thesis = custom_brief or profile.investment_thesis
     logger.info(f"Starting autonomous sourcing for {firm_name}")
 
-    queries = await generate_search_queries(thesis, firm_name, custom_brief)
+    query_count = 8 if nightly else 3
+    queries = await generate_search_queries(thesis, firm_name, firm_website=profile.firm_website, firm_context=profile.firm_context, custom_brief=custom_brief, count=query_count)
     logger.info(f"Search queries: {queries}")
 
     all_companies = []

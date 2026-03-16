@@ -40,9 +40,36 @@ async def run_full_scrape(db: AsyncSession) -> dict:
 
     # Step 2: Scrape all sources once
     all_companies = []
+
+    # YC: only scrape if any firm doesn't have YC companies yet
+    yc_needed = False
+    for firm in firms:
+        yc_check = await db.execute(
+            select(Startup).where(
+                Startup.source == "YC",
+                Startup.user_id == firm.user_id
+            ).limit(1)
+        )
+        if not yc_check.scalar_one_or_none():
+            yc_needed = True
+            break
+
+    if yc_needed:
+        try:
+            yc_companies = await scrape_yc_companies()
+            all_companies.extend(yc_companies)
+            stats["sources"]["YC"] = len(yc_companies)
+            logger.info(f"YC: {len(yc_companies)} companies found")
+        except Exception as e:
+            logger.error(f"YC scraper failed: {e}")
+            stats["sources"]["YC"] = 0
+    else:
+        logger.info("YC: all firms already have YC data — skipping")
+        stats["sources"]["YC"] = 0
+
+    # RSS and ProductHunt: always run
     for source_name, scraper_fn in [
         ("RSS Feeds", scrape_rss_feeds),
-        ("YC", scrape_yc_companies),
         ("ProductHunt", scrape_producthunt),
     ]:
         try:

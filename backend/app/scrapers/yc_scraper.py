@@ -6,7 +6,7 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 YC_API_URL = "https://api.ycombinator.com/v0.1/companies"
-YC_BATCHES = ["W25", "S24", "W24"]
+YC_BATCHES = ["S25", "W25", "S24", "W24"]
 
 
 async def scrape_yc_companies() -> list:

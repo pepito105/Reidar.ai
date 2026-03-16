@@ -224,8 +224,12 @@ async def job_run_research():
 
 
 async def job_run_sourcing():
-    logger.info('Scheduler: Starting autonomous sourcing (per firm)')
+    logger.info('Scheduler: Starting nightly autonomous sourcing (deep mode)')
     from app.services.sourcing_service import run_autonomous_sourcing
+    from app.services.research_service import run_research_batch
+    from app.scrapers.yc_scraper import scrape_yc_companies
+    from app.models.startup import Startup
+    from sqlalchemy import select
     async with AsyncSessionLocal() as db:
         try:
             profiles_result = await db.execute(
@@ -233,19 +237,41 @@ async def job_run_sourcing():
             )
             profiles = profiles_result.scalars().all()
             if not profiles:
-                logger.info('No active firm profiles — skipping autonomous sourcing')
+                logger.info('No active firm profiles — skipping nightly sourcing')
                 return
             for profile in profiles:
                 firm_name = profile.firm_name or 'Unknown'
                 user_id = profile.user_id
-                logger.info(f'Sourcing for firm: {firm_name} (user_id={user_id})')
+                logger.info(f'Nightly sourcing for: {firm_name}')
+
+                # Step 1: YC seed — only if firm has no YC companies yet
+                yc_check = await db.execute(
+                    select(Startup).where(
+                        Startup.source == "YC",
+                        Startup.user_id == user_id
+                    ).limit(1)
+                )
+                if not yc_check.scalar_one_or_none():
+                    logger.info(f'Seeding YC companies for {firm_name}')
+                    from app.services.scraping_service import run_full_scrape
+                    await run_full_scrape(db)
+
+                # Step 2: Deep autonomous sourcing — 8 queries instead of 3
                 try:
-                    stats = await run_autonomous_sourcing(db, user_id=user_id)
-                    logger.info(f'Autonomous sourcing complete for {firm_name}: {stats}')
+                    stats = await run_autonomous_sourcing(db, user_id=user_id, nightly=True)
+                    logger.info(f'Nightly sourcing complete for {firm_name}: {stats}')
                 except Exception as e:
-                    logger.error(f'Autonomous sourcing failed for {firm_name}: {e}', exc_info=True)
+                    logger.error(f'Nightly sourcing failed for {firm_name}: {e}', exc_info=True)
+
+                # Step 3: Auto-research top new matches (fit >= 4, no research yet)
+                try:
+                    research_stats = await run_research_batch(db, limit=20, user_id=user_id, min_fit_score=4)
+                    logger.info(f'Auto-research complete for {firm_name}: {research_stats}')
+                except Exception as e:
+                    logger.error(f'Auto-research failed for {firm_name}: {e}')
+
         except Exception as e:
-            logger.error(f'Autonomous sourcing job failed: {e}', exc_info=True)
+            logger.error(f'Nightly sourcing job failed: {e}', exc_info=True)
 
 
 async def run_startup_check():
@@ -275,13 +301,6 @@ async def run_startup_check():
 
 def start_scheduler():
     scheduler.add_job(
-        job_run_scrapers,
-        CronTrigger(hour=2, minute=0),
-        id='nightly_scrape',
-        replace_existing=True,
-        misfire_grace_time=3600,
-    )
-    scheduler.add_job(
         job_refresh_signals,
         CronTrigger(hour=3, minute=0),
         id='nightly_refresh',
@@ -310,4 +329,4 @@ def start_scheduler():
         misfire_grace_time=3600,
     )
     scheduler.start()
-    logger.info('Scheduler started - scrape 2AM, refresh 3AM, research 3:30AM, sourcing 4AM, weekly summary Monday 8AM ET')
+    logger.info('Scheduler started - signal refresh 3AM, deep sourcing 4AM, weekly summary Monday 8AM ET')

@@ -403,6 +403,111 @@ async def analyze_startup(startup_id: int, request: Request, db: AsyncSession = 
     return _startup_to_card(startup)
 
 
+@router.get("/{startup_id}/analyze/stream")
+async def analyze_startup_stream(startup_id: int, request: Request, db: AsyncSession = Depends(get_db), token: Optional[str] = None, focus: Optional[str] = None):
+    """SSE endpoint that streams research agent progress."""
+    import asyncio
+    import json
+    from fastapi.responses import StreamingResponse
+
+    user_id = _user_id_from_request(request)
+    if not user_id and token:
+        try:
+            import jwt
+            decoded = jwt.decode(token, options={"verify_signature": False}, algorithms=["RS256", "HS256"])
+            user_id = decoded.get("sub")
+        except Exception:
+            pass
+
+    async def event_generator():
+        async def emit(event_type: str, message: str, data: dict = None):
+            payload = {"type": event_type, "message": message, **(data or {})}
+            yield f"data: {json.dumps(payload)}\n\n"
+
+        startup_result = await db.execute(
+            select(Startup).where(Startup.id == startup_id).where(Startup.user_id == user_id)
+        )
+        startup = startup_result.scalar_one_or_none()
+        if not startup:
+            async for chunk in emit("error", "Company not found"):
+                yield chunk
+            return
+
+        if startup.fit_reasoning is not None:
+            async for chunk in emit("complete", "Already analyzed", {"startup": _startup_to_card(startup)}):
+                yield chunk
+            return
+
+        firm_result = await db.execute(
+            select(FirmProfile).where(FirmProfile.is_active == True).where(FirmProfile.user_id == user_id).limit(1)
+        )
+        firm = firm_result.scalars().first()
+        if not firm:
+            async for chunk in emit("error", "No firm profile found"):
+                yield chunk
+            return
+
+        # Stage 1 — Website research
+        async for chunk in emit("stage", "Visiting company website...", {"stage": 1, "total": 4}):
+            yield chunk
+        await asyncio.sleep(0.5)
+
+        # Stage 2 — Thesis analysis
+        async for chunk in emit("stage", "Evaluating thesis fit...", {"stage": 2, "total": 4}):
+            yield chunk
+        await asyncio.sleep(0.5)
+
+        # Stage 3 — Running classifier
+        async for chunk in emit("stage", "Running investment analysis...", {"stage": 3, "total": 4}):
+            yield chunk
+
+        from app.services.classifier import classify_startup as run_classify
+        result = await run_classify(
+            name=startup.name,
+            description=startup.one_liner or startup.name,
+            website=startup.website,
+            source=startup.source or "sourced",
+            firm=firm,
+            custom_focus=focus,
+        )
+
+        if result:
+            startup.one_liner = (result.get("one_liner") or startup.one_liner or "")[:499]
+            startup.ai_summary = (result.get("ai_summary") or "")[:2000]
+            startup.ai_score = result.get("ai_score")
+            startup.fit_score = result.get("fit_score")
+            startup.fit_reasoning = (result.get("fit_reasoning") or "")[:1000]
+            startup.business_model = (result.get("business_model") or "")[:499]
+            startup.target_customer = (result.get("target_customer") or "")[:499]
+            startup.sector = (result.get("sector") or startup.sector or "")[:99]
+            startup.mandate_category = (result.get("mandate_category") or "")[:99]
+            startup.thesis_tags = result.get("thesis_tags", [])
+            startup.recommended_next_step = (result.get("recommended_next_step") or "")[:499]
+            key_risks = result.get("key_risks")
+            startup.key_risks = json.dumps(key_risks) if isinstance(key_risks, list) else (key_risks or None)
+            bull_case = result.get("bull_case")
+            startup.bull_case = json.dumps(bull_case) if isinstance(bull_case, list) else (bull_case or None)
+            startup.comparable_companies = result.get("comparable_companies", [])
+            if (startup.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):
+                startup.funding_stage = result["funding_stage"][:49]
+            await db.commit()
+            await db.refresh(startup)
+
+        # Stage 4 — Complete
+        async for chunk in emit("stage", "Generating investment brief...", {"stage": 4, "total": 4}):
+            yield chunk
+        await asyncio.sleep(0.3)
+
+        async for chunk in emit("complete", "Analysis complete", {"startup": _startup_to_card(startup)}):
+            yield chunk
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    )
+
+
 @router.post("/{startup_id}/import-meeting")
 async def import_meeting_summary(
     startup_id: int,

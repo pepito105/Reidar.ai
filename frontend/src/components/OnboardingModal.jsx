@@ -159,6 +159,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
   const [activityFeed, setActivityFeed] = useState([])
   const [isFirstRun, setIsFirstRun] = useState(false)
   const [fitThreshold, setFitThreshold] = useState(3)
+  const [firmWebsite, setFirmWebsite] = useState('')
 
   const [portfolioText, setPortfolioText] = useState('')
   const [portfolioFile, setPortfolioFile] = useState(null)
@@ -201,6 +202,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
             notify_min_fit_score: res.data.notify_min_fit_score ?? 4,
             notification_emails: res.data.notification_emails || '',
           }))
+          setFirmWebsite(res.data.firm_website || '')
         }
       } catch (_) {}
     }
@@ -385,7 +387,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
       const headers = token ? { Authorization: `Bearer ${token}` } : {}
       console.log('token:', token)
       console.log('headers:', headers)
-      await axios.post(`${API}/firm-profile/`, { ...form, fit_threshold: fitThreshold }, { headers })
+      await axios.post(`${API}/firm-profile/`, { ...form, fit_threshold: fitThreshold, firm_website: firmWebsite.trim() || null }, { headers })
     } catch (e) {
       console.error('firm profile save failed:', e.response?.status, e.response?.data)
     }
@@ -558,6 +560,11 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
               <div style={{ marginBottom: 20 }}>
                 <label style={{ fontSize: 12, fontWeight: 600, color: '#8888aa', display: 'block', marginBottom: 8, letterSpacing: '0.5px' }}>FIRM NAME</label>
                 <input value={form.firm_name} onChange={e => setForm(f => ({ ...f, firm_name: e.target.value }))} placeholder="e.g. Failup Ventures" style={inputBase} />
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#8888aa', display: 'block', marginBottom: 8, letterSpacing: '0.5px' }}>FIRM WEBSITE (OPTIONAL)</label>
+                <input value={firmWebsite} onChange={e => setFirmWebsite(e.target.value)} placeholder="e.g. https://failupventures.com" style={inputBase} />
               </div>
 
               <div style={{ marginBottom: 28 }}>

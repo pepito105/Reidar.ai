@@ -151,25 +151,31 @@ Based on the website content, provide a structured analysis. Respond in this exa
         return False
 
 
-async def run_research_batch(db: AsyncSession, limit: int = 50) -> dict:
+async def run_research_batch(db: AsyncSession, limit: int = 50, user_id=None, min_fit_score: int = None) -> dict:
     """
     Run autonomous research on companies that haven't been researched yet.
     Prioritizes by fit score. Called after nightly scrape.
     """
-    # Get firm mandate
-    profile_result = await db.execute(
-        select(FirmProfile).where(FirmProfile.is_active == True)
-    )
+    # Get firm mandate (optionally scoped to user)
+    q = select(FirmProfile).where(FirmProfile.is_active == True)
+    if user_id is not None:
+        q = q.where(FirmProfile.user_id == user_id)
+    profile_result = await db.execute(q)
     profile = profile_result.scalar_one_or_none()
     firm_mandate = profile.investment_thesis if profile else ""
 
     # Find unresearched companies, prioritized by fit score
-    result = await db.execute(
+    result_q = (
         select(Startup)
         .where(Startup.research_status == None)
         .where(Startup.website != None)
-        .order_by(Startup.fit_score.desc())
-        .limit(limit)
+    )
+    if user_id is not None:
+        result_q = result_q.where(Startup.user_id == user_id)
+    if min_fit_score is not None:
+        result_q = result_q.where(Startup.fit_score >= min_fit_score)
+    result = await db.execute(
+        result_q.order_by(Startup.fit_score.desc()).limit(limit)
     )
     companies = result.scalars().all()
 

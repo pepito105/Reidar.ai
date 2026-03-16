@@ -94,6 +94,9 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
   const [showLogOutreach, setShowLogOutreach] = useState(false)
   const [newOutreach, setNewOutreach] = useState({})
   const [analyzing, setAnalyzing] = useState(false)
+  const [analyzeStage, setAnalyzeStage] = useState(null)
+  const [customFocus, setCustomFocus] = useState('')
+  const [showFocusInput, setShowFocusInput] = useState(false)
 
   const badge = startup.fit_score != null ? (FIT_BADGES[startup.fit_score] || FIT_BADGES[2]) : { label: 'Pending', color: '#555577', bg: '#1a1a2e' }
 
@@ -261,8 +264,46 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
     setDdLoading(false)
   }
 
+  const runAnalysis = async () => {
+    setAnalyzing(true)
+    setAnalyzeStage('Initializing research agents...')
+    setShowFocusInput(false)
+    try {
+      const token = await getToken().catch(() => null)
+      const streamUrl = `${API}/startups/${startup.id}/analyze/stream${token ? `?token=${token}` : ''}${customFocus ? `&focus=${encodeURIComponent(customFocus)}` : ''}`
+      const es = new EventSource(streamUrl)
+      es.onmessage = (e) => {
+        const data = JSON.parse(e.data)
+        if (data.type === 'stage') {
+          setAnalyzeStage(data.message)
+        } else if (data.type === 'complete') {
+          es.close()
+          setStartup(data.startup)
+          onUpdate && onUpdate(data.startup)
+          setAnalyzing(false)
+          setAnalyzeStage(null)
+          setCustomFocus('')
+        } else if (data.type === 'error') {
+          es.close()
+          setAnalyzing(false)
+          setAnalyzeStage(null)
+        }
+      }
+      es.onerror = () => {
+        es.close()
+        setAnalyzing(false)
+        setAnalyzeStage(null)
+      }
+    } catch (e) {
+      console.error('Analysis failed:', e)
+      setAnalyzing(false)
+      setAnalyzeStage(null)
+    }
+  }
+
   return (
     <>
+      <style dangerouslySetInnerHTML={{ __html: '@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }' }} />
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#555577', fontSize: 18, cursor: 'pointer', float: 'right', marginTop: -4 }}>✕</button>
@@ -292,36 +333,82 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
 
         {!startup.fit_reasoning ? (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div>
                 <div style={{ fontSize: 13, color: '#6b6b8a', marginBottom: 12, lineHeight: 1.6 }}>
                   Deploy research agents to unlock a full investment analysis of this company.
                 </div>
-                <button
-                  onClick={async () => {
-                    setAnalyzing(true)
-                    try {
-                      const token = await getToken().catch(() => null)
-                      const headers = token ? { Authorization: `Bearer ${token}` } : {}
-                      const res = await axios.post(`${API}/startups/${startup.id}/analyze`, {}, { headers })
-                      setStartup(res.data)
-                      onUpdate && onUpdate(res.data)
-                    } catch(e) {
-                      console.error('Analysis failed:', e)
-                    }
-                    setAnalyzing(false)
-                  }}
-                  style={{
-                    padding: '10px 20px', borderRadius: 8, border: 'none',
-                    background: analyzing ? '#1e1b4b' : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                    color: '#fff', fontSize: 13, fontWeight: 700, cursor: analyzing ? 'default' : 'pointer',
-                  }}
-                  disabled={analyzing}
-                >
-                  {analyzing ? '⏳ Research agents working...' : '⚡ Deploy Research Agents'}
-                </button>
+                {!analyzing && !showFocusInput && (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={runAnalysis}
+                      style={{
+                        padding: '10px 20px', borderRadius: 8, border: 'none',
+                        background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                        color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                      }}
+                    >
+                      ⚡ Deploy Research Agents
+                    </button>
+                    <button
+                      onClick={() => setShowFocusInput(true)}
+                      style={{
+                        padding: '10px 16px', borderRadius: 8, border: '1px solid #2a2a4a',
+                        background: 'transparent', color: '#6b6b8a', fontSize: 13, cursor: 'pointer',
+                      }}
+                    >
+                      + Add focus
+                    </button>
+                  </div>
+                )}
+                {!analyzing && showFocusInput && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <input
+                      autoFocus
+                      value={customFocus}
+                      onChange={e => setCustomFocus(e.target.value)}
+                      placeholder="e.g. How does pricing compare to Procore? Any enterprise customers?"
+                      style={{
+                        background: '#0d0d18', border: '1px solid #6366f1', borderRadius: 8,
+                        padding: '10px 14px', color: '#EBEBEB', fontSize: 13, outline: 'none',
+                        fontFamily: 'Inter, sans-serif', width: '100%', boxSizing: 'border-box'
+                      }}
+                      onKeyDown={e => e.key === 'Enter' && runAnalysis()}
+                    />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        onClick={runAnalysis}
+                        style={{
+                          padding: '10px 20px', borderRadius: 8, border: 'none',
+                          background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                          color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', flex: 1
+                        }}
+                      >
+                        ⚡ Run Guided Analysis
+                      </button>
+                      <button
+                        onClick={() => { setShowFocusInput(false); setCustomFocus('') }}
+                        style={{
+                          padding: '10px 16px', borderRadius: 8, border: '1px solid #2a2a4a',
+                          background: 'transparent', color: '#6b6b8a', fontSize: 13, cursor: 'pointer',
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {analyzing && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                      width: 8, height: 8, borderRadius: '50%', background: '#6366f1',
+                      animation: 'pulse 1.5s ease-in-out infinite'
+                    }} />
+                    <span style={{ fontSize: 13, color: '#a5b4fc', fontWeight: 600 }}>
+                      {analyzeStage || 'Initializing...'}
+                    </span>
+                  </div>
+                )}
               </div>
-            </div>
 
             {/* Preview of what gets unlocked */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, opacity: 0.35, pointerEvents: 'none', userSelect: 'none' }}>
@@ -612,32 +699,80 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                   {startup.fit_reasoning
                     ? <FitReasoningBullets text={startup.fit_reasoning} />
                     : <div>
-                        <p style={{ fontSize: 13, color: '#6b6b8a', marginBottom: 12, lineHeight: 1.6 }}>
-                          Deploy research agents to unlock a full investment analysis.
-                        </p>
-                        <button
-                          onClick={async () => {
-                            setAnalyzing(true)
-                            try {
-                              const token = await getToken().catch(() => null)
-                              const headers = token ? { Authorization: `Bearer ${token}` } : {}
-                              const res = await axios.post(`${API}/startups/${startup.id}/analyze`, {}, { headers })
-                              setStartup(res.data)
-                              onUpdate && onUpdate(res.data)
-                            } catch(e) {
-                              console.error('Analysis failed:', e)
-                            }
-                            setAnalyzing(false)
-                          }}
-                          disabled={analyzing}
-                          style={{
-                            padding: '10px 20px', borderRadius: 8, border: 'none',
-                            background: analyzing ? '#1e1b4b' : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                            color: '#fff', fontSize: 13, fontWeight: 700, cursor: analyzing ? 'default' : 'pointer',
-                          }}
-                        >
-                          {analyzing ? '⏳ Research agents working...' : '⚡ Deploy Research Agents'}
-                        </button>
+                        <div style={{ fontSize: 13, color: '#6b6b8a', marginBottom: 12, lineHeight: 1.6 }}>
+                          Deploy research agents to unlock a full investment analysis of this company.
+                        </div>
+                        {!analyzing && !showFocusInput && (
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                              onClick={runAnalysis}
+                              style={{
+                                padding: '10px 20px', borderRadius: 8, border: 'none',
+                                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                                color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                              }}
+                            >
+                              ⚡ Deploy Research Agents
+                            </button>
+                            <button
+                              onClick={() => setShowFocusInput(true)}
+                              style={{
+                                padding: '10px 16px', borderRadius: 8, border: '1px solid #2a2a4a',
+                                background: 'transparent', color: '#6b6b8a', fontSize: 13, cursor: 'pointer',
+                              }}
+                            >
+                              + Add focus
+                            </button>
+                          </div>
+                        )}
+                        {!analyzing && showFocusInput && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <input
+                              autoFocus
+                              value={customFocus}
+                              onChange={e => setCustomFocus(e.target.value)}
+                              placeholder="e.g. How does pricing compare to Procore? Any enterprise customers?"
+                              style={{
+                                background: '#0d0d18', border: '1px solid #6366f1', borderRadius: 8,
+                                padding: '10px 14px', color: '#EBEBEB', fontSize: 13, outline: 'none',
+                                fontFamily: 'Inter, sans-serif', width: '100%', boxSizing: 'border-box'
+                              }}
+                              onKeyDown={e => e.key === 'Enter' && runAnalysis()}
+                            />
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <button
+                                onClick={runAnalysis}
+                                style={{
+                                  padding: '10px 20px', borderRadius: 8, border: 'none',
+                                  background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                                  color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', flex: 1
+                                }}
+                              >
+                                ⚡ Run Guided Analysis
+                              </button>
+                              <button
+                                onClick={() => { setShowFocusInput(false); setCustomFocus('') }}
+                                style={{
+                                  padding: '10px 16px', borderRadius: 8, border: '1px solid #2a2a4a',
+                                  background: 'transparent', color: '#6b6b8a', fontSize: 13, cursor: 'pointer',
+                                }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        {analyzing && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{
+                              width: 8, height: 8, borderRadius: '50%', background: '#6366f1',
+                              animation: 'pulse 1.5s ease-in-out infinite'
+                            }} />
+                            <span style={{ fontSize: 13, color: '#a5b4fc', fontWeight: 600 }}>
+                              {analyzeStage || 'Initializing...'}
+                            </span>
+                          </div>
+                        )}
                       </div>
                   }
                 </div>

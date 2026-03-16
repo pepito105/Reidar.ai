@@ -114,7 +114,7 @@ ai_score (1-5) — how AI-native is this company:
 IMPORTANT: Be generous. If a company is AI-native B2B SaaS automating any knowledge work, operational process, or the firm's target verticals — that is a 5. Do not anchor on 3 or 4. Use the full range."""
 
 
-async def classify_startup(name: str, description: str, website: Optional[str], source: str, firm) -> dict:
+async def classify_startup(name: str, description: str, website: Optional[str], source: str, firm, custom_focus: str = None) -> dict:
     firm_context = _build_firm_context(firm)
     mandate_category_guide = _build_mandate_category_guide(firm)
 
@@ -131,6 +131,7 @@ Use this analysis to inform fit_score and fit_reasoning. Do not output the frame
 
 IMPORTANT: The 'name' field must be the actual company name only — never a description, headline, or article title. If the input name looks like a headline (e.g. 'Chinese brain interface startup Gestala'), extract just the company name ('Gestala'). If the name contains words like 'startup', 'raises', 'launches', 'announces', 'funding', or descriptive phrases, clean it to just the brand/company name. If you cannot determine a clean company name, set name to null.
 
+{f'ANALYST FOCUS: The analyst has a specific question about this company — make sure your analysis directly addresses this: {custom_focus}\n\n' if custom_focus else ''}
 COMPANY TO EVALUATE:
 Name: {name}
 Description: {description}

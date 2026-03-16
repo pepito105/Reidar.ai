@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Security, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +9,9 @@ from app.core.database import get_db
 from app.models.firm_profile import FirmProfile
 from app.models.startup import Startup
 from app.core.auth import get_current_user_id
+from app.services.firm_research_service import enrich_firm_from_website
+
+logger = logging.getLogger(__name__)
 
 
 async def _generate_mandate_buckets(thesis: str) -> list:
@@ -72,6 +76,7 @@ class FirmProfileCreate(BaseModel):
     notify_weekly_summary: Optional[bool] = True
     notify_min_fit_score: Optional[int] = 4
     notification_emails: Optional[str] = None
+    firm_website: Optional[str] = None
 
 class FirmProfileResponse(BaseModel):
     id: int
@@ -91,6 +96,7 @@ class FirmProfileResponse(BaseModel):
     notification_emails: Optional[str] = None
     mandate_buckets: Optional[List[str]] = []
     is_ai_focused: Optional[bool] = False
+    firm_website: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -155,6 +161,17 @@ async def create_firm_profile(
     db.add(profile)
     await db.commit()
     await db.refresh(profile)
+    # Enrich firm profile from website if provided
+    if data.firm_website:
+        try:
+            context = await enrich_firm_from_website(data.firm_website, data.firm_name)
+            if context:
+                profile.firm_context = context
+                await db.commit()
+                await db.refresh(profile)
+                logger.info(f"Enriched firm profile for {data.firm_name} from {data.firm_website}")
+        except Exception as e:
+            logger.error(f"Failed to enrich firm profile: {e}")
     return profile
 
 @router.put("/", response_model=FirmProfileResponse)
@@ -181,6 +198,17 @@ async def update_firm_profile(
         profile.is_ai_focused = _detect_ai_focus(data.investment_thesis)
     await db.commit()
     await db.refresh(profile)
+    # Enrich firm profile from website if provided
+    if data.firm_website:
+        try:
+            context = await enrich_firm_from_website(data.firm_website, data.firm_name)
+            if context:
+                profile.firm_context = context
+                await db.commit()
+                await db.refresh(profile)
+                logger.info(f"Enriched firm profile for {data.firm_name} from {data.firm_website}")
+        except Exception as e:
+            logger.error(f"Failed to enrich firm profile: {e}")
     return profile
 
 @router.post("/rescore")

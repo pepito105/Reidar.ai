@@ -22,3 +22,5 @@ class FirmProfile(Base):
     notification_emails = Column(Text, default="remi@balassanian.com")
     mandate_buckets = Column(JSON, default=list)
     is_ai_focused = Column(Boolean, default=False)
+    firm_website = Column(String(500), nullable=True)
+    firm_context = Column(JSON, nullable=True)
