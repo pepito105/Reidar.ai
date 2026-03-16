@@ -499,7 +499,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                   color: pipelineStatus === stage ? '#a5b4fc' : '#555577',
                   fontWeight: pipelineStatus === stage ? 600 : 400,
                 }}>
-                  {stage}
+                  {stage.charAt(0).toUpperCase() + stage.slice(1)}
                 </button>
               ))}
             </div>

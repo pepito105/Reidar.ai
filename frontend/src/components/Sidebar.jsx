@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import { useClerk } from '@clerk/clerk-react'
+import { Home, Zap, LayoutList, Trophy, Map, Flame, MessageSquare, LogOut, Settings } from 'lucide-react'
 
 export default function Sidebar({ screen, setScreen, firmProfile, setShowSignals, setShowChat, setShowOnboarding, setShowFirmSettings }) {
   const { signOut } = useClerk()
   const [collapsed, setCollapsed] = useState(false)
 
   const nav = [
-    { id: 'home', label: 'Home', icon: '🏠' },
-    { id: 'coverage', label: 'Coverage', icon: '⚡' },
-    { id: 'pipeline', label: 'Pipeline', icon: '📋' },
-    { id: 'portfolio', label: 'Portfolio', icon: '🏆' },
-    { id: 'marketmap', label: 'Market Map', icon: '🗺️' },
+    { id: 'home', label: 'Home', icon: Home },
+    { id: 'coverage', label: 'Coverage', icon: Zap },
+    { id: 'pipeline', label: 'Pipeline', icon: LayoutList },
+    { id: 'portfolio', label: 'Portfolio', icon: Trophy },
+    { id: 'marketmap', label: 'Market Map', icon: Map },
   ]
 
   const w = collapsed ? 56 : 220
@@ -58,7 +59,7 @@ export default function Sidebar({ screen, setScreen, firmProfile, setShowSignals
             fontSize: 13, fontWeight: screen === item.id ? 600 : 400,
             transition: 'all 0.15s'
           }}>
-            <span style={{ fontSize: 16 }}>{item.icon}</span>
+            <item.icon size={16} />
             {!collapsed && item.label}
             {!collapsed && screen === item.id && <div style={{ marginLeft: 'auto', width: 4, height: 4, borderRadius: '50%', background: '#6366f1' }} />}
           </button>
@@ -80,7 +81,7 @@ export default function Sidebar({ screen, setScreen, firmProfile, setShowSignals
           fontSize: 12, fontWeight: 600, cursor: 'pointer', marginBottom: 6,
           display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: 8
         }}>
-          <span>🔥</span>{!collapsed && ' Hot Signals'}
+          <Flame size={14} />{!collapsed && ' Hot Signals'}
         </button>
         <button onClick={() => setShowChat(true)} title={collapsed ? 'AI Analyst' : ''} style={{
           width: '100%', padding: collapsed ? '10px 0' : '9px 12px', borderRadius: 8, border: '1px solid #2a2a4a',
@@ -88,7 +89,7 @@ export default function Sidebar({ screen, setScreen, firmProfile, setShowSignals
           fontSize: 12, fontWeight: 500, cursor: 'pointer', marginBottom: 6,
           display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: 8
         }}>
-          <span>💬</span>{!collapsed && ' AI Analyst'}
+          <MessageSquare size={14} />{!collapsed && ' AI Analyst'}
         </button>
         <button onClick={() => signOut(() => window.location.href = '/')} style={{
           width: '100%', padding: collapsed ? '10px 0' : '9px 12px', borderRadius: 8, border: 'none',
@@ -96,7 +97,7 @@ export default function Sidebar({ screen, setScreen, firmProfile, setShowSignals
           fontSize: 11, cursor: 'pointer', marginBottom: 4,
           display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: 8
         }}>
-          <span>🚪</span>{!collapsed && ' Sign Out'}
+          <LogOut size={14} />{!collapsed && ' Sign Out'}
         </button>
         <button onClick={() => setShowFirmSettings(true)} title={collapsed ? 'Firm Settings' : ''} style={{
           width: '100%', padding: collapsed ? '10px 0' : '9px 12px', borderRadius: 8, border: 'none',
@@ -104,7 +105,7 @@ export default function Sidebar({ screen, setScreen, firmProfile, setShowSignals
           fontSize: 11, cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: 8
         }}>
-          <span>⚙️</span>{!collapsed && ' Firm Settings'}
+          <Settings size={14} />{!collapsed && ' Firm Settings'}
         </button>
       </div>
     </div>
