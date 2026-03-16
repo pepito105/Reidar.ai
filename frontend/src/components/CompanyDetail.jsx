@@ -190,25 +190,6 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
     fn()
   }, [s?.id])
 
-  useEffect(() => {
-    if (startup.fit_score == null && !analyzing) {
-      const analyze = async () => {
-        setAnalyzing(true)
-        try {
-          const token = await getToken().catch(() => null)
-          const headers = token ? { Authorization: `Bearer ${token}` } : {}
-          const res = await axios.post(`${API}/startups/${startup.id}/analyze`, {}, { headers })
-          setStartup(res.data)
-          onUpdate && onUpdate(res.data)
-        } catch (e) {
-          console.error('Analysis failed:', e)
-        }
-        setAnalyzing(false)
-      }
-      analyze()
-    }
-  }, [startup.id])
-
   const save = async () => {
     const token = await getToken().catch(() => null)
     const headers = token ? { Authorization: `Bearer ${token}` } : {}
