@@ -130,6 +130,7 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
   const [showNewOnly, setShowNewOnly] = useState(false)
   const [showUnseenOnly, setShowUnseenOnly] = useState(false)
   const [showTodayOnly, setShowTodayOnly] = useState(false)
+  const [savedId, setSavedId] = useState(null)
   const cardRefs = useRef({})
 
   const fetchStartups = useCallback(async () => {
@@ -182,7 +183,10 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
     const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
       await axios.patch(`${API}/startups/${startup.id}`, { pipeline_status: status }, { headers })
-      fetchStartups()
+      setStartups(prev => prev.map(s => s.id === startup.id ? { ...s, pipeline_status: status } : s))
+      setSelected(prev => prev?.id === startup.id ? { ...prev, pipeline_status: status } : prev)
+      setSavedId(startup.id)
+      setTimeout(() => setSavedId(null), 2000)
     } catch (e) { console.error(e) }
   }
 
@@ -391,6 +395,7 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
             onClose={() => setSelected(null)}
             onUpdate={(updatedCompany) => {
               setSelected(updatedCompany)
+              setStartups(prev => prev.map(s => s.id === updatedCompany.id ? updatedCompany : s))
             }}
           />
         </div>

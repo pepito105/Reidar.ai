@@ -216,7 +216,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
       await axios.patch(`${API}/startups/${startup.id}`, { notes, pipeline_status: pipelineStatus }, { headers })
       setToast(true)
       setTimeout(() => setToast(false), 2000)
-      onUpdate()
+      onUpdate?.({ ...startup, notes, pipeline_status: pipelineStatus })
     } catch (e) {
       console.error(e)
     }
@@ -254,7 +254,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
       setActivityLog(log)
       setToast(true)
       setTimeout(() => setToast(false), 2000)
-      onUpdate?.()
+      onUpdate?.({ ...startup, pipeline_status: pipelineStatus, notes, conviction_score: convictionScore, next_action: nextAction, next_action_due: nextActionDue || null, meeting_notes: meetingNotes, activity_log: log })
     } catch (e) {
       console.error(e)
     }

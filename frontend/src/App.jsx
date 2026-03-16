@@ -129,7 +129,6 @@ export default function App() {
         )}
         {screen === 'coverage' && (
           <Coverage
-            key={coverageKey}
             API={API}
             selectedCompany={selectedCompany}
             onCompanyViewed={() => setSelectedCompany(null)}
