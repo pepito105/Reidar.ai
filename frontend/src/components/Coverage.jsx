@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef, forwardRef } from 'react'
+import { useState, useEffect, useRef, forwardRef } from 'react'
 import { useAuth } from '@clerk/clerk-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import CompanyDetail from './CompanyDetail.jsx'
 import AddCompanyModal from './AddCompanyModal.jsx'
@@ -118,11 +119,10 @@ function groupBySector(companies) {
 
 export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
   const { getToken } = useAuth()
-  const [startups, setStartups] = useState([])
+  const queryClient = useQueryClient()
   const [selected, setSelected] = useState(null)
   const [seenIds, setSeenIds] = useState(() => loadSeenIds())
   const [filters, setFilters] = useState({ stage: '', fit_level: '', sector: '', sort: 'fit_score' })
-  const [loading, setLoading] = useState(true)
   const [inboxCollapsed, setInboxCollapsed] = useState(false)
   const [collapsedSectors, setCollapsedSectors] = useState({})
   const [viewMode, setViewMode] = useState('grouped') // 'grouped' | 'flat'
@@ -133,24 +133,17 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
   const [savedId, setSavedId] = useState(null)
   const cardRefs = useRef({})
 
-  const fetchStartups = useCallback(async () => {
-    setLoading(true)
-    const token = await getToken().catch(() => null)
-    const headers = token ? { Authorization: `Bearer ${token}` } : {}
-    const params = Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
-    try {
+  const { data: startups = [], isLoading: loading } = useQuery({
+    queryKey: ['startups', filters],
+    queryFn: async () => {
+      const token = await getToken().catch(() => null)
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      const params = Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
       const res = await axios.get(`${API}/startups/`, { params: { ...params, limit: 200, min_fit_score: 0 }, headers })
-      setStartups(res.data)
-      setSelected(prev => {
-        if (!prev?.id) return prev
-        const updated = res.data.find(x => x.id === prev.id)
-        return updated ?? prev
-      })
-    } catch (_) {}
-    setLoading(false)
-  }, [filters, API, getToken])
-
-  useEffect(() => { fetchStartups() }, [fetchStartups])
+      return res.data
+    },
+    staleTime: 1000 * 60 * 5,
+  })
 
   useEffect(() => {
     if (selectedCompany) {
@@ -183,7 +176,9 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
     const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
       await axios.patch(`${API}/startups/${startup.id}`, { pipeline_status: status }, { headers })
-      setStartups(prev => prev.map(s => s.id === startup.id ? { ...s, pipeline_status: status } : s))
+      queryClient.setQueryData(['startups', filters], prev =>
+        (prev || []).map(s => s.id === startup.id ? { ...s, pipeline_status: status } : s)
+      )
       setSelected(prev => prev?.id === startup.id ? { ...prev, pipeline_status: status } : prev)
       setSavedId(startup.id)
       setTimeout(() => setSavedId(null), 2000)
@@ -395,7 +390,9 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
             onClose={() => setSelected(null)}
             onUpdate={(updatedCompany) => {
               setSelected(updatedCompany)
-              setStartups(prev => prev.map(s => s.id === updatedCompany.id ? updatedCompany : s))
+              queryClient.setQueryData(['startups', filters], prev =>
+                (prev || []).map(s => s.id === updatedCompany.id ? updatedCompany : s)
+              )
             }}
           />
         </div>
@@ -406,7 +403,7 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
           API={API}
           onClose={() => setShowAddModal(false)}
           onAdded={(company) => {
-            fetchStartups()
+            queryClient.invalidateQueries({ queryKey: ['startups'] })
             if (company) setSelected(company)
             setShowAddModal(false)
           }}
