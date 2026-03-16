@@ -1,7 +1,7 @@
 import { useAuth } from "@clerk/clerk-react";
 import { useQuery } from "@tanstack/react-query";
 
-const API = "http://localhost:8000/api";
+const API = (import.meta.env.VITE_API_URL || 'http://localhost:8000') + '/api'
 
 const STATUS_COLORS = {
   active: { bg: "#1a2e1a", color: "#22c55e", label: "Active" },
