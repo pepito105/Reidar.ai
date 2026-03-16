@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth, UserButton, SignIn, SignUp } from '@clerk/clerk-react'
+import { useQueryClient } from '@tanstack/react-query'
 import Sidebar from './components/Sidebar.jsx'
 import Home from './components/Home.jsx'
 import Coverage from './components/Coverage.jsx'
@@ -34,6 +35,7 @@ export default function App() {
   const [coverageKey, setCoverageKey] = useState(0)
   const [selectedCompany, setSelectedCompany] = useState(null)
   const [toast, setToast] = useState({ message: '', submessage: '', visible: false })
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     if (!isLoaded) return
@@ -48,8 +50,35 @@ export default function App() {
       try {
         const res = await axios.get(`${API}/firm-profile/`, { headers })
         console.log('firm profile check result:', res.data)
-        if (res.data) setFirmProfile(res.data)
-        else setShowOnboarding(true)
+        if (res.data) {
+          setFirmProfile(res.data)
+          // Prefetch all sidebar data on login
+          const prefetchHeaders = headers
+          queryClient.prefetchQuery({
+            queryKey: ['startups', {}],
+            queryFn: async () => {
+              const res = await axios.get(`${API}/startups/`, { params: { limit: 200, min_fit_score: 0 }, headers: prefetchHeaders })
+              return res.data
+            },
+            staleTime: 1000 * 60 * 5,
+          })
+          queryClient.prefetchQuery({
+            queryKey: ['pipeline'],
+            queryFn: async () => {
+              const res = await axios.get(`${API}/pipeline/`, { headers: prefetchHeaders })
+              return res.data
+            },
+            staleTime: 1000 * 60 * 2,
+          })
+          queryClient.prefetchQuery({
+            queryKey: ['market-map'],
+            queryFn: async () => {
+              const res = await fetch(`${API}/market-map/`, { headers: prefetchHeaders })
+              return res.json()
+            },
+            staleTime: 1000 * 60 * 30,
+          })
+        } else setShowOnboarding(true)
       } catch {
         setShowOnboarding(true)
       } finally {
