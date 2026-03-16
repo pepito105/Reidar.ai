@@ -151,8 +151,8 @@ async def get_startups(
     db: AsyncSession = Depends(get_db)
 ):
     user_id = _user_id_from_request(request)
-    profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
-    profile = profile_result.scalar_one_or_none()
+    profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True).where(FirmProfile.user_id == user_id).limit(1))
+    profile = profile_result.scalars().first()
     threshold = profile.fit_threshold if profile else 3
 
     query = select(Startup)
@@ -487,8 +487,8 @@ async def get_startup(startup_id: int, request: Request, db: AsyncSession = Depe
         raise HTTPException(status_code=404, detail="Startup not found")
     if not (startup.fit_reasoning and startup.fit_reasoning.strip()):
         from app.services.classifier import classify_startup
-        profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
-        profile = profile_result.scalar_one_or_none()
+        profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True).where(FirmProfile.user_id == user_id).limit(1))
+        profile = profile_result.scalars().first()
         if profile:
             classification = await classify_startup(
                 name=startup.name,
@@ -538,8 +538,8 @@ async def refresh_startup(startup_id: int, request: Request, db: AsyncSession = 
     startup = result.scalar_one_or_none()
     if not startup:
         raise HTTPException(status_code=404, detail="Startup not found")
-    profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
-    profile = profile_result.scalar_one_or_none()
+    profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True).where(FirmProfile.user_id == user_id).limit(1))
+    profile = profile_result.scalars().first()
     classification = await classify_startup(
         name=startup.name,
         description=startup.one_liner or "",
