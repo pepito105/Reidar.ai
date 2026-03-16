@@ -4,6 +4,7 @@ import { useAuth } from '@clerk/clerk-react'
 import axios from 'axios'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { Icons, theme } from './Icons'
 
 const FIT_BADGES = {
   5: { label: 'Top Match', color: '#10b981', bg: '#052e16' },
@@ -17,7 +18,7 @@ const PIPELINE_STAGES = ['watching', 'outreach', 'diligence', 'passed', 'investe
 
 const CONFIDENCE_COLORS = { High: '#10b981', Medium: '#f59e0b', Low: '#6b7280' }
 function FitReasoningBullets({ text }) {
-  if (!text || !text.trim()) return <p style={{ fontSize: 13, color: '#a0a0cc', lineHeight: 1.6, margin: 0 }}>No reasoning available.</p>
+  if (!text || !text.trim()) return <p style={{ fontSize: 13, color: theme.textMuted, lineHeight: 1.6, margin: 0 }}>No reasoning available.</p>
   const parts = text.split(/\s*•\s*/).filter(Boolean)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -28,8 +29,8 @@ function FitReasoningBullets({ text }) {
         const color = confidence ? CONFIDENCE_COLORS[confidence] : '#6b7280'
         return (
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-            <span style={{ color: '#6366f1', flexShrink: 0 }}>•</span>
-            <span style={{ fontSize: 13, color: '#a0a0cc', lineHeight: 1.6, flex: 1 }}>{label}</span>
+            <span style={{ color: theme.accent, flexShrink: 0 }}>{'\u2022'}</span>
+            <span style={{ fontSize: 13, color: theme.textMuted, lineHeight: 1.6, flex: 1 }}>{label}</span>
             {confidence && (
               <span style={{ fontSize: 10, fontWeight: 600, color, background: `${color}22`, padding: '2px 6px', borderRadius: 4, flexShrink: 0 }}>
                 {confidence}
@@ -49,16 +50,16 @@ const Section = ({ title, children, accent = '#3730a3' }) => (
   </div>
 )
 
-const Divider = () => <div style={{ height: 1, background: '#1e1e2e', margin: '16px 0' }} />
+const Divider = () => <div style={{ height: 1, background: theme.border, margin: '16px 0' }} />
 
 const Tag = ({ children }) => (
-  <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 11, background: '#1a1a2e', color: '#6b7280', border: '1px solid #2a2a4a' }}>{children}</span>
+  <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 11, background: theme.surfaceAlt, color: '#6b7280', border: `1px solid ${theme.border}` }}>{children}</span>
 )
 
 const InfoItem = ({ label, value }) => (
-  <div style={{ padding: '8px 10px', background: '#0f0f1a', borderRadius: 6, border: '1px solid #1e1e2e' }}>
-    <div style={{ fontSize: 10, color: '#555577', fontWeight: 600, marginBottom: 3 }}>{label.toUpperCase()}</div>
-    <div style={{ fontSize: 13, color: '#c0c0e0' }}>{value}</div>
+  <div style={{ padding: '8px 10px', background: theme.surface, borderRadius: 6, border: `1px solid ${theme.border}` }}>
+    <div style={{ fontSize: 10, color: theme.textDim, fontWeight: 600, marginBottom: 3 }}>{label.toUpperCase()}</div>
+    <div style={{ fontSize: 13, color: theme.textSecondary }}>{value}</div>
   </div>
 )
 
@@ -95,7 +96,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
   const [newOutreach, setNewOutreach] = useState({})
   const [analyzing, setAnalyzing] = useState(false)
 
-  const badge = startup.fit_score != null ? (FIT_BADGES[startup.fit_score] || FIT_BADGES[2]) : { label: 'Pending', color: '#555577', bg: '#1a1a2e' }
+  const badge = startup.fit_score != null ? (FIT_BADGES[startup.fit_score] || FIT_BADGES[2]) : { label: 'Pending', color: theme.textDim, bg: theme.surfaceAlt }
 
   const loadMemo = async (id) => {
     const token = await getToken().catch(() => null)
@@ -265,16 +266,18 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
     <>
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#555577', fontSize: 18, cursor: 'pointer', float: 'right', marginTop: -4 }}>✕</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: theme.textDim, fontSize: 18, cursor: 'pointer', float: 'right', marginTop: -4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icons.Close size={18} />
+          </button>
 
           <div style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: '#f0f0ff', margin: 0 }}>{startup.name}</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: theme.text, margin: 0 }}>{startup.name}</h2>
             <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 600, background: badge.bg, color: badge.color }}>
               {badge.label}
             </span>
           </div>
-        <p style={{ fontSize: 13, color: '#8888aa', margin: 0, lineHeight: 1.5 }}>{(startup.enriched_one_liner || startup.one_liner)}</p>
+        <p style={{ fontSize: 13, color: theme.textMuted, margin: 0, lineHeight: 1.5 }}>{(startup.enriched_one_liner || startup.one_liner)}</p>
         <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
           {startup.funding_stage && <Tag>{startup.funding_stage}</Tag>}
           {startup.sector && <Tag>{startup.sector}</Tag>}
@@ -282,8 +285,8 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
           {startup.funding_amount_usd > 0 && <Tag>${(startup.funding_amount_usd / 1000000).toFixed(1)}M raised</Tag>}
         </div>
           {startup.website && (
-            <a href={startup.website} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#6366f1', marginTop: 8, display: 'block' }}>
-              {startup.website} ↗
+            <a href={startup.website} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: theme.accent, marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+              {startup.website} <Icons.ExternalLink size={12} />
             </a>
           )}
         </div>
@@ -315,41 +318,46 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                     padding: '10px 20px', borderRadius: 8, border: 'none',
                     background: analyzing ? '#1e1b4b' : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                     color: '#fff', fontSize: 13, fontWeight: 700, cursor: analyzing ? 'default' : 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 8
                   }}
                   disabled={analyzing}
                 >
-                  {analyzing ? '⏳ Research agents working...' : '⚡ Deploy Research Agents'}
+                  {analyzing ? (
+                    <><Icons.Clock size={14} /> Research agents working...</>
+                  ) : (
+                    <><Icons.Bolt size={14} /> Deploy Research Agents</>
+                  )}
                 </button>
               </div>
             </div>
 
             {/* Preview of what gets unlocked */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, opacity: 0.35, pointerEvents: 'none', userSelect: 'none' }}>
-              <div style={{ background: '#0d0d18', border: '1px solid #1e1e30', borderRadius: 8, padding: '14px 16px' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#6366f1', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Thesis Fit Reasoning</div>
+              <div style={{ background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 8, padding: '14px 16px' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: theme.accent, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Thesis Fit Reasoning</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {[90, 75, 85].map((w, i) => (
-                    <div key={i} style={{ height: 10, background: '#2a2a4a', borderRadius: 4, width: `${w}%` }} />
+                    <div key={i} style={{ height: 10, background: theme.border, borderRadius: 4, width: `${w}%` }} />
                   ))}
                 </div>
               </div>
-              <div style={{ background: '#0d0d18', border: '1px solid #1e1e30', borderRadius: 8, padding: '14px 16px' }}>
+              <div style={{ background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 8, padding: '14px 16px' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#34d399', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Recommended Next Step</div>
-                <div style={{ height: 10, background: '#2a2a4a', borderRadius: 4, width: '80%' }} />
+                <div style={{ height: 10, background: theme.border, borderRadius: 4, width: '80%' }} />
               </div>
-              <div style={{ background: '#0d0d18', border: '1px solid #1e1e30', borderRadius: 8, padding: '14px 16px' }}>
+              <div style={{ background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 8, padding: '14px 16px' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Comparable Companies</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {[60, 70].map((w, i) => (
-                    <div key={i} style={{ height: 10, background: '#2a2a4a', borderRadius: 4, width: `${w}%` }} />
+                    <div key={i} style={{ height: 10, background: theme.border, borderRadius: 4, width: `${w}%` }} />
                   ))}
                 </div>
               </div>
-              <div style={{ background: '#0d0d18', border: '1px solid #1e1e30', borderRadius: 8, padding: '14px 16px' }}>
+              <div style={{ background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 8, padding: '14px 16px' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Key Risks</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {[80, 65].map((w, i) => (
-                    <div key={i} style={{ height: 10, background: '#2a2a4a', borderRadius: 4, width: `${w}%` }} />
+                    <div key={i} style={{ height: 10, background: theme.border, borderRadius: 4, width: `${w}%` }} />
                   ))}
                 </div>
               </div>
@@ -357,19 +365,19 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
           </div>
         ) : (
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#6366f1', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12 }}>Thesis Fit</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: theme.accent, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12 }}>Thesis Fit</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
               <div style={{ fontSize: 36, fontWeight: 700, color: badge.color, lineHeight: 1 }}>{startup.fit_score}/5</div>
               <div style={{ fontSize: 14, fontWeight: 600, color: badge.color }}>{badge.label}</div>
             </div>
-            <div style={{ height: 6, background: '#1a1a2e', borderRadius: 3, marginBottom: 16, overflow: 'hidden' }}>
+            <div style={{ height: 6, background: theme.surfaceAlt, borderRadius: 3, marginBottom: 16, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${(startup.fit_score / 5) * 100}%`, background: badge.color, borderRadius: 3 }} />
             </div>
             {startup.fit_reasoning && <FitReasoningBullets text={startup.fit_reasoning} />}
             {startup.recommended_next_step && (
               <div style={{ background: '#0d1a0d', border: '1px solid #1a3a1a', borderRadius: 10, padding: '16px 18px', marginTop: 16 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#34d399', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Recommended Next Step</div>
-                <div style={{ fontSize: 14, color: '#e0e0f0', lineHeight: 1.6 }}>{startup.recommended_next_step}</div>
+                <div style={{ fontSize: 14, color: theme.text, lineHeight: 1.6 }}>{startup.recommended_next_step}</div>
               </div>
             )}
           </div>
@@ -386,7 +394,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
         {startup.notable_traction && (
           <div style={{ marginTop: 12, padding: '10px 12px', background: '#0f1a0f', borderRadius: 6, border: '1px solid #1a2e1a' }}>
             <div style={{ fontSize: 11, color: '#10b981', fontWeight: 600, marginBottom: 4 }}>TRACTION</div>
-            <p style={{ fontSize: 13, color: '#a0a0cc', margin: 0 }}>{startup.notable_traction}</p>
+            <p style={{ fontSize: 13, color: theme.textMuted, margin: 0 }}>{startup.notable_traction}</p>
           </div>
         )}
         </Section>
@@ -394,28 +402,28 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
         {/* Research pending state */}
         {!startup.business_model && !startup.research_status && (
           <div style={{
-            background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8,
+            background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 8,
             padding: '14px 16px', marginBottom: 24,
             display: 'flex', alignItems: 'center', gap: 10
           }}>
-            <div style={{ fontSize: 18 }}>🔍</div>
+            <div style={{ color: theme.accent }}><Icons.Search size={18} /></div>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#6366f1', marginBottom: 2 }}>Autonomous research pending</div>
-              <div style={{ fontSize: 11, color: '#3a3a5a' }}>Radar will visit this company's website tonight and generate a full research brief.</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: theme.accent, marginBottom: 2 }}>Autonomous research pending</div>
+              <div style={{ fontSize: 11, color: theme.textDim }}>Radar will visit this company's website tonight and generate a full research brief.</div>
             </div>
           </div>
         )}
 
         {false && startup.research_status === 'failed' && (
           <div style={{
-            background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8,
+            background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 8,
             padding: '14px 16px', marginBottom: 24,
             display: 'flex', alignItems: 'center', gap: 10
           }}>
-            <div style={{ fontSize: 18 }}>⚠️</div>
+            <div style={{ color: '#f59e0b' }}><Icons.Warning size={18} /></div>
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#f59e0b', marginBottom: 2 }}>Research failed</div>
-              <div style={{ fontSize: 11, color: '#3a3a5a' }}>Could not access this company's website. Will retry on next cycle.</div>
+              <div style={{ fontSize: 11, color: theme.textDim }}>Could not access this company's website. Will retry on next cycle.</div>
             </div>
           </div>
         )}
@@ -426,7 +434,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
             <Section title="Key Investors">
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {startup.top_investors.map((inv, i) => (
-                <span key={i} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, background: '#1a1a2e', color: '#a5b4fc', border: '1px solid #3730a3' }}>{inv}</span>
+                <span key={i} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, background: theme.surfaceAlt, color: '#a5b4fc', border: '1px solid #3730a3' }}>{inv}</span>
               ))}
             </div>
             </Section>
@@ -451,7 +459,9 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
           <Divider />
             <Section title="Recommended Next Step" accent="#10b981">
             <div style={{ padding: '12px 14px', background: '#061a10', borderRadius: 8, border: '1px solid #065f46' }}>
-              <p style={{ fontSize: 13, color: '#6ee7b7', margin: 0, lineHeight: 1.5 }}>→ {startup.recommended_next_step}</p>
+              <p style={{ fontSize: 13, color: '#6ee7b7', margin: 0, lineHeight: 1.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Icons.ArrowRight size={14} /> {startup.recommended_next_step}
+              </p>
             </div>
             </Section>
           </>
@@ -459,20 +469,20 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
 
         {signals.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: theme.accent, letterSpacing: '0.5px', marginBottom: 12 }}>
             RECENT SIGNALS
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {signals.slice(0, 5).map(signal => (
               <div key={signal.id} style={{
-                background: '#0a0a14', border: '1px solid #1e1e2e',
-                borderLeft: `3px solid ${signal.is_seen ? '#1e1e2e' : '#6366f1'}`,
+                background: theme.surface, border: `1px solid ${theme.border}`,
+                borderLeft: `3px solid ${signal.is_seen ? theme.border : theme.accent}`,
                 borderRadius: 8, padding: '10px 12px'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontSize: 14 }}>{signal.icon}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#c0c0e0', flex: 1 }}>{signal.title}</span>
-                  <span style={{ fontSize: 10, color: '#3a3a5a', flexShrink: 0 }}>
+                  <span style={{ color: theme.accent }}><Icons.Signal size={14} /></span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: theme.textSecondary, flex: 1 }}>{signal.title}</span>
+                  <span style={{ fontSize: 10, color: theme.textDim, flexShrink: 0 }}>
                     {new Date(signal.detected_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </span>
                 </div>
@@ -489,14 +499,14 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
 
         <Section title="VC Tracking">
           <div style={{ marginBottom: 12 }}>
-            <label style={{ fontSize: 11, color: '#555577', fontWeight: 600, display: 'block', marginBottom: 6 }}>PIPELINE STATUS</label>
+            <label style={{ fontSize: 11, color: theme.textDim, fontWeight: 600, display: 'block', marginBottom: 6 }}>PIPELINE STATUS</label>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {['new', ...PIPELINE_STAGES].map(stage => (
                 <button key={stage} onClick={() => setPipelineStatus(stage)} style={{
                   padding: '5px 12px', borderRadius: 6, fontSize: 12, cursor: 'pointer', border: '1px solid',
-                  borderColor: pipelineStatus === stage ? '#6366f1' : '#2a2a4a',
+                  borderColor: pipelineStatus === stage ? theme.accent : theme.border,
                   background: pipelineStatus === stage ? '#1e1b4b' : 'transparent',
-                  color: pipelineStatus === stage ? '#a5b4fc' : '#555577',
+                  color: pipelineStatus === stage ? '#a5b4fc' : theme.textDim,
                   fontWeight: pipelineStatus === stage ? 600 : 400,
                 }}>
                   {stage}
@@ -505,14 +515,14 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
             </div>
           </div>
           <div>
-            <label style={{ fontSize: 11, color: '#555577', fontWeight: 600, display: 'block', marginBottom: 6 }}>NOTES</label>
+            <label style={{ fontSize: 11, color: theme.textDim, fontWeight: 600, display: 'block', marginBottom: 6 }}>NOTES</label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
               placeholder="Add your notes, next steps, or context..."
               style={{
-                width: '100%', minHeight: 80, background: '#0f0f1a', border: '1px solid #2a2a4a',
-                borderRadius: 7, color: '#c0c0e0', fontSize: 13, padding: '10px 12px',
+                width: '100%', minHeight: 80, background: theme.surface, border: `1px solid ${theme.border}`,
+                borderRadius: 7, color: theme.textSecondary, fontSize: 13, padding: '10px 12px',
                 resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'Inter, sans-serif'
               }}
             />
@@ -528,9 +538,9 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
         </div>
 
         <div style={{
-          borderTop: '1px solid #1e1e2e',
+          borderTop: `1px solid ${theme.border}`,
           padding: '12px 16px',
-          background: '#0d0d14',
+          background: theme.surface,
           flexShrink: 0
         }}>
           <button onClick={() => setExpanded(true)} style={{
@@ -548,7 +558,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
             justifyContent: 'center',
             gap: 8
           }}>
-            <span>⤢</span> Open Full Memo
+            <Icons.Expand size={14} /> Open Full Memo
           </button>
         </div>
       </div>
@@ -561,52 +571,52 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
         }}>
           <div style={{
             width: '100%', maxWidth: 1200, height: '100%', maxHeight: '100%',
-            background: '#050510', borderRadius: 16, border: '1px solid #1e1e2e',
+            background: theme.background, borderRadius: 16, border: `1px solid ${theme.border}`,
             display: 'flex', flexDirection: 'column', boxShadow: '0 24px 80px rgba(0,0,0,0.7)',
             opacity: 1, transition: 'opacity 0.2s ease'
           }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #1e1e2e', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '16px 20px', borderBottom: `1px solid ${theme.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: '#f0f0ff' }}>{startup.name}</div>
-                <div style={{ fontSize: 12, color: '#8888aa', marginTop: 4 }}>{startup.one_liner}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: theme.text }}>{startup.name}</div>
+                <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 4 }}>{startup.one_liner}</div>
                 {startup.website && (
-                  <a href={startup.website} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#6366f1', textDecoration: 'none', marginTop: 4, display: 'inline-block' }}>
-                    🔗 {startup.website}
+                  <a href={startup.website} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: theme.accent, textDecoration: 'none', marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <Icons.Link size={12} /> {startup.website}
                   </a>
                 )}
               </div>
               <button onClick={() => setExpanded(false)} style={{
-                background: 'none', border: 'none', color: '#555577',
-                fontSize: 20, cursor: 'pointer', padding: '4px 8px'
-              }}>✕</button>
+                background: 'none', border: 'none', color: theme.textDim,
+                fontSize: 20, cursor: 'pointer', padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}><Icons.Close size={20} /></button>
             </div>
             <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
               {/* Left column */}
-              <div style={{ width: '38%', borderRight: '1px solid #1e1e2e', padding: '32px 28px', overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+              <div style={{ width: '38%', borderRight: `1px solid ${theme.border}`, padding: '32px 28px', overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                    <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f0f0ff', margin: 0 }}>{startup.name}</h2>
+                    <h2 style={{ fontSize: 22, fontWeight: 700, color: theme.text, margin: 0 }}>{startup.name}</h2>
                     <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: badge.bg, color: badge.color }}>
                       {badge.label}
                     </span>
                   </div>
-                  <p style={{ fontSize: 13, color: '#8888aa', margin: '0 0 10px' }}>{startup.one_liner}</p>
+                  <p style={{ fontSize: 13, color: theme.textMuted, margin: '0 0 10px' }}>{startup.one_liner}</p>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {startup.funding_stage && <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, background: '#1a1a2e', color: '#6b7280' }}>{startup.funding_stage}</span>}
-                    {startup.funding_amount_usd && <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, background: '#1a1a2e', color: '#6b7280' }}>${(startup.funding_amount_usd / 1000000).toFixed(1)}M raised</span>}
-                    {startup.founding_year && <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, background: '#1a1a2e', color: '#6b7280' }}>Founded {startup.founding_year}</span>}
+                    {startup.funding_stage && <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, background: theme.surfaceAlt, color: '#6b7280' }}>{startup.funding_stage}</span>}
+                    {startup.funding_amount_usd && <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, background: theme.surfaceAlt, color: '#6b7280' }}>${(startup.funding_amount_usd / 1000000).toFixed(1)}M raised</span>}
+                    {startup.founding_year && <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, background: theme.surfaceAlt, color: '#6b7280' }}>Founded {startup.founding_year}</span>}
                   </div>
                   {startup.website && (
-                    <a href={startup.website} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#6366f1', textDecoration: 'none', display: 'block', marginTop: 8 }}>
-                      🔗 {startup.website}
+                    <a href={startup.website} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: theme.accent, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4, marginTop: 8 }}>
+                      <Icons.Link size={12} /> {startup.website}
                     </a>
                   )}
                 </div>
 
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 10 }}>THESIS FIT</div>
-                  <div style={{ fontSize: 28, fontWeight: 700, color: badge.color, marginBottom: 8 }}>{startup.fit_score != null ? `${startup.fit_score}/5` : '—/5'}</div>
-                  <div style={{ height: 4, background: '#1e1e2e', borderRadius: 2, marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: theme.accent, letterSpacing: '0.5px', marginBottom: 10 }}>THESIS FIT</div>
+                  <div style={{ fontSize: 28, fontWeight: 700, color: badge.color, marginBottom: 8 }}>{startup.fit_score != null ? `${startup.fit_score}/5` : '\u2014/5'}</div>
+                  <div style={{ height: 4, background: theme.border, borderRadius: 2, marginBottom: 12 }}>
                     <div style={{ height: '100%', width: `${startup.fit_score != null ? (startup.fit_score / 5) * 100 : 0}%`, background: badge.color, borderRadius: 2 }} />
                   </div>
                   {startup.fit_reasoning
@@ -634,16 +644,17 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                             padding: '10px 20px', borderRadius: 8, border: 'none',
                             background: analyzing ? '#1e1b4b' : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                             color: '#fff', fontSize: 13, fontWeight: 700, cursor: analyzing ? 'default' : 'pointer',
+                            display: 'flex', alignItems: 'center', gap: 8
                           }}
                         >
-                          {analyzing ? '⏳ Research agents working...' : '⚡ Deploy Research Agents'}
+                          {analyzing ? <><Icons.Clock size={14} /> Research agents working...</> : <><Icons.Bolt size={14} /> Deploy Research Agents</>}
                         </button>
                       </div>
                   }
                 </div>
 
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 10 }}>MY CONVICTION</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: theme.accent, letterSpacing: '0.5px', marginBottom: 10 }}>MY CONVICTION</div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     {[1, 2, 3, 4, 5].map(n => (
                       <button
@@ -651,9 +662,9 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                         onClick={() => setConvictionScore(n)}
                         style={{
                           width: 36, height: 36, borderRadius: 8, border: '1px solid',
-                          borderColor: convictionScore === n ? '#6366f1' : '#2a2a4a',
+                          borderColor: convictionScore === n ? theme.accent : theme.border,
                           background: convictionScore === n ? '#1e1b4b' : 'transparent',
-                          color: convictionScore === n ? '#a5b4fc' : '#555577',
+                          color: convictionScore === n ? '#a5b4fc' : theme.textDim,
                           fontSize: 14, fontWeight: 700, cursor: 'pointer'
                         }}
                       >
@@ -662,50 +673,50 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                     ))}
                   </div>
                   {convictionScore && (
-                    <div style={{ fontSize: 11, color: '#555577', marginTop: 6 }}>
-                      {convictionScore === 5 ? 'Highest conviction — flag for IC' :
-                        convictionScore === 4 ? 'Strong — move to diligence' :
-                          convictionScore === 3 ? 'Interesting — keep watching' :
-                            convictionScore === 2 ? 'Lukewarm — low priority' : 'Pass'}
+                    <div style={{ fontSize: 11, color: theme.textDim, marginTop: 6 }}>
+                      {convictionScore === 5 ? 'Highest conviction \u2014 flag for IC' :
+                        convictionScore === 4 ? 'Strong \u2014 move to diligence' :
+                          convictionScore === 3 ? 'Interesting \u2014 keep watching' :
+                            convictionScore === 2 ? 'Lukewarm \u2014 low priority' : 'Pass'}
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 10 }}>NEXT ACTION</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: theme.accent, letterSpacing: '0.5px', marginBottom: 10 }}>NEXT ACTION</div>
                   <input
                     value={nextAction}
                     onChange={e => setNextAction(e.target.value)}
                     placeholder="e.g. Request intro via Bessemer"
-                    style={{ width: '100%', background: '#0a0a14', border: '1px solid #2a2a4a', borderRadius: 7, color: '#c0c0e0', fontSize: 12, padding: '8px 12px', boxSizing: 'border-box', marginBottom: 8, outline: 'none', fontFamily: 'Inter, sans-serif' }}
+                    style={{ width: '100%', background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 7, color: theme.textSecondary, fontSize: 12, padding: '8px 12px', boxSizing: 'border-box', marginBottom: 8, outline: 'none', fontFamily: 'Inter, sans-serif' }}
                   />
                   <input
                     type="date"
                     value={nextActionDue}
                     onChange={e => setNextActionDue(e.target.value)}
-                    style={{ width: '100%', background: '#0a0a14', border: '1px solid #2a2a4a', borderRadius: 7, color: '#c0c0e0', fontSize: 12, padding: '8px 12px', boxSizing: 'border-box', outline: 'none', fontFamily: 'Inter, sans-serif' }}
+                    style={{ width: '100%', background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 7, color: theme.textSecondary, fontSize: 12, padding: '8px 12px', boxSizing: 'border-box', outline: 'none', fontFamily: 'Inter, sans-serif' }}
                   />
                 </div>
 
                 {startup.recommended_next_step && (
                   <div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 10 }}>RECOMMENDED NEXT STEP</div>
-                    <div style={{ background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#86efac' }}>
-                      → {startup.recommended_next_step}
+                    <div style={{ fontSize: 11, fontWeight: 600, color: theme.accent, letterSpacing: '0.5px', marginBottom: 10 }}>RECOMMENDED NEXT STEP</div>
+                    <div style={{ background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#86efac', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Icons.ArrowRight size={14} /> {startup.recommended_next_step}
                     </div>
                   </div>
                 )}
 
                 {signals.length > 0 && (
                   <div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 10 }}>RECENT SIGNALS</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: theme.accent, letterSpacing: '0.5px', marginBottom: 10 }}>RECENT SIGNALS</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {signals.map(signal => (
-                        <div key={signal.id} style={{ background: '#0a0a14', border: '1px solid #1e1e2e', borderLeft: `3px solid ${signal.is_seen ? '#1e1e2e' : '#6366f1'}`, borderRadius: 8, padding: '10px 12px' }}>
+                        <div key={signal.id} style={{ background: theme.surface, border: `1px solid ${theme.border}`, borderLeft: `3px solid ${signal.is_seen ? theme.border : theme.accent}`, borderRadius: 8, padding: '10px 12px' }}>
                           <div style={{ display: 'flex', gap: 8, marginBottom: 3 }}>
-                            <span style={{ fontSize: 14 }}>{signal.icon}</span>
-                            <span style={{ fontSize: 12, fontWeight: 600, color: '#c0c0e0', flex: 1 }}>{signal.title}</span>
-                            <span style={{ fontSize: 10, color: '#3a3a5a' }}>
+                            <span style={{ color: theme.accent }}><Icons.Signal size={14} /></span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: theme.textSecondary, flex: 1 }}>{signal.title}</span>
+                            <span style={{ fontSize: 10, color: theme.textDim }}>
                               {new Date(signal.detected_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                             </span>
                           </div>
@@ -741,9 +752,9 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                       onClick={() => setActiveTab(tab)}
                       style={{
                         padding: '6px 12px', borderRadius: 999, border: '1px solid',
-                        borderColor: activeTab === tab ? '#6366f1' : '#2a2a4a',
+                        borderColor: activeTab === tab ? theme.accent : theme.border,
                         background: activeTab === tab ? '#1e1b4b' : 'transparent',
-                        color: activeTab === tab ? '#a5b4fc' : '#8888aa',
+                        color: activeTab === tab ? '#a5b4fc' : theme.textMuted,
                         fontSize: 11, fontWeight: 600, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.6px'
                       }}
                     >
@@ -764,7 +775,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                       <Section title="Key Investors">
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {startup.top_investors.map((inv, i) => (
-                            <span key={i} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, background: '#1a1a2e', color: '#a5b4fc', border: '1px solid #3730a3' }}>{inv}</span>
+                            <span key={i} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, background: theme.surfaceAlt, color: '#a5b4fc', border: '1px solid #3730a3' }}>{inv}</span>
                           ))}
                         </div>
                       </Section>
@@ -780,28 +791,28 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                     )}
                     {Array.isArray(startup.comparable_companies) && startup.comparable_companies.length > 0 && (
                       <div style={{ marginTop: 24 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 12 }}>COMPARABLE COMPANIES</div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: theme.accent, letterSpacing: '0.5px', marginBottom: 12 }}>COMPARABLE COMPANIES</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                           {startup.comparable_companies.map((c, i) => (
-                            <div key={i} style={{ background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            <div key={i} style={{ background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <div>
-                                  <div style={{ fontSize: 13, fontWeight: 600, color: '#f0f0ff' }}>{c.name}</div>
+                                  <div style={{ fontSize: 13, fontWeight: 600, color: theme.text }}>{c.name}</div>
                                   <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{c.one_liner}</div>
                                 </div>
-                                <span style={{ fontSize: 10, color: '#6366f1', background: '#1e1b4b', padding: '2px 8px', borderRadius: 4, fontWeight: 600, flexShrink: 0 }}>
+                                <span style={{ fontSize: 10, color: theme.accent, background: '#1e1b4b', padding: '2px 8px', borderRadius: 4, fontWeight: 600, flexShrink: 0 }}>
                                   Fit {c.fit_score}/5
                                 </span>
                               </div>
                               {c.differentiation && (
                                 <div>
-                                  <div style={{ fontSize: 11, color: '#8888aa', marginBottom: 2 }}>Differentiation</div>
+                                  <div style={{ fontSize: 11, color: theme.textMuted, marginBottom: 2 }}>Differentiation</div>
                                   <div style={{ fontSize: 11, color: '#c4b5fd', lineHeight: 1.5 }}>{c.differentiation}</div>
                                 </div>
                               )}
                               {c.reason_investor_might_prefer && (
                                 <div>
-                                  <div style={{ fontSize: 11, color: '#8888aa', marginBottom: 2 }}>Why prefer this</div>
+                                  <div style={{ fontSize: 11, color: theme.textMuted, marginBottom: 2 }}>Why prefer this</div>
                                   <div style={{ fontSize: 11, color: '#10b981', lineHeight: 1.5 }}>{c.reason_investor_might_prefer}</div>
                                 </div>
                               )}
@@ -818,14 +829,14 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                     {/* Traction Signals */}
                     {startup.traction_signals && (
                       <div style={{ marginBottom: 20 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#10b981', letterSpacing: 0.5, marginBottom: 10 }}>
-                          ⚡ TRACTION SIGNALS
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#10b981', letterSpacing: 0.5, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Icons.Bolt size={12} /> TRACTION SIGNALS
                         </div>
                         <div style={{
                           background: '#0a1a0f', border: '1px solid #10b98130',
                           borderRadius: 8, padding: '14px 16px'
                         }}>
-                          <div style={{ fontSize: 13, color: '#8888aa', lineHeight: 1.7 }}>{startup.traction_signals}</div>
+                          <div style={{ fontSize: 13, color: theme.textMuted, lineHeight: 1.7 }}>{startup.traction_signals}</div>
                         </div>
                       </div>
                     )}
@@ -833,14 +844,14 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                     {/* Red Flags */}
                     {startup.red_flags && startup.red_flags !== 'None identified' && (
                       <div style={{ marginBottom: 20 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', letterSpacing: 0.5, marginBottom: 10 }}>
-                          ⚠ RED FLAGS
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', letterSpacing: 0.5, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Icons.Warning size={12} /> RED FLAGS
                         </div>
                         <div style={{
                           background: '#1a0a0a', border: '1px solid #ef444430',
                           borderRadius: 8, padding: '14px 16px'
                         }}>
-                          <div style={{ fontSize: 13, color: '#8888aa', lineHeight: 1.7 }}>{startup.red_flags}</div>
+                          <div style={{ fontSize: 13, color: theme.textMuted, lineHeight: 1.7 }}>{startup.red_flags}</div>
                         </div>
                       </div>
                     )}
@@ -848,15 +859,15 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                     {/* Research pending state */}
                     {!startup.business_model && !startup.research_status && (
                       <div style={{
-                        background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8,
+                        background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 8,
                         padding: '16px', display: 'flex', alignItems: 'center', gap: 10
                       }}>
-                        <div style={{ fontSize: 20 }}>🔍</div>
+                        <div style={{ color: theme.accent }}><Icons.Search size={20} /></div>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: '#6366f1', marginBottom: 4 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: theme.accent, marginBottom: 4 }}>
                             Autonomous research pending
                           </div>
-                          <div style={{ fontSize: 12, color: '#3a3a5a' }}>
+                          <div style={{ fontSize: 12, color: theme.textDim }}>
                             Radar will visit this company's website tonight and generate a full research brief.
                           </div>
                         </div>
@@ -865,15 +876,15 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
 
                     {false && startup.research_status === 'failed' && (
                       <div style={{
-                        background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8,
+                        background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 8,
                         padding: '16px', display: 'flex', alignItems: 'center', gap: 10
                       }}>
-                        <div style={{ fontSize: 20 }}>⚠️</div>
+                        <div style={{ color: '#f59e0b' }}><Icons.Warning size={20} /></div>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: '#f59e0b', marginBottom: 4 }}>
                             Research failed
                           </div>
-                          <div style={{ fontSize: 12, color: '#3a3a5a' }}>
+                          <div style={{ fontSize: 12, color: theme.textDim }}>
                             Could not access this company's website. Will retry on next cycle.
                           </div>
                         </div>
@@ -882,14 +893,14 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
 
                     {/* Research badge */}
                     {startup.research_completed_at && (
-                      <div style={{ marginTop: 16, fontSize: 11, color: '#3a3a5a', textAlign: 'right' }}>
-                        🤖 Autonomously researched by Radar · {new Date(startup.research_completed_at).toLocaleDateString()}
+                      <div style={{ marginTop: 16, fontSize: 11, color: theme.textDim, textAlign: 'right', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                        <Icons.Robot size={12} /> Autonomously researched by Radar {'\u00B7'} {new Date(startup.research_completed_at).toLocaleDateString()}
                       </div>
                     )}
 
                     {/* File Upload Zone */}
                     <div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 10 }}>DOCUMENTS</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: theme.accent, letterSpacing: '0.5px', marginBottom: 10 }}>DOCUMENTS</div>
                       <div
                         onDragOver={e => e.preventDefault()}
                         onDrop={e => {
@@ -899,12 +910,17 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                         }}
                         onClick={() => document.getElementById(`file-input-${startup.id}`).click()}
                         style={{
-                          border: '2px dashed #2a2a4a', borderRadius: 10, padding: '20px',
-                          textAlign: 'center', cursor: 'pointer', background: '#0a0a14',
-                          color: '#555577', fontSize: 12, transition: 'border-color 0.2s'
+                          border: `2px dashed ${theme.border}`, borderRadius: 10, padding: '20px',
+                          textAlign: 'center', cursor: 'pointer', background: theme.surface,
+                          color: theme.textDim, fontSize: 12, transition: 'border-color 0.2s',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
                         }}
                       >
-                        {uploading ? '⏳ Uploading...' : '📎 Drop files here or click to upload (PDF, TXT, MD)'}
+                        {uploading ? (
+                          <><Icons.Clock size={14} /> Uploading...</>
+                        ) : (
+                          <><Icons.Paperclip size={14} /> Drop files here or click to upload (PDF, TXT, MD)</>
+                        )}
                         <input
                           id={`file-input-${startup.id}`}
                           type="file"
@@ -918,22 +934,22 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                           {memoFiles.map((f, i) => (
                             <div key={i} style={{
                               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                              background: '#0f0f1a', border: '1px solid #1e1e2e', borderRadius: 7,
+                              background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 7,
                               padding: '8px 12px'
                             }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ fontSize: 14 }}>📄</span>
+                                <span style={{ color: theme.textDim }}><Icons.File size={14} /></span>
                                 <div>
-                                  <div style={{ fontSize: 12, color: '#c0c0e0', fontWeight: 500 }}>{f.original_name || f.name}</div>
-                                  <div style={{ fontSize: 10, color: '#555577' }}>
-                                    {(f.size / 1024).toFixed(1)} KB · {f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString() : ''}
+                                  <div style={{ fontSize: 12, color: theme.textSecondary, fontWeight: 500 }}>{f.original_name || f.name}</div>
+                                  <div style={{ fontSize: 10, color: theme.textDim }}>
+                                    {(f.size / 1024).toFixed(1)} KB {'\u00B7'} {f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString() : ''}
                                   </div>
                                 </div>
                               </div>
                               <button onClick={() => deleteFile(f.name)} style={{
-                                background: 'none', border: 'none', color: '#555577',
-                                cursor: 'pointer', fontSize: 14, padding: '2px 6px'
-                              }}>✕</button>
+                                background: 'none', border: 'none', color: theme.textDim,
+                                cursor: 'pointer', fontSize: 14, padding: '2px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                              }}><Icons.Close size={14} /></button>
                             </div>
                           ))}
                         </div>
@@ -943,9 +959,9 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                     {/* Generate Button */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px' }}>INVESTMENT MEMO</div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: theme.accent, letterSpacing: '0.5px' }}>INVESTMENT MEMO</div>
                         {memoGeneratedAt && (
-                          <div style={{ fontSize: 10, color: '#555577', marginTop: 2 }}>
+                          <div style={{ fontSize: 10, color: theme.textDim, marginTop: 2 }}>
                             Generated {new Date(memoGeneratedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </div>
                         )}
@@ -955,21 +971,22 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                         disabled={memoLoading}
                         style={{
                           padding: '7px 16px', borderRadius: 7, border: 'none',
-                          background: memoLoading ? '#2a2a4a' : 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-                          color: memoLoading ? '#555577' : '#fff',
-                          fontSize: 12, fontWeight: 600, cursor: memoLoading ? 'not-allowed' : 'pointer'
+                          background: memoLoading ? theme.border : 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                          color: memoLoading ? theme.textDim : '#fff',
+                          fontSize: 12, fontWeight: 600, cursor: memoLoading ? 'not-allowed' : 'pointer',
+                          display: 'flex', alignItems: 'center', gap: 6
                         }}
                       >
-                        {memoLoading ? '✦ Writing memo...' : memo ? '↻ Regenerate' : '✦ Generate Memo'}
+                        {memoLoading ? <><Icons.Sparkle size={12} /> Writing memo...</> : memo ? <><Icons.Refresh size={12} /> Regenerate</> : <><Icons.Sparkle size={12} /> Generate Memo</>}
                       </button>
                     </div>
 
                     {/* Memo Content */}
                     {memoLoading && (
-                      <div style={{ textAlign: 'center', padding: '40px 0', color: '#555577' }}>
-                        <div style={{ fontSize: 24, marginBottom: 12 }}>✦</div>
+                      <div style={{ textAlign: 'center', padding: '40px 0', color: theme.textDim }}>
+                        <div style={{ marginBottom: 12 }}><Icons.Sparkle size={24} /></div>
                         <div style={{ fontSize: 13 }}>Claude is writing your investment memo...</div>
-                        <div style={{ fontSize: 11, marginTop: 6, color: '#3a3a5a' }}>This takes about 15 seconds</div>
+                        <div style={{ fontSize: 11, marginTop: 6, color: theme.textDim }}>This takes about 15 seconds</div>
                       </div>
                     )}
 
@@ -983,29 +1000,29 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                           const isRisk = title.toLowerCase().includes('risk')
                           return (
                             <div key={i} style={{
-                              background: isRecommendation ? '#061a10' : isRisk ? '#1a0a0a' : '#0a0a14',
-                              border: `1px solid ${isRecommendation ? '#065f46' : isRisk ? '#3a1010' : '#1e1e2e'}`,
+                              background: isRecommendation ? '#061a10' : isRisk ? '#1a0a0a' : theme.surface,
+                              border: `1px solid ${isRecommendation ? '#065f46' : isRisk ? '#3a1010' : theme.border}`,
                               borderRadius: 10, padding: '14px 16px'
                             }}>
                               <div style={{
                                 fontSize: 11, fontWeight: 700, letterSpacing: '0.6px', marginBottom: 8,
-                                color: isRecommendation ? '#10b981' : isRisk ? '#ef4444' : '#6366f1'
+                                color: isRecommendation ? '#10b981' : isRisk ? '#ef4444' : theme.accent
                               }}>
                                 {title.toUpperCase()}
                               </div>
-                              <div style={{ fontSize: 13, color: '#c0c0e0', lineHeight: 1.7 }}>
+                              <div style={{ fontSize: 13, color: theme.textSecondary, lineHeight: 1.7 }}>
                                 <Markdown remarkPlugins={[remarkGfm]} components={{
-                                  h1: ({children}) => <div style={{ fontSize: 15, fontWeight: 700, color: '#f0f0ff', marginBottom: 10, marginTop: 4 }}>{children}</div>,
-                                  h2: ({children}) => <div style={{ fontSize: 13, fontWeight: 700, color: '#c0c0e0', marginBottom: 8, marginTop: 14, borderBottom: '1px solid #1e1e2e', paddingBottom: 4 }}>{children}</div>,
-                                  h3: ({children}) => <div style={{ fontSize: 12, fontWeight: 700, color: '#a0a0cc', marginBottom: 6, marginTop: 10 }}>{children}</div>,
+                                  h1: ({children}) => <div style={{ fontSize: 15, fontWeight: 700, color: theme.text, marginBottom: 10, marginTop: 4 }}>{children}</div>,
+                                  h2: ({children}) => <div style={{ fontSize: 13, fontWeight: 700, color: theme.textSecondary, marginBottom: 8, marginTop: 14, borderBottom: `1px solid ${theme.border}`, paddingBottom: 4 }}>{children}</div>,
+                                  h3: ({children}) => <div style={{ fontSize: 12, fontWeight: 700, color: theme.textMuted, marginBottom: 6, marginTop: 10 }}>{children}</div>,
                                   p: ({children}) => <p style={{ margin: '0 0 8px', lineHeight: 1.7 }}>{children}</p>,
-                                  strong: ({children}) => <strong style={{ color: '#e0e0ff', fontWeight: 600 }}>{children}</strong>,
+                                  strong: ({children}) => <strong style={{ color: theme.text, fontWeight: 600 }}>{children}</strong>,
                                   ul: ({children}) => <ul style={{ margin: '4px 0 8px', paddingLeft: 16 }}>{children}</ul>,
                                   li: ({children}) => <li style={{ margin: '3px 0', lineHeight: 1.6 }}>{children}</li>,
-                                  hr: () => <hr style={{ border: 'none', borderTop: '1px solid #1e1e2e', margin: '12px 0' }} />,
+                                  hr: () => <hr style={{ border: 'none', borderTop: `1px solid ${theme.border}`, margin: '12px 0' }} />,
                                   table: ({children}) => <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 10, fontSize: 12 }}>{children}</table>,
-                                  th: ({children}) => <th style={{ textAlign: 'left', padding: '5px 8px', color: '#6366f1', fontWeight: 600, borderBottom: '1px solid #2a2a4a', fontSize: 11 }}>{children}</th>,
-                                  td: ({children}) => <td style={{ padding: '5px 8px', borderBottom: '1px solid #1a1a2e', verticalAlign: 'top' }}>{children}</td>,
+                                  th: ({children}) => <th style={{ textAlign: 'left', padding: '5px 8px', color: theme.accent, fontWeight: 600, borderBottom: `1px solid ${theme.border}`, fontSize: 11 }}>{children}</th>,
+                                  td: ({children}) => <td style={{ padding: '5px 8px', borderBottom: `1px solid ${theme.surfaceAlt}`, verticalAlign: 'top' }}>{children}</td>,
                                 }}>
                                   {body}
                                 </Markdown>
@@ -1018,12 +1035,12 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
 
                     {!memoLoading && !memo && (
                       <div style={{
-                        textAlign: 'center', padding: '40px 20px', color: '#555577',
-                        border: '1px dashed #1e1e2e', borderRadius: 10, background: '#0a0a14'
+                        textAlign: 'center', padding: '40px 20px', color: theme.textDim,
+                        border: `1px dashed ${theme.border}`, borderRadius: 10, background: theme.surface
                       }}>
-                        <div style={{ fontSize: 28, marginBottom: 10 }}>✦</div>
+                        <div style={{ marginBottom: 10 }}><Icons.Sparkle size={28} /></div>
                         <div style={{ fontSize: 13, marginBottom: 6 }}>No memo generated yet</div>
-                        <div style={{ fontSize: 11, color: '#3a3a5a' }}>Upload documents and click Generate Memo to create an AI investment memo</div>
+                        <div style={{ fontSize: 11, color: theme.textDim }}>Upload documents and click Generate Memo to create an AI investment memo</div>
                       </div>
                     )}
 
@@ -1032,17 +1049,17 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                 {activeTab === 'signals' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {signals.length === 0 ? (
-                      <div style={{ textAlign: 'center', padding: '40px 0', color: '#555577', fontSize: 13 }}>No signals detected yet</div>
+                      <div style={{ textAlign: 'center', padding: '40px 0', color: theme.textDim, fontSize: 13 }}>No signals detected yet</div>
                     ) : signals.map(signal => (
                       <div key={signal.id} style={{
-                        background: '#0a0a14', border: '1px solid #1e1e2e',
-                        borderLeft: `3px solid ${signal.is_seen ? '#1e1e2e' : '#6366f1'}`,
+                        background: theme.surface, border: `1px solid ${theme.border}`,
+                        borderLeft: `3px solid ${signal.is_seen ? theme.border : theme.accent}`,
                         borderRadius: 8, padding: '12px 14px'
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                          <span style={{ fontSize: 16 }}>{signal.icon}</span>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: '#c0c0e0', flex: 1 }}>{signal.title}</span>
-                          <span style={{ fontSize: 11, color: '#3a3a5a' }}>
+                          <span style={{ color: theme.accent }}><Icons.Signal size={16} /></span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: theme.textSecondary, flex: 1 }}>{signal.title}</span>
+                          <span style={{ fontSize: 11, color: theme.textDim }}>
                             {new Date(signal.detected_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                           </span>
                         </div>
@@ -1055,27 +1072,27 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                   <div>
                     {/* MEETING NOTES */}
                     <div style={{ marginBottom: 28 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 12 }}>MEETING NOTES</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: theme.accent, letterSpacing: '0.5px', marginBottom: 12 }}>MEETING NOTES</div>
 
                       {/* Import Summary Button */}
                       <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                         <button
                           onClick={() => setShowImportSummary(v => !v)}
-                          style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #2a2a4a', background: 'transparent', color: '#6366f1', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                          style={{ padding: '6px 12px', borderRadius: 6, border: `1px solid ${theme.border}`, background: 'transparent', color: theme.accent, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
                         >
-                          ✦ Import Meeting Summary
+                          <Icons.Sparkle size={12} /> Import Meeting Summary
                         </button>
                       </div>
 
                       {/* Import Summary Panel */}
                       {showImportSummary && (
-                        <div style={{ background: '#0a0a14', border: '1px solid #2a2a4a', borderRadius: 8, padding: 14, marginBottom: 12 }}>
-                          <div style={{ fontSize: 11, color: '#8888aa', marginBottom: 8 }}>Paste your meeting summary from Fireflies, Otter, or your own notes — Claude will structure it.</div>
+                        <div style={{ background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 8, padding: 14, marginBottom: 12 }}>
+                          <div style={{ fontSize: 11, color: theme.textMuted, marginBottom: 8 }}>Paste your meeting summary from Fireflies, Otter, or your own notes — Claude will structure it.</div>
                           <textarea
                             value={importSummaryText}
                             onChange={e => setImportSummaryText(e.target.value)}
                             placeholder="Paste meeting summary here..."
-                            style={{ width: '100%', minHeight: 100, background: '#13131f', border: '1px solid #2a2a4a', borderRadius: 6, color: '#c0c0e0', fontSize: 12, padding: '10px 12px', resize: 'vertical', outline: 'none', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box' }}
+                            style={{ width: '100%', minHeight: 100, background: '#13131f', border: `1px solid ${theme.border}`, borderRadius: 6, color: theme.textSecondary, fontSize: 12, padding: '10px 12px', resize: 'vertical', outline: 'none', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box' }}
                           />
                           <button
                             onClick={async () => {
@@ -1109,7 +1126,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                           value={newNote}
                           onChange={e => setNewNote(e.target.value)}
                           placeholder="Add a note from your call, meeting, or research..."
-                          style={{ flex: 1, minHeight: 72, background: '#0a0a14', border: '1px solid #2a2a4a', borderRadius: 8, color: '#c0c0e0', fontSize: 12, padding: '10px 12px', resize: 'none', outline: 'none', fontFamily: 'Inter, sans-serif' }}
+                          style={{ flex: 1, minHeight: 72, background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 8, color: theme.textSecondary, fontSize: 12, padding: '10px 12px', resize: 'none', outline: 'none', fontFamily: 'Inter, sans-serif' }}
                         />
                         <button
                           onClick={() => {
@@ -1131,15 +1148,15 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
 
                       {/* Notes List */}
                       {(!meetingNotes || meetingNotes.length === 0) ? (
-                        <div style={{ fontSize: 12, color: '#555577' }}>No notes yet — add your first note above</div>
+                        <div style={{ fontSize: 12, color: theme.textDim }}>No notes yet — add your first note above</div>
                       ) : meetingNotes.map((n, i) => (
-                        <div key={i} style={{ background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8, padding: '12px 14px', marginBottom: 8, position: 'relative' }}>
+                        <div key={i} style={{ background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 8, padding: '12px 14px', marginBottom: 8, position: 'relative' }}>
                           {n.source === 'import' && (
-                            <div style={{ fontSize: 10, color: '#6366f1', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>✦ Imported</div>
+                            <div style={{ fontSize: 10, color: theme.accent, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: 4 }}><Icons.Sparkle size={10} /> Imported</div>
                           )}
-                          <div style={{ fontSize: 13, color: '#c0c0e0', lineHeight: 1.6, marginBottom: 6, whiteSpace: 'pre-wrap' }}>{n.note}</div>
+                          <div style={{ fontSize: 13, color: theme.textSecondary, lineHeight: 1.6, marginBottom: 6, whiteSpace: 'pre-wrap' }}>{n.note}</div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ fontSize: 10, color: '#3a3a5a' }}>
+                            <div style={{ fontSize: 10, color: theme.textDim }}>
                               {n.created_at ? new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
                             </div>
                             <button
@@ -1151,7 +1168,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                                   return axios.patch(`${API}/startups/${startup.id}`, { meeting_notes: updated }, { headers })
                                 }).catch(() => {})
                               }}
-                              style={{ background: 'transparent', border: 'none', color: '#3a3a5a', fontSize: 11, cursor: 'pointer', padding: '2px 6px' }}
+                              style={{ background: 'transparent', border: 'none', color: theme.textDim, fontSize: 11, cursor: 'pointer', padding: '2px 6px' }}
                             >
                               Delete
                             </button>
@@ -1162,16 +1179,16 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
 
                     {/* FOUNDER CONTACTS */}
                     <div style={{ marginBottom: 28 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 12 }}>FOUNDER CONTACTS</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: theme.accent, letterSpacing: '0.5px', marginBottom: 12 }}>FOUNDER CONTACTS</div>
                       {Array.isArray(startup.founder_contacts) && startup.founder_contacts.length > 0 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
                           {startup.founder_contacts.map((contact, i) => (
-                            <div key={i} style={{ background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div key={i} style={{ background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                               <div>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: '#f0f0ff' }}>{contact.name}</div>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: theme.text }}>{contact.name}</div>
                                 <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>
-                                  {contact.role}{contact.email && ` · ${contact.email}`}{contact.linkedin && ` · `}
-                                  {contact.linkedin && <a href={contact.linkedin} target="_blank" rel="noopener noreferrer" style={{ color: '#6366f1', fontSize: 11 }}>LinkedIn</a>}
+                                  {contact.role}{contact.email && ` \u00B7 ${contact.email}`}{contact.linkedin && ` \u00B7 `}
+                                  {contact.linkedin && <a href={contact.linkedin} target="_blank" rel="noopener noreferrer" style={{ color: theme.accent, fontSize: 11 }}>LinkedIn</a>}
                                 </div>
                               </div>
                               <button
@@ -1182,7 +1199,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                                   await axios.patch(`${API}/startups/${startup.id}`, { founder_contacts: updated }, { headers })
                                   onUpdate && onUpdate({ ...s, founder_contacts: updated })
                                 }}
-                                style={{ background: 'transparent', border: 'none', color: '#3a3a5a', fontSize: 11, cursor: 'pointer' }}
+                                style={{ background: 'transparent', border: 'none', color: theme.textDim, fontSize: 11, cursor: 'pointer' }}
                               >Delete</button>
                             </div>
                           ))}
@@ -1190,14 +1207,14 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                       )}
                       {/* Add Contact Form */}
                       {showAddContact ? (
-                        <div style={{ background: '#0a0a14', border: '1px solid #2a2a4a', borderRadius: 8, padding: 14, marginBottom: 8 }}>
+                        <div style={{ background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 8, padding: 14, marginBottom: 8 }}>
                           {[['contactName', 'Name *'], ['contactRole', 'Role'], ['contactEmail', 'Email'], ['contactLinkedin', 'LinkedIn URL']].map(([key, placeholder]) => (
                             <input
                               key={key}
                               value={newContact[key] || ''}
                               onChange={e => setNewContact(v => ({ ...v, [key]: e.target.value }))}
                               placeholder={placeholder}
-                              style={{ width: '100%', marginBottom: 8, padding: '8px 10px', background: '#13131f', border: '1px solid #2a2a4a', borderRadius: 6, color: '#c0c0e0', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
+                              style={{ width: '100%', marginBottom: 8, padding: '8px 10px', background: '#13131f', border: `1px solid ${theme.border}`, borderRadius: 6, color: theme.textSecondary, fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
                             />
                           ))}
                           <div style={{ display: 'flex', gap: 8 }}>
@@ -1215,11 +1232,11 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                               }}
                               style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: '#4f46e5', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                             >Save</button>
-                            <button onClick={() => { setShowAddContact(false); setNewContact({}) }} style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #2a2a4a', background: 'transparent', color: '#8888aa', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
+                            <button onClick={() => { setShowAddContact(false); setNewContact({}) }} style={{ padding: '7px 14px', borderRadius: 6, border: `1px solid ${theme.border}`, background: 'transparent', color: theme.textMuted, fontSize: 12, cursor: 'pointer' }}>Cancel</button>
                           </div>
                         </div>
                       ) : (
-                        <button onClick={() => setShowAddContact(true)} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #2a2a4a', background: 'transparent', color: '#6366f1', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                        <button onClick={() => setShowAddContact(true)} style={{ padding: '6px 12px', borderRadius: 6, border: `1px solid ${theme.border}`, background: 'transparent', color: theme.accent, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
                           + Add Contact
                         </button>
                       )}
@@ -1227,13 +1244,13 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
 
                     {/* OUTREACH LOG */}
                     <div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 12 }}>OUTREACH LOG</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: theme.accent, letterSpacing: '0.5px', marginBottom: 12 }}>OUTREACH LOG</div>
                       {showLogOutreach ? (
-                        <div style={{ background: '#0a0a14', border: '1px solid #2a2a4a', borderRadius: 8, padding: 14, marginBottom: 12 }}>
+                        <div style={{ background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 8, padding: 14, marginBottom: 12 }}>
                           <select
                             value={newOutreach.type || 'email'}
                             onChange={e => setNewOutreach(v => ({ ...v, type: e.target.value }))}
-                            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', background: '#13131f', border: '1px solid #2a2a4a', borderRadius: 6, color: '#c0c0e0', fontSize: 12, outline: 'none' }}
+                            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', background: '#13131f', border: `1px solid ${theme.border}`, borderRadius: 6, color: theme.textSecondary, fontSize: 12, outline: 'none' }}
                           >
                             {['Email', 'Call', 'Meeting', 'Intro Request', 'LinkedIn', 'Other'].map(t => <option key={t} value={t.toLowerCase()}>{t}</option>)}
                           </select>
@@ -1241,19 +1258,19 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                             type="date"
                             value={newOutreach.date || new Date().toISOString().split('T')[0]}
                             onChange={e => setNewOutreach(v => ({ ...v, date: e.target.value }))}
-                            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', background: '#13131f', border: '1px solid #2a2a4a', borderRadius: 6, color: '#c0c0e0', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
+                            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', background: '#13131f', border: `1px solid ${theme.border}`, borderRadius: 6, color: theme.textSecondary, fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
                           />
                           <input
                             value={newOutreach.outcome || ''}
                             onChange={e => setNewOutreach(v => ({ ...v, outcome: e.target.value }))}
                             placeholder="Outcome (e.g. No reply, Intro made, Call scheduled)"
-                            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', background: '#13131f', border: '1px solid #2a2a4a', borderRadius: 6, color: '#c0c0e0', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
+                            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', background: '#13131f', border: `1px solid ${theme.border}`, borderRadius: 6, color: theme.textSecondary, fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
                           />
                           <textarea
                             value={newOutreach.notes || ''}
                             onChange={e => setNewOutreach(v => ({ ...v, notes: e.target.value }))}
                             placeholder="Notes..."
-                            style={{ width: '100%', minHeight: 60, marginBottom: 8, padding: '8px 10px', background: '#13131f', border: '1px solid #2a2a4a', borderRadius: 6, color: '#c0c0e0', fontSize: 12, outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
+                            style={{ width: '100%', minHeight: 60, marginBottom: 8, padding: '8px 10px', background: '#13131f', border: `1px solid ${theme.border}`, borderRadius: 6, color: theme.textSecondary, fontSize: 12, outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
                           />
                           <div style={{ display: 'flex', gap: 8 }}>
                             <button
@@ -1270,25 +1287,25 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                               }}
                               style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: '#4f46e5', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                             >Log</button>
-                            <button onClick={() => { setShowLogOutreach(false); setNewOutreach({}) }} style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #2a2a4a', background: 'transparent', color: '#8888aa', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
+                            <button onClick={() => { setShowLogOutreach(false); setNewOutreach({}) }} style={{ padding: '7px 14px', borderRadius: 6, border: `1px solid ${theme.border}`, background: 'transparent', color: theme.textMuted, fontSize: 12, cursor: 'pointer' }}>Cancel</button>
                           </div>
                         </div>
                       ) : (
-                        <button onClick={() => setShowLogOutreach(true)} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #2a2a4a', background: 'transparent', color: '#6366f1', fontSize: 11, fontWeight: 600, cursor: 'pointer', marginBottom: 12 }}>
+                        <button onClick={() => setShowLogOutreach(true)} style={{ padding: '6px 12px', borderRadius: 6, border: `1px solid ${theme.border}`, background: 'transparent', color: theme.accent, fontSize: 11, fontWeight: 600, cursor: 'pointer', marginBottom: 12 }}>
                           + Log Outreach
                         </button>
                       )}
                       {Array.isArray(activityLog) && activityLog.length > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                           {activityLog.map((entry, i) => (
-                            <div key={i} style={{ background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8, padding: '10px 14px' }}>
+                            <div key={i} style={{ background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 8, padding: '10px 14px' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                  <span style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', textTransform: 'capitalize' }}>{entry.type}</span>
-                                  {entry.outcome && <span style={{ fontSize: 11, color: '#8888aa' }}>· {entry.outcome}</span>}
+                                  <span style={{ fontSize: 11, fontWeight: 600, color: theme.accent, textTransform: 'capitalize' }}>{entry.type}</span>
+                                  {entry.outcome && <span style={{ fontSize: 11, color: theme.textMuted }}>{'\u00B7'} {entry.outcome}</span>}
                                 </div>
                                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                  <span style={{ fontSize: 10, color: '#3a3a5a' }}>{entry.date || (entry.logged_at ? new Date(entry.logged_at).toLocaleDateString() : '')}</span>
+                                  <span style={{ fontSize: 10, color: theme.textDim }}>{entry.date || (entry.logged_at ? new Date(entry.logged_at).toLocaleDateString() : '')}</span>
                                   <button
                                     onClick={async () => {
                                       const updated = activityLog.filter((_, idx) => idx !== i)
@@ -1297,16 +1314,16 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                                       const headers = token ? { Authorization: `Bearer ${token}` } : {}
                                       await axios.patch(`${API}/startups/${startup.id}`, { activity_log: updated }, { headers })
                                     }}
-                                    style={{ background: 'transparent', border: 'none', color: '#3a3a5a', fontSize: 11, cursor: 'pointer' }}
+                                    style={{ background: 'transparent', border: 'none', color: theme.textDim, fontSize: 11, cursor: 'pointer' }}
                                   >Delete</button>
                                 </div>
                               </div>
-                              {entry.notes && <div style={{ fontSize: 12, color: '#c0c0e0', lineHeight: 1.5 }}>{entry.notes}</div>}
+                              {entry.notes && <div style={{ fontSize: 12, color: theme.textSecondary, lineHeight: 1.5 }}>{entry.notes}</div>}
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <div style={{ fontSize: 12, color: '#555577' }}>No outreach logged yet</div>
+                        <div style={{ fontSize: 12, color: theme.textDim }}>No outreach logged yet</div>
                       )}
                     </div>
                   </div>
@@ -1324,9 +1341,10 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
           padding: '10px 18px', borderRadius: 8,
           fontSize: 13, fontWeight: 600,
           boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
-          zIndex: 99999
+          zIndex: 99999,
+          display: 'flex', alignItems: 'center', gap: 6
         }}>
-          ✓ Changes saved
+          <Icons.Check size={14} /> Changes saved
         </div>,
         document.body
       )}
