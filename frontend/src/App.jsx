@@ -78,6 +78,22 @@ export default function App() {
             },
             staleTime: 1000 * 60 * 30,
           })
+          queryClient.prefetchQuery({
+            queryKey: ['signals-feed'],
+            queryFn: async () => {
+              const res = await axios.get(`${API}/signals/feed`, { params: { days: 7, limit: 20 }, headers: prefetchHeaders })
+              return res.data
+            },
+            staleTime: 1000 * 60 * 5,
+          })
+          queryClient.prefetchQuery({
+            queryKey: ['last-scrape'],
+            queryFn: async () => {
+              const res = await axios.get(`${API}/startups/last-scrape`, { headers: prefetchHeaders })
+              return res.data
+            },
+            staleTime: 1000 * 60 * 10,
+          })
         } else setShowOnboarding(true)
       } catch {
         setShowOnboarding(true)

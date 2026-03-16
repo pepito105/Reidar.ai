@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAuth } from '@clerk/clerk-react'
+import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -55,58 +56,71 @@ function isNewThisWeek(scraped_at) {
 
 export default function Home({ API, firmProfile, onNavigate }) {
   const { getToken } = useAuth()
-  const [topMatches, setTopMatches] = useState([])
-  const [allCompanies, setAllCompanies] = useState([])
-  const [pipeline, setPipeline] = useState({})
   const [brief, setBrief] = useState(null)
   const [briefLoading, setBriefLoading] = useState(false)
   const [briefError, setBriefError] = useState(null)
-  const [loadingMatches, setLoadingMatches] = useState(true)
-  const [lastScrapedAt, setLastScrapedAt] = useState(null)
-  const [newCompanies, setNewCompanies] = useState([])
-  const [pipelineSignals, setPipelineSignals] = useState([])
-  const [digestLoading, setDigestLoading] = useState(true)
   const [digestExpanded, setDigestExpanded] = useState(true)
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoadingMatches(true)
-      setDigestLoading(true)
+  const { data: topMatches = [], isLoading: loadingMatches } = useQuery({
+    queryKey: ['startups', { min_fit_score: 5 }],
+    queryFn: async () => {
       const token = await getToken().catch(() => null)
       const headers = token ? { Authorization: `Bearer ${token}` } : {}
-      try {
-        const res5 = await axios.get(`${API}/startups/`, { params: { sort: 'fit_score', limit: 20, min_fit_score: 5 }, headers })
-        const top5 = Array.isArray(res5.data) ? res5.data.filter(s => s.fit_score === 5) : []
-        let picks = top5.slice(0, 4)
-        if (picks.length < 4) {
-          const res4 = await axios.get(`${API}/startups/`, { params: { sort: 'fit_score', limit: 20, min_fit_score: 4 }, headers })
-          const strong = Array.isArray(res4.data)
-            ? res4.data.filter(s => s.fit_score === 4 && !picks.some(p => p.id === s.id))
-            : []
-          picks = [...picks, ...strong.slice(0, 4 - picks.length)]
-        }
-        setTopMatches(picks.slice(0, 4))
+      const res = await axios.get(`${API}/startups/`, { params: { sort: 'fit_score', limit: 20, min_fit_score: 5 }, headers })
+      return res.data
+    },
+    staleTime: 1000 * 60 * 5,
+  })
 
-        const resAll = await axios.get(`${API}/startups/`, { params: { sort: 'fit_score', limit: 200, min_fit_score: 1 }, headers })
-        setAllCompanies(resAll.data)
+  const { data: allCompanies = [] } = useQuery({
+    queryKey: ['startups', { min_fit_score: 1 }],
+    queryFn: async () => {
+      const token = await getToken().catch(() => null)
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      const res = await axios.get(`${API}/startups/`, { params: { sort: 'fit_score', limit: 200, min_fit_score: 1 }, headers })
+      return res.data
+    },
+    staleTime: 1000 * 60 * 5,
+  })
 
-        const lastScrapeRes = await axios.get(`${API}/startups/last-scrape`, { headers })
-        setNewCompanies(lastScrapeRes.data.companies || [])
-        setLastScrapedAt(lastScrapeRes.data.last_scraped_at || null)
-      } catch (e) {}
-      finally { setLoadingMatches(false) }
+  const { data: pipelineData = {}, isLoading: pipelineLoading } = useQuery({
+    queryKey: ['pipeline'],
+    queryFn: async () => {
+      const token = await getToken().catch(() => null)
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      const res = await axios.get(`${API}/pipeline/`, { headers })
+      return res.data
+    },
+    staleTime: 1000 * 60 * 2,
+  })
 
-      try {
-        const pipeRes = await axios.get(`${API}/pipeline/`, { headers })
-        setPipeline(pipeRes.data)
-        const feedRes = await axios.get(`${API}/signals/feed`, { params: { days: 7, limit: 20 }, headers })
-        const recent = (feedRes.data.feed || []).slice(0, 5)
-        setPipelineSignals(recent)
-      } catch (e) {}
-      finally { setDigestLoading(false) }
-    }
-    fetchData()
-  }, [API, getToken])
+  const { data: feedData = {}, isLoading: feedLoading } = useQuery({
+    queryKey: ['signals-feed'],
+    queryFn: async () => {
+      const token = await getToken().catch(() => null)
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      const res = await axios.get(`${API}/signals/feed`, { params: { days: 7, limit: 20 }, headers })
+      return res.data
+    },
+    staleTime: 1000 * 60 * 5,
+  })
+
+  const { data: lastScrape, isLoading: lastScrapeLoading } = useQuery({
+    queryKey: ['last-scrape'],
+    queryFn: async () => {
+      const token = await getToken().catch(() => null)
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      const res = await axios.get(`${API}/startups/last-scrape`, { headers })
+      return res.data
+    },
+    staleTime: 1000 * 60 * 10,
+  })
+
+  const pipeline = pipelineData
+  const pipelineSignals = (feedData.feed || []).slice(0, 5)
+  const newCompanies = lastScrape?.companies || []
+  const lastScrapedAt = lastScrape?.last_scraped_at ?? null
+  const digestLoading = pipelineLoading || feedLoading || lastScrapeLoading
 
   const generateBrief = async () => {
     setBriefLoading(true)
@@ -367,7 +381,7 @@ export default function Home({ API, firmProfile, onNavigate }) {
           <div style={{ textAlign: 'center', padding: '24px 0', color: '#555577', fontSize: 13 }}>Loading...</div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-            {topMatches.map(s => {
+            {topMatches.slice(0, 4).map(s => {
               const badge = FIT_BADGES[s.fit_score] || FIT_BADGES[3]
               const showNew = isNewThisWeek(s.scraped_at)
               return (
