@@ -392,19 +392,33 @@ Respond with ONLY a JSON object, no markdown:
             tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 6}],
             messages=[{"role": "user", "content": prompt}]
         )
-        final_text = ""
+        # Extract text from all content blocks — Claude may return tool_use
+        # blocks interspersed with text when using web search
+        raw = ""
         for block in response.content:
-            if hasattr(block, "type") and block.type == "text":
-                final_text = block.text
-        if not final_text or not final_text.strip():
-            logger.warning("research_startup: empty response")
-            return {}
-        raw = final_text.strip()
+            if hasattr(block, "text") and block.text:
+                raw += block.text
+
+        # If raw is empty, try stop_reason and log the full response for debugging
+        if not raw.strip():
+            logger.error(f"Empty text response for {name}. Stop reason: {response.stop_reason}. Content types: {[type(b).__name__ for b in response.content]}")
+            # Try to extract from tool results as fallback
+            for block in response.content:
+                if hasattr(block, 'content') and isinstance(block.content, list):
+                    for inner in block.content:
+                        if hasattr(inner, 'text') and inner.text:
+                            raw += inner.text
+
+        raw = raw.strip()
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
                 raw = raw[4:]
-        return json.loads(raw.strip())
+        raw = raw.strip()
+
+        if not raw:
+            raise ValueError(f"Claude returned empty response for {name}")
+        return json.loads(raw)
     except Exception as e:
         logger.error(f"Research error for {name}: {e}", exc_info=True)
         return {}
