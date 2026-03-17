@@ -1,5 +1,7 @@
 import json
 import logging
+from collections import Counter
+from datetime import datetime
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -66,6 +68,107 @@ async def _build_firm_context(db: AsyncSession, user_id: str) -> str:
     return f"FIRM: {firm.firm_name}\nThesis: {firm.investment_thesis or 'Not set'}\nStages: {stages}"
 
 
+ASSOCIATE_TOOLS = [
+    {
+        "name": "search_pipeline",
+        "description": "Search and filter the user's startup pipeline. Use this when the user asks about specific companies, pipeline status, fit scores, sectors, or wants to find companies matching criteria.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "description": "Filter by pipeline status: new, watching, outreach, diligence, passed, invested",
+                },
+                "min_fit_score": {
+                    "type": "integer",
+                    "description": "Minimum fit score (1-5)",
+                },
+                "sector": {
+                    "type": "string",
+                    "description": "Filter by sector name",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max results to return (default 10)",
+                }
+            },
+            "required": []
+        }
+    },
+    {
+        "name": "get_pipeline_insights",
+        "description": "Analyze the pipeline for patterns, stale deals, mandate drift, and actionable insights. Use this when the user asks for recommendations, what to prioritize, or what patterns exist.",
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    }
+]
+
+
+async def _execute_tool(tool_name: str, tool_input: dict, db: AsyncSession, user_id: str) -> str:
+    """Execute a tool call and return the result as a string."""
+    if tool_name == "search_pipeline":
+        query = select(Startup).where(Startup.user_id == user_id)
+        if tool_input.get("status"):
+            query = query.where(Startup.pipeline_status == tool_input["status"])
+        if tool_input.get("min_fit_score"):
+            query = query.where(Startup.fit_score >= tool_input["min_fit_score"])
+        if tool_input.get("sector"):
+            query = query.where(Startup.sector.ilike(f"%{tool_input['sector']}%"))
+        query = query.order_by(Startup.fit_score.desc()).limit(tool_input.get("limit", 10))
+        result = await db.execute(query)
+        startups = result.scalars().all()
+        if not startups:
+            return "No companies found matching those criteria."
+        lines = []
+        for s in startups:
+            line = f"- {s.name} (fit {s.fit_score}/5, {s.pipeline_status or 'new'}, {s.sector or 'unknown'})"
+            if s.one_liner:
+                line += f": {s.one_liner[:100]}"
+            if s.scraped_at:
+                days_ago = (datetime.utcnow() - s.scraped_at.replace(tzinfo=None)).days
+                line += f" [added {days_ago}d ago]"
+            lines.append(line)
+        return "\n".join(lines)
+
+    elif tool_name == "get_pipeline_insights":
+        result = await db.execute(
+            select(Startup)
+            .where(Startup.user_id == user_id)
+            .where(Startup.pipeline_status.in_(["watching", "outreach", "diligence"]))
+        )
+        startups = result.scalars().all()
+        insights = []
+        now = datetime.utcnow()
+
+        # Stale deals
+        stale = []
+        for s in startups:
+            if s.scraped_at:
+                days = (now - s.scraped_at.replace(tzinfo=None)).days
+                if days > 14:
+                    stale.append(f"{s.name} ({s.pipeline_status}, {days}d)")
+        if stale:
+            insights.append(f"STALE DEALS (>14 days): {', '.join(stale)}")
+
+        # Sector clustering
+        sectors = Counter(s.sector for s in startups if s.sector)
+        dominant = [(s, c) for s, c in sectors.most_common(3) if c >= 3]
+        if dominant:
+            insights.append(f"SECTOR CLUSTERING: {', '.join(f'{s} ({c} companies)' for s, c in dominant)}")
+
+        # High fit scores not acted on
+        high_fit_new = [s.name for s in startups if (s.fit_score or 0) >= 5 and s.pipeline_status == "watching"]
+        if high_fit_new:
+            insights.append(f"TOP MATCHES STILL WATCHING: {', '.join(high_fit_new)}")
+
+        return "\n".join(insights) if insights else "Pipeline looks healthy — no major issues detected."
+
+    return f"Unknown tool: {tool_name}"
+
+
 @router.post("/chat")
 async def associate_chat(
     payload: dict,
@@ -101,16 +204,48 @@ When asked for recommendations, be specific and actionable — name companies, s
 When you notice patterns, surface them proactively.
 Keep responses concise — this is a chat interface, not a report. Use bullet points for lists."""
 
-        # Stream response
         try:
-            async with client.messages.stream(
+            # First call with tools
+            response = await client.messages.create(
                 model="claude-sonnet-4-6",
-                max_tokens=1000,
+                max_tokens=2000,
                 system=system_prompt,
+                tools=ASSOCIATE_TOOLS,
                 messages=[{"role": m["role"], "content": m["content"]} for m in messages],
-            ) as stream:
-                async for text in stream.text_stream:
-                    yield f"data: {json.dumps({'type': 'text', 'content': text})}\n\n"
+            )
+
+            # Handle tool calls
+            tool_results = []
+            for block in response.content:
+                if block.type == "tool_use":
+                    yield f"data: {json.dumps({'type': 'tool_call', 'tool': block.name})}\n\n"
+                    result = await _execute_tool(block.name, block.input, db, user_id)
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": result,
+                    })
+
+            # If tools were called, make a second call with results
+            if tool_results:
+                all_messages = [{"role": m["role"], "content": m["content"]} for m in messages]
+                all_messages.append({"role": "assistant", "content": response.content})
+                all_messages.append({"role": "user", "content": tool_results})
+
+                async with client.messages.stream(
+                    model="claude-sonnet-4-6",
+                    max_tokens=1000,
+                    system=system_prompt,
+                    messages=all_messages,
+                ) as stream:
+                    async for text in stream.text_stream:
+                        yield f"data: {json.dumps({'type': 'text', 'content': text})}\n\n"
+            else:
+                # No tools called — stream directly
+                for block in response.content:
+                    if hasattr(block, 'text'):
+                        yield f"data: {json.dumps({'type': 'text', 'content': block.text})}\n\n"
+
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
         except Exception as e:
             logger.error(f"Associate chat error: {e}")

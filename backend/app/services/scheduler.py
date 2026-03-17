@@ -227,8 +227,6 @@ async def job_run_sourcing():
     logger.info('Scheduler: Starting nightly autonomous sourcing (deep mode)')
     from app.services.sourcing_service import run_autonomous_sourcing
     from app.services.research_service import run_research_batch
-    from app.scrapers.yc_scraper import scrape_yc_companies
-    from app.models.startup import Startup
     from sqlalchemy import select
     async with AsyncSessionLocal() as db:
         try:
@@ -243,18 +241,6 @@ async def job_run_sourcing():
                 firm_name = profile.firm_name or 'Unknown'
                 user_id = profile.user_id
                 logger.info(f'Nightly sourcing for: {firm_name}')
-
-                # Step 1: YC seed — only if firm has no YC companies yet
-                yc_check = await db.execute(
-                    select(Startup).where(
-                        Startup.source == "YC",
-                        Startup.user_id == user_id
-                    ).limit(1)
-                )
-                if not yc_check.scalar_one_or_none():
-                    logger.info(f'Seeding YC companies for {firm_name}')
-                    from app.services.scraping_service import run_full_scrape
-                    await run_full_scrape(db)
 
                 # Step 2: Deep autonomous sourcing — 8 queries instead of 3
                 try:
@@ -275,28 +261,12 @@ async def job_run_sourcing():
 
 
 async def run_startup_check():
+    """Startup check — logging only, no automatic scrapes."""
     async with AsyncSessionLocal() as db:
-        try:
-            result = await db.execute(text('SELECT COUNT(*), MAX(scraped_at) FROM startups'))
-            row = result.fetchone()
-            count = row[0] or 0
-            last_scraped = row[1]
-            if count == 0:
-                logger.info('Empty database - skipping startup scrape')
-                return
-            if last_scraped is None:
-                logger.info(f'{count} companies in database')
-                return
-            last_scraped_naive = last_scraped.replace(tzinfo=None)
-            hours_since = (datetime.utcnow() - last_scraped_naive).total_seconds() / 3600
-            logger.info(f'Database: {count} companies, last scraped {hours_since:.1f}h ago')
-            if hours_since > 48:
-                logger.info('Data is stale - running catch-up scrape')
-                asyncio.create_task(job_run_scrapers())
-            else:
-                logger.info('Data is fresh - no catch-up needed')
-        except Exception as e:
-            logger.error(f'Startup check failed: {e}', exc_info=True)
+        result = await db.execute(text('SELECT COUNT(*), MAX(scraped_at) FROM startups'))
+        row = result.fetchone()
+        count = row[0] or 0
+        logger.info(f'Database: {count} companies at startup')
 
 
 def start_scheduler():
