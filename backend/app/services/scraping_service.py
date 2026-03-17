@@ -141,7 +141,12 @@ async def run_full_scrape(db: AsyncSession) -> dict:
                 for s, desc in new_startups
             ]
             try:
-                results = await classify_batch(companies_input, firm)
+                # Process in chunks of 8 to avoid token limit truncation
+                results = []
+                for i in range(0, len(companies_input), 8):
+                    chunk = companies_input[i:i+8]
+                    chunk_results = await classify_batch(chunk, firm)
+                    results.extend(chunk_results)
                 result_map = {r.get("id"): r for r in results if r.get("id")}
                 for startup, _ in new_startups:
                     result = result_map.get(startup.id)
