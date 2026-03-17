@@ -641,7 +641,7 @@ async def get_similar_startups(startup_id: int, request: Request, db: AsyncSessi
             ORDER BY similarity DESC
             LIMIT 3
         """),
-        {"embedding": str(embedding), "startup_id": startup_id, "user_id": user_id}
+        {"embedding": "[" + ",".join(str(x) for x in embedding) + "]", "startup_id": startup_id, "user_id": user_id}
     )
     rows = similar.fetchall()
     return [

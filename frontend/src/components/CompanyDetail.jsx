@@ -106,7 +106,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
     getToken()
       .catch(() => null)
       .then(token =>
-        fetch(`${import.meta.env.VITE_API_URL}/startups/${startup.id}/similar`, {
+        fetch(`${import.meta.env.VITE_API_URL}/api/startups/${startup.id}/similar`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         })
       )
