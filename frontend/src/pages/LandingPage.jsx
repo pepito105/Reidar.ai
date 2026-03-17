@@ -261,53 +261,65 @@ const COMPANIES = [
 ];
 
 function MockCoverage() {
-  const [selected, setSelected] = useState(0);
+  const [selected, setSelected] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [stage, setStage] = useState(null);
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    // Auto-select second card after 1.5s to show the panel opening
-    const t = setTimeout(() => setSelected(1), 1500);
-    return () => clearTimeout(t);
+    // Reset on remount
+    setSelected(null);
+    setAnalyzing(false);
+    setStage(null);
+    setDone(false);
+
+    // Step 1: select a card after 1.2s
+    const t1 = setTimeout(() => setSelected(1), 1200);
+
+    // Step 2: auto-trigger deploy after 2.8s
+    const t2 = setTimeout(() => {
+      setAnalyzing(true);
+      const stages = [
+        'Visiting company website...',
+        'Evaluating thesis fit...',
+        'Running investment analysis...',
+        'Generating investment brief...',
+      ];
+      let i = 0;
+      setStage(stages[0]);
+      const iv = setInterval(() => {
+        i++;
+        if (i < stages.length) {
+          setStage(stages[i]);
+        } else {
+          clearInterval(iv);
+          setAnalyzing(false);
+          setDone(true);
+          setStage(null);
+        }
+      }, 1400);
+    }, 2800);
+
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
-  const runAnalysis = () => {
-    if (analyzing || done) return;
-    setAnalyzing(true);
-    const stages = ['Visiting company website...', 'Evaluating thesis fit...', 'Running investment analysis...', 'Generating investment brief...'];
-    let i = 0;
-    setStage(stages[0]);
-    const iv = setInterval(() => {
-      i++;
-      if (i < stages.length) {
-        setStage(stages[i]);
-      } else {
-        clearInterval(iv);
-        setAnalyzing(false);
-        setDone(true);
-        setStage(null);
-      }
-    }, 900);
-  };
-
-  const co = COMPANIES[selected] || COMPANIES[0];
+  const co = selected !== null ? (COMPANIES[selected] || COMPANIES[0]) : null;
 
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
       {/* Left: company list */}
-      <div style={{ width: 180, borderRight: '1px solid rgba(255,255,255,.07)', display: 'flex', flexDirection: 'column', overflowY: 'auto', flexShrink: 0 }}>
+      <div style={{ width: 175, borderRight: '1px solid rgba(255,255,255,.07)', display: 'flex', flexDirection: 'column', overflowY: 'auto', flexShrink: 0 }}>
         <div style={{ padding: '10px 12px 6px', fontSize: 10, fontFamily: "'DM Mono',monospace", color: 'rgba(235,235,235,.25)', letterSpacing: '.08em' }}>COVERAGE · 34</div>
         {COMPANIES.map((c, i) => (
-          <div key={i} onClick={() => { setSelected(i); setDone(false); setAnalyzing(false); }}
+          <div key={i} onClick={() => { setSelected(i); setDone(false); setAnalyzing(false); setStage(null); }}
             style={{
               padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,.04)',
               background: selected === i ? 'rgba(107,71,245,.12)' : 'transparent',
               borderLeft: selected === i ? '2px solid #6B47F5' : '2px solid transparent',
-              transition: 'all .15s'
+              transition: 'all .2s'
             }}>
-            <div style={{ fontSize: 12, fontWeight: 500, color: selected === i ? '#EBEBEB' : 'rgba(235,235,235,.6)', marginBottom: 3 }}>{c.name}</div>
-            <div style={{ fontSize: 10, color: 'rgba(235,235,235,.3)', marginBottom: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.sector}</div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: selected === i ? '#EBEBEB' : 'rgba(235,235,235,.55)', marginBottom: 3 }}>{c.name}</div>
+            <div style={{ fontSize: 10, color: 'rgba(235,235,235,.28)', marginBottom: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.sector}</div>
             <FitBadge level={c.fit} />
           </div>
         ))}
@@ -315,68 +327,81 @@ function MockCoverage() {
 
       {/* Right: detail panel */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: '#EBEBEB' }}>{co.name}</div>
-            <div style={{ fontSize: 11, color: 'rgba(235,235,235,.4)', marginTop: 2 }}>{co.one_liner}</div>
-          </div>
-          <FitBadge level={co.fit} />
-        </div>
-        <div style={{ display: 'flex', gap: 5 }}>
-          <Tag label={co.stage} /><Tag label={co.sector} />
-        </div>
-
-        {/* Deploy agents section */}
-        {!done ? (
-          <div style={{ background: 'rgba(107,71,245,.06)', border: '1px solid rgba(107,71,245,.15)', borderRadius: 8, padding: '12px 14px' }}>
-            <div style={{ fontSize: 11, color: 'rgba(235,235,235,.45)', marginBottom: 10, lineHeight: 1.5 }}>Deploy research agents to unlock a full investment analysis.</div>
-            {!analyzing ? (
-              <div style={{ display: 'flex', gap: 6 }}>
-                <div onClick={runAnalysis} style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', padding: '7px 14px', borderRadius: 6, cursor: 'pointer' }}>⚡ Deploy Research Agents</div>
-                <div style={{ fontSize: 11, color: 'rgba(235,235,235,.4)', background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', padding: '7px 12px', borderRadius: 6, cursor: 'pointer' }}>+ Add focus</div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#6366f1', animation: 'pulse 1.5s ease-in-out infinite' }} />
-                <span style={{ fontSize: 11, color: '#a5b4fc', fontWeight: 600 }}>{stage}</span>
-              </div>
-            )}
+        {selected === null ? (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
+            <div style={{ fontSize: 12, color: 'rgba(235,235,235,.2)' }}>Select a company to view details</div>
           </div>
         ) : (
           <>
-            <div style={{ background: 'rgba(255,255,255,.025)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 8, padding: '12px 14px' }}>
-              <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: 'rgba(107,71,245,.7)', letterSpacing: '.1em', marginBottom: 10 }}>THESIS FIT REASONING</div>
-              {[
-                { t: 'AI-native architecture: LLM-first, no legacy layer', c: '#4ade80' },
-                { t: 'Regulated vertical: HIPAA-compliant clinical environment', c: '#4ade80' },
-                { t: 'B2B SaaS: per-seat enterprise contracts', c: '#facc15' },
-              ].map((r, i) => (
-                <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-                  <span style={{ color: r.c, fontSize: 11 }}>•</span>
-                  <span style={{ fontSize: 11, color: 'rgba(235,235,235,.55)', lineHeight: 1.5 }}>{r.t}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{ background: 'rgba(74,222,128,.06)', border: '1px solid rgba(74,222,128,.15)', borderRadius: 8, padding: '12px 14px' }}>
-              <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: 'rgba(74,222,128,.7)', letterSpacing: '.1em', marginBottom: 6 }}>RECOMMENDED NEXT STEP</div>
-              <div style={{ fontSize: 11, color: 'rgba(235,235,235,.6)', lineHeight: 1.5 }}>Request warm intro via <strong style={{ color: '#EBEBEB' }}>Index Ventures</strong>. Move to outreach within 7 days.</div>
-            </div>
-          </>
-        )}
-
-        {/* Blurred locked sections */}
-        {!done && (
-          <div style={{ opacity: 0.25, pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {['THESIS FIT REASONING', 'COMPARABLE COMPANIES', 'KEY RISKS'].map(label => (
-              <div key={label} style={{ background: '#0d0d18', border: '1px solid #1e1e30', borderRadius: 8, padding: '12px 14px' }}>
-                <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: '#6366f1', marginBottom: 8 }}>{label}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                  {[80, 65, 75].map((w, i) => <div key={i} style={{ height: 8, background: '#2a2a4a', borderRadius: 3, width: `${w}%` }} />)}
-                </div>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: '#EBEBEB' }}>{co.name}</div>
+                <div style={{ fontSize: 11, color: 'rgba(235,235,235,.4)', marginTop: 2 }}>{co.one_liner}</div>
               </div>
-            ))}
-          </div>
+              <FitBadge level={co.fit} />
+            </div>
+            <div style={{ display: 'flex', gap: 5 }}>
+              <Tag label={co.stage} /><Tag label={co.sector} />
+            </div>
+
+            {/* Deploy agents block */}
+            <div style={{ background: 'rgba(107,71,245,.06)', border: '1px solid rgba(107,71,245,.15)', borderRadius: 8, padding: '12px 14px' }}>
+              <div style={{ fontSize: 11, color: 'rgba(235,235,235,.4)', marginBottom: 10, lineHeight: 1.5 }}>Deploy research agents to unlock a full investment analysis.</div>
+              {!analyzing && !done && (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', padding: '7px 14px', borderRadius: 6, cursor: 'pointer' }}>⚡ Deploy Research Agents</div>
+                  <div style={{ fontSize: 11, color: 'rgba(235,235,235,.4)', background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', padding: '7px 12px', borderRadius: 6, cursor: 'pointer' }}>+ Add focus</div>
+                </div>
+              )}
+              {analyzing && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#6366f1', animation: 'pulse 1.5s ease-in-out infinite', flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, color: '#a5b4fc', fontWeight: 600 }}>{stage}</span>
+                </div>
+              )}
+              {done && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 12, color: '#4ade80' }}>✓</span>
+                  <span style={{ fontSize: 11, color: '#4ade80', fontWeight: 600 }}>Analysis complete</span>
+                </div>
+              )}
+            </div>
+
+            {/* Results or locked placeholders */}
+            {done ? (
+              <>
+                <div style={{ background: 'rgba(255,255,255,.025)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 8, padding: '12px 14px', animation: 'fadeIn .5s ease' }}>
+                  <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: 'rgba(107,71,245,.7)', letterSpacing: '.1em', marginBottom: 10 }}>THESIS FIT REASONING</div>
+                  {[
+                    { t: 'AI-native architecture: LLM-first, no legacy layer', c: '#4ade80' },
+                    { t: 'Regulated vertical: HIPAA-compliant clinical workflows', c: '#4ade80' },
+                    { t: 'B2B SaaS: per-seat enterprise contracts', c: '#facc15' },
+                  ].map((r, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                      <span style={{ color: r.c, fontSize: 11, flexShrink: 0 }}>•</span>
+                      <span style={{ fontSize: 11, color: 'rgba(235,235,235,.55)', lineHeight: 1.5 }}>{r.t}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background: 'rgba(74,222,128,.06)', border: '1px solid rgba(74,222,128,.15)', borderRadius: 8, padding: '12px 14px', animation: 'fadeIn .7s ease' }}>
+                  <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: 'rgba(74,222,128,.7)', letterSpacing: '.1em', marginBottom: 6 }}>RECOMMENDED NEXT STEP</div>
+                  <div style={{ fontSize: 11, color: 'rgba(235,235,235,.6)', lineHeight: 1.5 }}>Request warm intro via <strong style={{ color: '#EBEBEB' }}>Index Ventures</strong>. Move to outreach within 7 days.</div>
+                </div>
+              </>
+            ) : (
+              <div style={{ opacity: 0.2, pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {['THESIS FIT REASONING', 'COMPARABLE COMPANIES', 'KEY RISKS'].map(label => (
+                  <div key={label} style={{ background: '#0d0d18', border: '1px solid #1e1e30', borderRadius: 8, padding: '12px 14px' }}>
+                    <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: '#6366f1', marginBottom: 8 }}>{label}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                      {[80, 65, 75].map((w, i) => <div key={i} style={{ height: 8, background: '#2a2a4a', borderRadius: 3, width: `${w}%` }} />)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -742,6 +767,8 @@ const TABS = [
 ];
 
 const CYCLE_MS = 5000;
+const COVERAGE_TAB_INDEX = 0;
+const COVERAGE_CYCLE_MS = 14000;
 const AI_ANALYST_TAB_INDEX = 5;
 const AI_ANALYST_CYCLE_MS = 12000;
 
@@ -753,7 +780,7 @@ function ProductPreview() {
   const progRef = useRef(null);
   const startRef = useRef(Date.now());
 
-  const cycleMs = active === AI_ANALYST_TAB_INDEX ? AI_ANALYST_CYCLE_MS : CYCLE_MS;
+  const cycleMs = active === AI_ANALYST_TAB_INDEX ? AI_ANALYST_CYCLE_MS : active === COVERAGE_TAB_INDEX ? COVERAGE_CYCLE_MS : CYCLE_MS;
 
   // auto-cycle
   useEffect(() => {
