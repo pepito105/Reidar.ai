@@ -271,6 +271,10 @@ function MockCoverage() {
           <span style={{ fontSize: 10, color: "#4ade80", fontFamily: "'DM Mono',monospace", letterSpacing: ".06em" }}>Live</span>
         </div>
       </div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "#fff", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", padding: "6px 12px", borderRadius: 6, cursor: "pointer" }}>⚡ Deploy Research Agents</div>
+        <div style={{ fontSize: 11, color: "rgba(235,235,235,.4)", background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.08)", padding: "6px 12px", borderRadius: 6, cursor: "pointer" }}>+ Add focus</div>
+      </div>
       {COMPANIES.map((c, i) => (
         <div key={i} style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)", borderRadius: 8, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, borderLeft: `2px solid ${c.fit === "Top Match" ? "#4ade80" : c.fit === "Strong Fit" ? "#818cf8" : "#facc15"}`, transition: "background .15s", cursor: "pointer" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -293,15 +297,8 @@ function MockCoverage() {
 
 function MockMemo() {
   const co = COMPANIES[0];
-  const bars = [
-    { label: "Thesis Fit", val: 92, color: "#6B47F5" },
-    { label: "AI-Nativeness", val: 97, color: "#818cf8" },
-    { label: "Market Size", val: 78, color: "#A992FA" },
-    { label: "Team Signal", val: 84, color: "#c4b5fd" },
-  ];
   return (
-    <div style={{ padding: "16px", overflowY: "auto", height: "100%", display: "flex", flexDirection: "column", gap: 14 }}>
-      {/* Header */}
+    <div style={{ padding: "16px", overflowY: "auto", height: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ background: "rgba(107,71,245,.08)", border: "1px solid rgba(107,71,245,.18)", borderRadius: 8, padding: "14px 16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
@@ -314,24 +311,37 @@ function MockMemo() {
           <Tag label={co.stage} /><Tag label={co.sector} /><Tag label="$2.4M raised" />
         </div>
       </div>
-      {/* Scores */}
+
       <div style={{ background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.06)", borderRadius: 8, padding: "14px 16px" }}>
-        <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: "rgba(107,71,245,.7)", letterSpacing: ".1em", marginBottom: 12 }}>THESIS ALIGNMENT</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-          {bars.map(b => (
-            <div key={b.label}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                <span style={{ fontSize: 11, color: "rgba(235,235,235,.5)" }}>{b.label}</span>
-                <span style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: b.color }}>{b.val}%</span>
-              </div>
-              <div style={{ height: 3, background: "rgba(255,255,255,.06)", borderRadius: 2 }}>
-                <div style={{ height: "100%", width: `${b.val}%`, background: b.color, borderRadius: 2, opacity: .8 }} />
+        <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: "rgba(107,71,245,.7)", letterSpacing: ".1em", marginBottom: 12 }}>THESIS FIT REASONING</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {[
+            { point: "AI-native architecture: LLM-first product with no legacy layer", conf: "High confidence", color: "#4ade80" },
+            { point: "Regulated vertical: clinical documentation in HIPAA environment", conf: "High confidence", color: "#4ade80" },
+            { point: "B2B SaaS model: per-seat pricing, enterprise contracts", conf: "Medium confidence", color: "#facc15" },
+          ].map((r, i) => (
+            <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+              <span style={{ color: r.color, fontSize: 12, marginTop: 1, flexShrink: 0 }}>•</span>
+              <div>
+                <span style={{ fontSize: 12, color: "rgba(235,235,235,.65)", lineHeight: 1.5 }}>{r.point} </span>
+                <span style={{ fontSize: 10, color: r.color, fontFamily: "'DM Mono',monospace" }}>— {r.conf}</span>
               </div>
             </div>
           ))}
         </div>
       </div>
-      {/* Recommendation */}
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={{ background: "rgba(239,68,68,.05)", border: "1px solid rgba(239,68,68,.12)", borderRadius: 8, padding: "12px 14px" }}>
+          <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: "rgba(239,68,68,.6)", letterSpacing: ".1em", marginBottom: 8 }}>KEY RISKS</div>
+          <div style={{ fontSize: 11, color: "rgba(235,235,235,.5)", lineHeight: 1.5 }}>EHR integration dependency — Likelihood: High, Impact: Major</div>
+        </div>
+        <div style={{ background: "rgba(74,222,128,.04)", border: "1px solid rgba(74,222,128,.1)", borderRadius: 8, padding: "12px 14px" }}>
+          <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: "rgba(74,222,128,.6)", letterSpacing: ".1em", marginBottom: 8 }}>BULL CASE</div>
+          <div style={{ fontSize: 11, color: "rgba(235,235,235,.5)", lineHeight: 1.5 }}>If ambient AI becomes standard of care, Synthos owns the clinical workflow layer</div>
+        </div>
+      </div>
+
       <div style={{ background: "rgba(74,222,128,.06)", border: "1px solid rgba(74,222,128,.15)", borderRadius: 8, padding: "14px 16px" }}>
         <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: "rgba(74,222,128,.7)", letterSpacing: ".1em", marginBottom: 8 }}>RECOMMENDED NEXT STEP</div>
         <div style={{ fontSize: 12, color: "rgba(235,235,235,.65)", lineHeight: 1.6 }}>
@@ -699,7 +709,7 @@ function ProductPreview() {
 }
 
 /* ─── CONSTANTS ─── */
-const TICKER_ITEMS = ["MANDATE-AWARE SOURCING","AI INVESTMENT MEMOS","PIPELINE TRACKING","MARKET INTELLIGENCE","HOT SIGNALS","THESIS-FIRST FILTERING","AUTONOMOUS RESEARCH","13 LIVE SOURCES","CLAUDE-POWERED ANALYSIS","EMERGING FUND TOOLING"];
+const TICKER_ITEMS = ["MANDATE-AWARE SOURCING","AI INVESTMENT MEMOS","PIPELINE TRACKING","MARKET INTELLIGENCE","HOT SIGNALS","THESIS-FIRST FILTERING","AUTONOMOUS RESEARCH","NIGHTLY AI SOURCING","CLAUDE-POWERED ANALYSIS","EMERGING FUND TOOLING"];
 const STEPS = [
   { n:"01", t:"Source",   d:"YC batches + AI-powered web search — mandate-aware sourcing every night" },
   { n:"02", t:"Classify", d:"Claude scores AI-nativeness, vertical, sector, thesis tags" },
