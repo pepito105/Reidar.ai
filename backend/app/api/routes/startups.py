@@ -447,29 +447,41 @@ async def analyze_startup_stream(startup_id: int, request: Request, db: AsyncSes
                 yield chunk
             return
 
-        # Stage 1 — Website research
+        # Stage 1 — emit immediately
         async for chunk in emit("stage", "Searching for company information...", {"stage": 1, "total": 4}):
             yield chunk
-        await asyncio.sleep(0.3)
 
-        # Stage 2 — Thesis analysis
+        # Stage 2 — emit after brief pause
+        await asyncio.sleep(2)
         async for chunk in emit("stage", "Researching traction, team, and market...", {"stage": 2, "total": 4}):
             yield chunk
-        await asyncio.sleep(0.3)
 
-        # Stage 3 — Running classifier
+        # Stage 3 — emit before long Claude call
+        await asyncio.sleep(2)
         async for chunk in emit("stage", "Evaluating mandate fit and risks...", {"stage": 3, "total": 4}):
             yield chunk
 
+        # Run the research and send keepalive pings while waiting
         from app.services.classifier import research_startup
-        result = await research_startup(
-            name=startup.name,
-            description=startup.one_liner or startup.name,
-            website=startup.website,
-            firm=firm,
-            custom_focus=focus,
-            db=db,
+        result = None
+        research_task = asyncio.create_task(
+            research_startup(
+                name=startup.name,
+                description=startup.one_liner or startup.name,
+                website=startup.website,
+                firm=firm,
+                custom_focus=focus,
+                db=db,
+            )
         )
+
+        # Send keepalive pings every 10 seconds while waiting
+        while not research_task.done():
+            await asyncio.sleep(10)
+            if not research_task.done():
+                yield f"data: {json.dumps({'type': 'ping', 'message': 'Analyzing...'})}\n\n"
+
+        result = await research_task
 
         if result:
             startup.one_liner = (result.get("one_liner") or startup.one_liner or "")[:499]

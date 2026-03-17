@@ -274,6 +274,10 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
       const es = new EventSource(streamUrl)
       es.onmessage = (e) => {
         const data = JSON.parse(e.data)
+        if (data.type === 'ping') {
+          // keepalive - do nothing, connection stays alive
+          return
+        }
         if (data.type === 'stage') {
           setAnalyzeStage(data.message)
         } else if (data.type === 'complete') {
