@@ -240,9 +240,9 @@ async def research_startup(
     db=None,
 ) -> dict:
     """
-    Deep investment research using the VC Investment Research Skill framework.
-    Uses Sonnet + web search. Called only on manual Deploy Research Agents click.
-    Returns enriched structured data for all research fields.
+    Deep investment research using two-step approach:
+    Step 1 — Claude + web search: research freely, return prose findings.
+    Step 2 — Claude (no tools): structure findings into JSON.
     """
     from anthropic import AsyncAnthropic
     research_client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
@@ -250,14 +250,13 @@ async def research_startup(
     firm_context = _build_firm_context(firm)
     mandate_category_guide = _build_mandate_category_guide(firm)
 
-    # Build portfolio context if db available
+    # Build portfolio/pipeline context
     portfolio_context = ""
     pipeline_context = ""
     if db and firm:
         try:
             from sqlalchemy import select
             from app.models.startup import Startup
-            # Portfolio companies
             port_result = await db.execute(
                 select(Startup.name, Startup.sector, Startup.one_liner)
                 .where(Startup.user_id == firm.user_id)
@@ -269,7 +268,6 @@ async def research_startup(
                 portfolio_context = "PORTFOLIO COMPANIES (check for conflicts):\n" + \
                     "\n".join([f"- {c.name}: {c.one_liner or c.sector}" for c in portfolio_cos])
 
-            # Pipeline companies being tracked
             pipe_result = await db.execute(
                 select(Startup.name, Startup.pipeline_status, Startup.fit_score)
                 .where(Startup.user_id == firm.user_id)
@@ -285,94 +283,135 @@ async def research_startup(
 
     focus_line = f"\nANALYST FOCUS: {custom_focus}\nMake sure your research directly addresses this question.\n" if custom_focus else ""
 
-    prompt = f"""You are a senior investment analyst running deep research on a startup for a VC firm.
+    # ── STEP 1: Research with web search ─────────────────────────────────────
+    research_prompt = f"""You are a senior investment analyst. Research this startup thoroughly for a VC firm.
 
 {firm_context}
-
 {portfolio_context}
-
 {pipeline_context}
-
 {focus_line}
 
-COMPANY TO RESEARCH:
-Name: {name}
+COMPANY: {name}
 Description: {description}
 Website: {website or "Unknown — search for it"}
 
-Use web search to research this company thoroughly before scoring. Visit their website,
-find recent news, funding announcements, team information, and competitive context.
+Use web search to investigate:
+1. What the product actually does today (visit their website)
+2. Who the paying customers are — specific job titles or company types
+3. Traction evidence: revenue numbers, named customers, funding history with investors named
+4. Team backgrounds: founder LinkedIn histories, prior company outcomes
+5. Competitive landscape: top 3 direct competitors, recent funding in the space
+6. Market timing: what changed in the last 2-3 years that makes this possible now
+7. Any red flags: positioning confusion, no pricing page, stale funding, etc.
 
-Then produce a structured research brief following this framework:
+Write your findings as a detailed research report. Be specific — cite actual data points,
+company names, URLs visited, and investor names. Do not invent anything you cannot verify.
+Flag explicitly when you could not find information.
 
-PHASE 1 — WHAT THEY ACTUALLY DO
-Cut through the pitch. Find the concrete reality.
-- Visit their website and product pages
-- Check job listings to understand what they're actually building
-- Look for pricing pages, demos, customer case studies
-- Produce a single positioning sentence: "We help [specific customer] [do specific thing] by [specific mechanism]"
-- Flag if their positioning is unclear or aspirational without substance
+End your report with a list of all URLs you visited."""
 
-PHASE 2 — MARKET TIMING
-- What changed in the last 2-3 years that makes this possible now?
-- Is this a vitamin or a painkiller?
-- Specific regulatory, infrastructure, or behavioral tailwinds
-- Red flag if: "market will be ready in 3 years" or technology dependency on unproven infra
+    sources_visited = []
+    research_findings = ""
 
-PHASE 3 — MANDATE FIT
-Score against this firm's specific thesis. Not generic quality — mandate fit.
-Stage, sector, geography, AI-nativeness, excluded sectors, portfolio conflicts.
-Fit score 1-5 where 5 = partner takes the call today.
+    try:
+        step1_response = await research_client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=4000,
+            tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 6}],
+            messages=[{"role": "user", "content": research_prompt}]
+        )
 
-PHASE 4 — TRACTION SIGNALS
-Real evidence only. No "500 waitlist signups."
-Revenue numbers, named customers, funding history with investors named, hiring velocity,
-press coverage of product (not just funding), G2/app store reviews if relevant.
+        # Extract all text from response (handles mixed tool_use/tool_result/text blocks)
+        text_parts = []
+        for block in step1_response.content:
+            if hasattr(block, "text") and block.text and block.text.strip():
+                text_parts.append(block.text.strip())
+            # Also capture URLs from tool_use blocks (web search queries)
+            if hasattr(block, "type") and block.type == "tool_use" and hasattr(block, "input"):
+                query = block.input.get("query", "")
+                if query:
+                    sources_visited.append(f"search: {query}")
+            # Capture URLs from tool_result blocks
+            if hasattr(block, "type") and block.type == "tool_result":
+                if hasattr(block, "content") and isinstance(block.content, list):
+                    for inner in block.content:
+                        if hasattr(inner, "text") and inner.text:
+                            text_parts.append(f"[Search result]: {inner.text[:500]}")
 
-PHASE 5 — TEAM
-Founder-market fit. Have they solved this problem before? Technical co-founder if needed?
-Prior outcomes (acqui-hire ≠ success). Who invested (signals due diligence done).
+        research_findings = "\n\n".join(text_parts)
+        logger.info(f"Step 1 complete for {name}. Found {len(text_parts)} text blocks, stop_reason: {step1_response.stop_reason}")
 
-PHASE 6 — COMPETITIVE LANDSCAPE
-Top 3 direct competitors. Is differentiation durable or just a feature?
-Incumbent response risk. Recent competitive funding.
+        if not research_findings.strip():
+            logger.warning(f"Step 1 returned empty findings for {name}. Using description as fallback.")
+            research_findings = f"Could not retrieve additional research. Known info: {description}"
 
-PHASE 7 — KEY RISKS (max 4, by Likelihood x Impact)
-Real risks, not PR risks. Each: description, Likelihood (H/M/L), Impact (Critical/Major/Moderate/Minor).
+    except Exception as e:
+        logger.error(f"Step 1 research error for {name}: {e}", exc_info=True)
+        research_findings = f"Web research failed. Known info: {description}"
 
-PHASE 8 — BULL CASE (max 2)
-"If [specific assumption] proves true, then [specific outcome]."
-No generic "if AI adoption continues."
+    # ── STEP 2: Structure findings into JSON ──────────────────────────────────
+    structure_prompt = f"""You are a senior investment analyst. Based on research findings below, produce a structured investment brief.
 
-RECOMMENDED NEXT STEP — one clear action:
-- Fit 4-5: "Request intro via [specific path]. Conviction: [one sentence]."
-- Fit 3: "Monitor 60 days. Watch for: [Signal 1] and [Signal 2]."
-- Fit 1-2: "Pass — [one specific reason tied to mandate]."
+{firm_context}
+
+COMPANY: {name}
+RESEARCH FINDINGS:
+{research_findings}
+
+{focus_line}
+
+Now structure these findings into a JSON investment brief.
+
+SCORING GUIDE:
+fit_score (1-5) — thesis fit + quality:
+  5 = Perfect match — directly addresses the thesis, AI-native, strong founder story
+  4 = Strong fit — meets most thesis criteria
+  3 = Possible fit — relevant sector, worth monitoring
+  2 = Weak fit — tangentially related
+  1 = No fit — clearly outside thesis or excluded sector
+
+ai_score (1-5):
+  5 = AI is the core product
+  4 = AI is central and differentiating
+  3 = AI used meaningfully
+  2 = Some AI elements
+  1 = No meaningful AI
 
 SECTOR: Must be exactly one from: {SECTOR_TAXONOMY_STR}
 
 MANDATE CATEGORY: {mandate_category_guide}
 
-Respond with ONLY a JSON object, no markdown:
+FIT REASONING: Bullet points. Each: "• [dimension]: [finding] — High/Medium/Low confidence"
+
+RECOMMENDED NEXT STEP:
+- fit 4-5: "Request intro via [path]. Conviction: [one sentence]."
+- fit 3: "Monitor 60 days. Watch for: [Signal 1] and [Signal 2]."
+- fit 1-2: "Pass — [specific reason tied to mandate]."
+
+KEY RISKS: Max 4. Each: "[risk] — Likelihood: H/M/L, Impact: Critical/Major/Moderate/Minor"
+
+BULL CASE: Max 2. Each: "If [specific assumption] proves true, then [specific outcome]."
+
+Respond with ONLY a JSON object, no markdown, no backticks:
 {{
   "name": "clean company name only",
   "one_liner": "We help [customer] [solve problem] by [mechanism] — max 15 words",
-  "enriched_one_liner": "More detailed 2-sentence description from actual research",
-  "ai_summary": "3-4 sentence investment overview with specific findings from research",
+  "enriched_one_liner": "2-sentence description from actual research",
+  "ai_summary": "3-4 sentence investment overview with specific findings",
   "ai_score": <integer 1-5>,
   "fit_score": <integer 1-5>,
-  "fit_reasoning": "Bullet points: • [dimension]: [finding from research] — [High/Medium/Low confidence]",
-  "business_model": "how they make money — be specific from research",
-  "target_customer": "primary customer — specific job title or company type",
+  "fit_reasoning": "bullet points with confidence levels",
+  "business_model": "how they make money — specific from research",
+  "target_customer": "specific job title or company type",
   "sector": "exactly one from the fixed list",
   "mandate_category": "firm thesis bucket or null",
   "thesis_tags": ["tag1", "tag2", "tag3"],
-  "traction_signals": "Specific traction evidence found during research with sources",
-  "red_flags": "Specific concerns found during research, or null if none",
-  "recommended_next_step": "Single clear action based on fit score",
+  "traction_signals": "specific traction evidence with sources",
+  "red_flags": "specific concerns found, or null if none",
+  "recommended_next_step": "single clear action",
   "funding_stage": "pre-seed or seed or series-a or series-b or unknown",
-  "key_risks": "Up to 4 risks, each: [risk] — Likelihood: H/M/L, Impact: Critical/Major/Moderate/Minor",
-  "bull_case": "Up to 2 statements: If [specific assumption], then [specific outcome]",
+  "key_risks": "up to 4 risks with likelihood and impact",
+  "bull_case": "up to 2 if/then statements",
   "comparable_companies": [
     {{
       "name": "Company name",
@@ -382,34 +421,18 @@ Respond with ONLY a JSON object, no markdown:
       "reason_investor_might_prefer": "one reason to prefer this over the comparable"
     }}
   ],
-  "sources_visited": ["url1", "url2"]
+  "sources_visited": {json.dumps(sources_visited)}
 }}"""
 
     try:
-        response = await research_client.messages.create(
+        step2_response = await research_client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=4000,
-            tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 6}],
-            messages=[{"role": "user", "content": prompt}]
+            max_tokens=3000,
+            messages=[{"role": "user", "content": structure_prompt}]
         )
-        # Extract text from all content blocks — Claude may return tool_use
-        # blocks interspersed with text when using web search
-        raw = ""
-        for block in response.content:
-            if hasattr(block, "text") and block.text:
-                raw += block.text
 
-        # If raw is empty, try stop_reason and log the full response for debugging
-        if not raw.strip():
-            logger.error(f"Empty text response for {name}. Stop reason: {response.stop_reason}. Content types: {[type(b).__name__ for b in response.content]}")
-            # Try to extract from tool results as fallback
-            for block in response.content:
-                if hasattr(block, 'content') and isinstance(block.content, list):
-                    for inner in block.content:
-                        if hasattr(inner, 'text') and inner.text:
-                            raw += inner.text
-
-        raw = raw.strip()
+        raw = step2_response.content[0].text.strip()
+        # Strip markdown fences if present
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
@@ -417,10 +440,19 @@ Respond with ONLY a JSON object, no markdown:
         raw = raw.strip()
 
         if not raw:
-            raise ValueError(f"Claude returned empty response for {name}")
-        return json.loads(raw)
+            raise ValueError(f"Step 2 returned empty response for {name}")
+
+        result = json.loads(raw)
+
+        # Merge in sources from step 1 if Claude didn't include them
+        if not result.get("sources_visited") and sources_visited:
+            result["sources_visited"] = sources_visited
+
+        logger.info(f"Research complete for {name}. fit_score={result.get('fit_score')}, ai_score={result.get('ai_score')}")
+        return result
+
     except Exception as e:
-        logger.error(f"Research error for {name}: {e}", exc_info=True)
+        logger.error(f"Step 2 structuring error for {name}: {e}", exc_info=True)
         return {}
 
 
