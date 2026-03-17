@@ -128,13 +128,18 @@ async def generate_memo(
     if firm:
         firm_context = f"Firm: {firm.firm_name}\nThesis: {firm.investment_thesis}"
 
-    prompt = f"""You are a senior investment analyst writing a formal investment memo.
+    prompt = f"""You are a senior investment analyst writing a formal investment memo for a partner meeting.
 
 {firm_context}
 
-COMPANY DATA:
+IMPORTANT CONTEXT:
+This memo is generated AFTER deep research has already been completed on this company.
+Use all the enriched data below. Do not be generic — every section should reference
+specific findings from the research.
+
+RESEARCH DATA:
 Name: {startup.name}
-One-liner: {startup.one_liner}
+One-liner: {startup.enriched_one_liner or startup.one_liner}
 Website: {startup.website or "Unknown"}
 Stage: {startup.funding_stage or "Unknown"}
 Funding: {(str(round(startup.funding_amount_usd/1000000, 1)) + "M raised") if startup.funding_amount_usd else "Unknown"}
@@ -142,51 +147,51 @@ Investors: {", ".join(startup.top_investors or []) or "Unknown"}
 Sector: {startup.sector or "Unknown"}
 Business Model: {startup.business_model or "Unknown"}
 Target Customer: {startup.target_customer or "Unknown"}
-Team Size: {startup.team_size or "Unknown"}
-Traction: {startup.notable_traction or "Unknown"}
-AI Score: {startup.ai_score}/5
+Traction Signals: {startup.traction_signals or "Unknown"}
+Red Flags: {startup.red_flags or "None identified"}
 Thesis Fit Score: {startup.fit_score}/5
 Thesis Fit Reasoning: {startup.fit_reasoning or ""}
-Thesis Tags: {", ".join(startup.thesis_tags or [])}
+Bull Case: {startup.bull_case or ""}
+Key Risks: {startup.key_risks or ""}
 Recommended Next Step: {startup.recommended_next_step or ""}
 {f"Analyst Notes: {startup.notes}" if startup.notes else ""}
-{f"Bull Case: {startup.bull_case}" if startup.bull_case else ""}
-{f"Key Risks: {startup.key_risks}" if startup.key_risks else ""}
 {file_context}
 
-Write a concise but thorough investment memo with exactly these sections. Use markdown headers (##):
+Write a concise investment memo with exactly these sections. Use markdown headers (##).
+Write in the voice of a senior analyst presenting to partners. Direct, specific, no filler.
 
 ## Executive Summary
-2-3 sentences. What they do, why it matters, investment recommendation.
+2-3 sentences. What they do, why it matters now, clear recommendation.
 
-## Market Opportunity
-Size of the market, why now, tailwinds.
+## What They Do
+Concrete product description based on research. Avoid repeating their marketing language.
+What does the product literally do today?
 
-## Product & Technology
-What they've built, how it works, AI-nativeness, moat.
+## Why Now
+Specific market timing thesis. What changed that makes this the right moment?
 
-## Business Model
-Revenue model, pricing, unit economics if known.
-
-## Traction & Signals
-What evidence exists of product-market fit.
+## Traction & Validation
+Evidence of real progress — customers, revenue signals, team growth, press.
+Be specific. No vague claims.
 
 ## Team
-What we know about the founding team, relevant background.
+Founder-market fit assessment. Prior outcomes. Why these founders?
 
 ## Competitive Landscape
-Key competitors, differentiation, defensibility.
+Top competitors and how this company differentiates. Is the moat durable?
 
 ## Risks
-Top 3 risks. Be honest.
+Top 3 risks with honest assessment. Don't soften them.
 
 ## Thesis Fit
-Why this does or doesn't fit the firm's investment mandate. Score: {startup.fit_score}/5.
+Why this does or doesn't fit the firm's specific mandate. Score: {startup.fit_score}/5.
+Reference the firm's thesis explicitly.
 
 ## Recommendation
-Clear action: Pass / Monitor / Request Intro / Move to Diligence. One sentence rationale.
+{startup.recommended_next_step or "Clear action: Pass / Monitor / Request Intro / Move to Diligence."}
+One sentence rationale tied to mandate.
 
-Be direct, specific, and analytical. Avoid generic VC language."""
+One page maximum. Be direct."""
 
     try:
         response = await client.messages.create(

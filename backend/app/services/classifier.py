@@ -231,6 +231,185 @@ Respond with ONLY a JSON object, no markdown:
         }
 
 
+async def research_startup(
+    name: str,
+    description: str,
+    website: Optional[str],
+    firm,
+    custom_focus: str = None,
+    db=None,
+) -> dict:
+    """
+    Deep investment research using the VC Investment Research Skill framework.
+    Uses Sonnet + web search. Called only on manual Deploy Research Agents click.
+    Returns enriched structured data for all research fields.
+    """
+    from anthropic import AsyncAnthropic
+    research_client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+
+    firm_context = _build_firm_context(firm)
+    mandate_category_guide = _build_mandate_category_guide(firm)
+
+    # Build portfolio context if db available
+    portfolio_context = ""
+    pipeline_context = ""
+    if db and firm:
+        try:
+            from sqlalchemy import select
+            from app.models.startup import Startup
+            # Portfolio companies
+            port_result = await db.execute(
+                select(Startup.name, Startup.sector, Startup.one_liner)
+                .where(Startup.user_id == firm.user_id)
+                .where(Startup.is_portfolio == True)
+                .limit(20)
+            )
+            portfolio_cos = port_result.fetchall()
+            if portfolio_cos:
+                portfolio_context = "PORTFOLIO COMPANIES (check for conflicts):\n" + \
+                    "\n".join([f"- {c.name}: {c.one_liner or c.sector}" for c in portfolio_cos])
+
+            # Pipeline companies being tracked
+            pipe_result = await db.execute(
+                select(Startup.name, Startup.pipeline_status, Startup.fit_score)
+                .where(Startup.user_id == firm.user_id)
+                .where(Startup.pipeline_status.in_(["watching", "outreach", "diligence"]))
+                .limit(15)
+            )
+            pipe_cos = pipe_result.fetchall()
+            if pipe_cos:
+                pipeline_context = "PIPELINE (currently tracking):\n" + \
+                    "\n".join([f"- {c.name} ({c.pipeline_status}, fit {c.fit_score}/5)" for c in pipe_cos])
+        except Exception as e:
+            logger.warning(f"Could not load portfolio/pipeline context: {e}")
+
+    focus_line = f"\nANALYST FOCUS: {custom_focus}\nMake sure your research directly addresses this question.\n" if custom_focus else ""
+
+    prompt = f"""You are a senior investment analyst running deep research on a startup for a VC firm.
+
+{firm_context}
+
+{portfolio_context}
+
+{pipeline_context}
+
+{focus_line}
+
+COMPANY TO RESEARCH:
+Name: {name}
+Description: {description}
+Website: {website or "Unknown — search for it"}
+
+Use web search to research this company thoroughly before scoring. Visit their website,
+find recent news, funding announcements, team information, and competitive context.
+
+Then produce a structured research brief following this framework:
+
+PHASE 1 — WHAT THEY ACTUALLY DO
+Cut through the pitch. Find the concrete reality.
+- Visit their website and product pages
+- Check job listings to understand what they're actually building
+- Look for pricing pages, demos, customer case studies
+- Produce a single positioning sentence: "We help [specific customer] [do specific thing] by [specific mechanism]"
+- Flag if their positioning is unclear or aspirational without substance
+
+PHASE 2 — MARKET TIMING
+- What changed in the last 2-3 years that makes this possible now?
+- Is this a vitamin or a painkiller?
+- Specific regulatory, infrastructure, or behavioral tailwinds
+- Red flag if: "market will be ready in 3 years" or technology dependency on unproven infra
+
+PHASE 3 — MANDATE FIT
+Score against this firm's specific thesis. Not generic quality — mandate fit.
+Stage, sector, geography, AI-nativeness, excluded sectors, portfolio conflicts.
+Fit score 1-5 where 5 = partner takes the call today.
+
+PHASE 4 — TRACTION SIGNALS
+Real evidence only. No "500 waitlist signups."
+Revenue numbers, named customers, funding history with investors named, hiring velocity,
+press coverage of product (not just funding), G2/app store reviews if relevant.
+
+PHASE 5 — TEAM
+Founder-market fit. Have they solved this problem before? Technical co-founder if needed?
+Prior outcomes (acqui-hire ≠ success). Who invested (signals due diligence done).
+
+PHASE 6 — COMPETITIVE LANDSCAPE
+Top 3 direct competitors. Is differentiation durable or just a feature?
+Incumbent response risk. Recent competitive funding.
+
+PHASE 7 — KEY RISKS (max 4, by Likelihood x Impact)
+Real risks, not PR risks. Each: description, Likelihood (H/M/L), Impact (Critical/Major/Moderate/Minor).
+
+PHASE 8 — BULL CASE (max 2)
+"If [specific assumption] proves true, then [specific outcome]."
+No generic "if AI adoption continues."
+
+RECOMMENDED NEXT STEP — one clear action:
+- Fit 4-5: "Request intro via [specific path]. Conviction: [one sentence]."
+- Fit 3: "Monitor 60 days. Watch for: [Signal 1] and [Signal 2]."
+- Fit 1-2: "Pass — [one specific reason tied to mandate]."
+
+SECTOR: Must be exactly one from: {SECTOR_TAXONOMY_STR}
+
+MANDATE CATEGORY: {mandate_category_guide}
+
+Respond with ONLY a JSON object, no markdown:
+{{
+  "name": "clean company name only",
+  "one_liner": "We help [customer] [solve problem] by [mechanism] — max 15 words",
+  "enriched_one_liner": "More detailed 2-sentence description from actual research",
+  "ai_summary": "3-4 sentence investment overview with specific findings from research",
+  "ai_score": <integer 1-5>,
+  "fit_score": <integer 1-5>,
+  "fit_reasoning": "Bullet points: • [dimension]: [finding from research] — [High/Medium/Low confidence]",
+  "business_model": "how they make money — be specific from research",
+  "target_customer": "primary customer — specific job title or company type",
+  "sector": "exactly one from the fixed list",
+  "mandate_category": "firm thesis bucket or null",
+  "thesis_tags": ["tag1", "tag2", "tag3"],
+  "traction_signals": "Specific traction evidence found during research with sources",
+  "red_flags": "Specific concerns found during research, or null if none",
+  "recommended_next_step": "Single clear action based on fit score",
+  "funding_stage": "pre-seed or seed or series-a or series-b or unknown",
+  "key_risks": "Up to 4 risks, each: [risk] — Likelihood: H/M/L, Impact: Critical/Major/Moderate/Minor",
+  "bull_case": "Up to 2 statements: If [specific assumption], then [specific outcome]",
+  "comparable_companies": [
+    {{
+      "name": "Company name",
+      "one_liner": "what they do",
+      "fit_score": <1-5>,
+      "differentiation": "how this company differs",
+      "reason_investor_might_prefer": "one reason to prefer this over the comparable"
+    }}
+  ],
+  "sources_visited": ["url1", "url2"]
+}}"""
+
+    try:
+        response = await research_client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=4000,
+            tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 6}],
+            messages=[{"role": "user", "content": prompt}]
+        )
+        final_text = ""
+        for block in response.content:
+            if hasattr(block, "type") and block.type == "text":
+                final_text = block.text
+        if not final_text or not final_text.strip():
+            logger.warning("research_startup: empty response")
+            return {}
+        raw = final_text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        return json.loads(raw.strip())
+    except Exception as e:
+        logger.error(f"Research error for {name}: {e}", exc_info=True)
+        return {}
+
+
 async def detect_signals(company_name: str, one_liner: str, website: Optional[str], funding_stage: Optional[str]) -> list:
     prompt = f"""You are an AI analyst monitoring a startup portfolio.
 

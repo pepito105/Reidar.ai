@@ -448,27 +448,27 @@ async def analyze_startup_stream(startup_id: int, request: Request, db: AsyncSes
             return
 
         # Stage 1 — Website research
-        async for chunk in emit("stage", "Visiting company website...", {"stage": 1, "total": 4}):
+        async for chunk in emit("stage", "Searching for company information...", {"stage": 1, "total": 4}):
             yield chunk
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.3)
 
         # Stage 2 — Thesis analysis
-        async for chunk in emit("stage", "Evaluating thesis fit...", {"stage": 2, "total": 4}):
+        async for chunk in emit("stage", "Researching traction, team, and market...", {"stage": 2, "total": 4}):
             yield chunk
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.3)
 
         # Stage 3 — Running classifier
-        async for chunk in emit("stage", "Running investment analysis...", {"stage": 3, "total": 4}):
+        async for chunk in emit("stage", "Evaluating mandate fit and risks...", {"stage": 3, "total": 4}):
             yield chunk
 
-        from app.services.classifier import classify_startup as run_classify
-        result = await run_classify(
+        from app.services.classifier import research_startup
+        result = await research_startup(
             name=startup.name,
             description=startup.one_liner or startup.name,
             website=startup.website,
-            source=startup.source or "sourced",
             firm=firm,
             custom_focus=focus,
+            db=db,
         )
 
         if result:
@@ -490,6 +490,9 @@ async def analyze_startup_stream(startup_id: int, request: Request, db: AsyncSes
             startup.comparable_companies = result.get("comparable_companies", [])
             if (startup.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):
                 startup.funding_stage = result["funding_stage"][:49]
+            startup.traction_signals = (result.get("traction_signals") or "")
+            startup.red_flags = (result.get("red_flags") or "")
+            startup.enriched_one_liner = (result.get("enriched_one_liner") or "")
             await db.commit()
             await db.refresh(startup)
 
