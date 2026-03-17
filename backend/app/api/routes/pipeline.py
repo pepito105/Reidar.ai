@@ -75,6 +75,35 @@ async def move_in_pipeline(data: PipelineMove, request: Request, db: AsyncSessio
     startup = result.scalar_one_or_none()
     if not startup:
         raise HTTPException(status_code=404, detail="Startup not found")
+    old_status = startup.pipeline_status
     startup.pipeline_status = data.new_status
     await db.commit()
-    return {"success": True, "startup_id": data.startup_id, "new_status": data.new_status}
+
+    # Write memory for pipeline status change
+    if old_status != data.new_status:
+        try:
+            from app.services.associate_memory_service import write_memory
+            status_labels = {
+                "watching": "moved to Watching — worth monitoring",
+                "outreach": "moved to Outreach — actively pursuing",
+                "diligence": "moved to Diligence — serious consideration",
+                "passed": "passed on",
+                "invested": "invested in",
+            }
+            action = status_labels.get(data.new_status, f"updated status to {data.new_status}")
+            content = f"{startup.name}: {action}. Sector: {startup.sector or 'unknown'}. Fit score: {startup.fit_score}/5."
+            if startup.one_liner:
+                content += f" Description: {startup.one_liner}"
+            await write_memory(
+                db=db,
+                user_id=user_id,
+                memory_type="decision",
+                content=content,
+                company_id=startup.id,
+                company_name=startup.name,
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Failed to write pipeline memory: {e}")
+
+    return {"success": True, "startup_id": data.startup_id}

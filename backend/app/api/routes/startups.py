@@ -512,6 +512,30 @@ async def analyze_startup_stream(startup_id: int, request: Request, db: AsyncSes
             startup.enriched_one_liner = (result.get("enriched_one_liner") or "")
             startup.sources_visited = result.get("sources_visited", [])
             await db.commit()
+
+            # Write research completion memory
+            try:
+                from app.services.associate_memory_service import write_memory
+                memory_parts = [f"{startup.name}: research completed."]
+                if startup.traction_signals:
+                    memory_parts.append(f"Traction: {startup.traction_signals[:200]}")
+                if startup.red_flags:
+                    memory_parts.append(f"Red flags: {startup.red_flags[:200]}")
+                if startup.fit_reasoning:
+                    memory_parts.append(f"Fit reasoning: {startup.fit_reasoning[:200]}")
+                if startup.recommended_next_step:
+                    memory_parts.append(f"Recommendation: {startup.recommended_next_step[:150]}")
+                await write_memory(
+                    db=db,
+                    user_id=user_id,
+                    memory_type="fact",
+                    content=" | ".join(memory_parts),
+                    company_id=startup.id,
+                    company_name=startup.name,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to write research memory: {e}")
+
             await db.refresh(startup)
 
             try:
@@ -702,9 +726,76 @@ async def update_startup(startup_id: int, data: StartupUpdate, request: Request,
     startup = result.scalar_one_or_none()
     if not startup:
         raise HTTPException(status_code=404, detail="Startup not found")
+    old_pipeline_status = startup.pipeline_status
+    old_meeting_notes_len = len(startup.meeting_notes or [])
+    old_conviction_score = startup.conviction_score
     for key, value in data.model_dump(exclude_none=True).items():
         setattr(startup, key, value)
     await db.commit()
+
+    # Write memory if pipeline status changed
+    if data.pipeline_status and data.pipeline_status != old_pipeline_status:
+        try:
+            from app.services.associate_memory_service import write_memory
+            status_labels = {
+                "watching": "moved to Watching — worth monitoring",
+                "outreach": "moved to Outreach — actively pursuing",
+                "diligence": "moved to Diligence — serious consideration",
+                "passed": "passed on",
+                "invested": "invested in",
+            }
+            action = status_labels.get(data.pipeline_status, f"updated status to {data.pipeline_status}")
+            content = f"{startup.name}: {action}. Sector: {startup.sector or 'unknown'}. Fit score: {startup.fit_score}/5."
+            if startup.one_liner:
+                content += f" Description: {startup.one_liner}"
+            await write_memory(
+                db=db,
+                user_id=user_id,
+                memory_type="decision",
+                content=content,
+                company_id=startup.id,
+                company_name=startup.name,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to write pipeline memory: {e}")
+
+    # Write memory if meeting notes were added
+    if data.meeting_notes and len(data.meeting_notes) > old_meeting_notes_len:
+        try:
+            from app.services.associate_memory_service import write_memory
+            latest_note = data.meeting_notes[-1]
+            note_text = latest_note.get("note", "") if isinstance(latest_note, dict) else str(latest_note)
+            if note_text and len(note_text) > 20:
+                content = f"{startup.name}: meeting note added. {note_text[:300]}"
+                await write_memory(
+                    db=db,
+                    user_id=user_id,
+                    memory_type="fact",
+                    content=content,
+                    company_id=startup.id,
+                    company_name=startup.name,
+                )
+        except Exception as e:
+            logger.warning(f"Failed to write meeting notes memory: {e}")
+
+    # Write memory if conviction score was set
+    if data.conviction_score is not None and data.conviction_score != old_conviction_score:
+        try:
+            from app.services.associate_memory_service import write_memory
+            conviction_labels = {1: "very low", 2: "low", 3: "moderate", 4: "high", 5: "very high"}
+            label = conviction_labels.get(data.conviction_score, str(data.conviction_score))
+            content = f"{startup.name}: analyst conviction set to {data.conviction_score}/5 ({label}). Sector: {startup.sector or 'unknown'}. Fit score: {startup.fit_score}/5."
+            await write_memory(
+                db=db,
+                user_id=user_id,
+                memory_type="decision",
+                content=content,
+                company_id=startup.id,
+                company_name=startup.name,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to write conviction memory: {e}")
+
     await db.refresh(startup)
     return _startup_to_card(startup)
 

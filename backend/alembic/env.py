@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.core.config import settings
 from app.core.database import Base
-from app.models import startup, firm_profile, signal
+from app.models import startup, firm_profile, signal, associate_memory
 
 config = context.config
 fileConfig(config.config_file_name)

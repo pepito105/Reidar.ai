@@ -290,7 +290,7 @@ async def run_startup_check():
             last_scraped_naive = last_scraped.replace(tzinfo=None)
             hours_since = (datetime.utcnow() - last_scraped_naive).total_seconds() / 3600
             logger.info(f'Database: {count} companies, last scraped {hours_since:.1f}h ago')
-            if hours_since > 26:
+            if hours_since > 48:
                 logger.info('Data is stale - running catch-up scrape')
                 asyncio.create_task(job_run_scrapers())
             else:
