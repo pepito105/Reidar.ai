@@ -40,6 +40,7 @@ export default function App() {
   useEffect(() => {
     if (!isLoaded) return
     if (!isSignedIn) { setProfileLoading(false); return }
+    if (firmProfile) return
     const params = new URLSearchParams(window.location.search)
     if (params.get('onboarding') === 'true') {
       window.history.replaceState({}, '', window.location.pathname)
@@ -116,7 +117,7 @@ export default function App() {
       }
     }
     fn()
-  }, [isLoaded, isSignedIn])
+  }, [isLoaded, isSignedIn, firmProfile])
 
   const showToast = (options) => {
     setToast({

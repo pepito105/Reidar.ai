@@ -79,6 +79,7 @@ class StartupResponse(BaseModel):
     enriched_one_liner: Optional[str] = None
     traction_signals: Optional[str] = None
     red_flags: Optional[str] = None
+    sources_visited: Optional[List[Any]] = None
 
     class Config:
         from_attributes = True
@@ -139,6 +140,7 @@ def _startup_to_card(startup: Startup) -> Dict[str, Any]:
         "target_customer": startup.target_customer,
         "traction_signals": startup.traction_signals,
         "red_flags": startup.red_flags,
+        "sources_visited": startup.sources_visited,
     }
 
 
@@ -508,6 +510,7 @@ async def analyze_startup_stream(startup_id: int, request: Request, db: AsyncSes
             startup.traction_signals = (result.get("traction_signals") or "")
             startup.red_flags = (result.get("red_flags") or "")
             startup.enriched_one_liner = (result.get("enriched_one_liner") or "")
+            startup.sources_visited = result.get("sources_visited", [])
             await db.commit()
             await db.refresh(startup)
 
