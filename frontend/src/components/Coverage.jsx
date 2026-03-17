@@ -393,6 +393,8 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
               queryClient.setQueryData(['startups', filters], prev =>
                 (prev || []).map(s => s.id === updatedCompany.id ? updatedCompany : s)
               )
+              queryClient.invalidateQueries({ queryKey: ['startups'] })
+              queryClient.invalidateQueries({ queryKey: ['pipeline'] })
             }}
           />
         </div>
