@@ -632,7 +632,7 @@ async def update_startup(startup_id: int, data: StartupUpdate, request: Request,
         setattr(startup, key, value)
     await db.commit()
     await db.refresh(startup)
-    return startup
+    return _startup_to_card(startup)
 
 @router.post("/{startup_id}/refresh")
 async def refresh_startup(startup_id: int, request: Request, db: AsyncSession = Depends(get_db)):
