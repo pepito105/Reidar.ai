@@ -164,7 +164,7 @@ async def get_startups(
     query = query.where(Startup.user_id == user_id)
     query = query.where(or_(Startup.is_portfolio == False, Startup.is_portfolio.is_(None)))
     if min_fit_score is not None and min_fit_score == 0:
-        query = query.where(or_(Startup.source == 'manual', Startup.fit_score.is_(None), Startup.fit_score >= threshold))
+        pass  # No fit_score filter — return everything
     else:
         query = query.where(or_(Startup.source == 'manual', Startup.fit_score >= threshold))
     if stage:
