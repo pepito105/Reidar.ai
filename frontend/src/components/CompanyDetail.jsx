@@ -413,38 +413,6 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                   </div>
                 )}
               </div>
-
-            {/* Preview of what gets unlocked */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, opacity: 0.35, pointerEvents: 'none', userSelect: 'none' }}>
-              <div style={{ background: '#0d0d18', border: '1px solid #1e1e30', borderRadius: 8, padding: '14px 16px' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#6366f1', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Thesis Fit Reasoning</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {[90, 75, 85].map((w, i) => (
-                    <div key={i} style={{ height: 10, background: '#2a2a4a', borderRadius: 4, width: `${w}%` }} />
-                  ))}
-                </div>
-              </div>
-              <div style={{ background: '#0d0d18', border: '1px solid #1e1e30', borderRadius: 8, padding: '14px 16px' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#34d399', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Recommended Next Step</div>
-                <div style={{ height: 10, background: '#2a2a4a', borderRadius: 4, width: '80%' }} />
-              </div>
-              <div style={{ background: '#0d0d18', border: '1px solid #1e1e30', borderRadius: 8, padding: '14px 16px' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Comparable Companies</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {[60, 70].map((w, i) => (
-                    <div key={i} style={{ height: 10, background: '#2a2a4a', borderRadius: 4, width: `${w}%` }} />
-                  ))}
-                </div>
-              </div>
-              <div style={{ background: '#0d0d18', border: '1px solid #1e1e30', borderRadius: 8, padding: '14px 16px' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Key Risks</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {[80, 65].map((w, i) => (
-                    <div key={i} style={{ height: 10, background: '#2a2a4a', borderRadius: 4, width: `${w}%` }} />
-                  ))}
-                </div>
-              </div>
-            </div>
           </div>
         ) : (
           <div>
