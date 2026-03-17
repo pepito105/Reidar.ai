@@ -383,7 +383,7 @@ async def analyze_startup(startup_id: int, request: Request, db: AsyncSession = 
         startup.ai_summary = (result.get("ai_summary") or "")[:2000]
         startup.ai_score = result.get("ai_score")
         startup.fit_score = result.get("fit_score")
-        startup.fit_reasoning = (result.get("fit_reasoning") or "")[:1000]
+        startup.fit_reasoning = (result.get("fit_reasoning") or "")[:3000]
         startup.business_model = (result.get("business_model") or "")[:499]
         startup.target_customer = (result.get("target_customer") or "")[:499]
         startup.sector = (result.get("sector") or startup.sector or "")[:99]
@@ -488,7 +488,7 @@ async def analyze_startup_stream(startup_id: int, request: Request, db: AsyncSes
             startup.ai_summary = (result.get("ai_summary") or "")[:2000]
             startup.ai_score = result.get("ai_score")
             startup.fit_score = result.get("fit_score")
-            startup.fit_reasoning = (result.get("fit_reasoning") or "")[:1000]
+            startup.fit_reasoning = (result.get("fit_reasoning") or "")[:3000]
             startup.business_model = (result.get("business_model") or "")[:499]
             startup.target_customer = (result.get("target_customer") or "")[:499]
             startup.sector = (result.get("sector") or startup.sector or "")[:99]
