@@ -95,8 +95,22 @@ export default function App() {
             staleTime: 1000 * 60 * 10,
           })
         } else setShowOnboarding(true)
-      } catch {
-        setShowOnboarding(true)
+      } catch (err) {
+        // Only show onboarding on explicit 404, not network errors
+        if (err?.response?.status === 404) {
+          setShowOnboarding(true)
+        } else {
+          // Transient error — retry once after 2 seconds
+          setTimeout(async () => {
+            try {
+              const res = await axios.get(`${API}/firm-profile/`, { headers })
+              if (res.data) setFirmProfile(res.data)
+              else setShowOnboarding(true)
+            } catch {
+              setShowOnboarding(true)
+            }
+          }, 2000)
+        }
       } finally {
         setProfileLoading(false)
       }
