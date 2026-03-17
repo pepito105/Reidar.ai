@@ -885,6 +885,32 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                         </div>
                       </Section>
                     )}
+                    {startup.traction_signals && (
+                      <div style={{ marginBottom: 20 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#10b981', letterSpacing: 0.5, marginBottom: 10 }}>
+                          ⚡ TRACTION SIGNALS
+                        </div>
+                        <div style={{
+                          background: '#0a1a0f', border: '1px solid #10b98130',
+                          borderRadius: 8, padding: '14px 16px'
+                        }}>
+                          <div style={{ fontSize: 13, color: '#8888aa', lineHeight: 1.7 }}>{startup.traction_signals}</div>
+                        </div>
+                      </div>
+                    )}
+                    {startup.red_flags && startup.red_flags !== 'None identified' && (
+                      <div style={{ marginBottom: 20 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', letterSpacing: 0.5, marginBottom: 10 }}>
+                          ⚠ RED FLAGS
+                        </div>
+                        <div style={{
+                          background: '#1a0a0a', border: '1px solid #ef444430',
+                          borderRadius: 8, padding: '14px 16px'
+                        }}>
+                          <div style={{ fontSize: 13, color: '#8888aa', lineHeight: 1.7 }}>{startup.red_flags}</div>
+                        </div>
+                      </div>
+                    )}
                     {Array.isArray(startup.comparable_companies) && startup.comparable_companies.length > 0 && (
                       <div style={{ marginTop: 24 }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 12 }}>COMPARABLE COMPANIES</div>
@@ -921,131 +947,6 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
                 )}
                 {activeTab === 'memo' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-                    {/* Traction Signals */}
-                    {startup.traction_signals && (
-                      <div style={{ marginBottom: 20 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#10b981', letterSpacing: 0.5, marginBottom: 10 }}>
-                          ⚡ TRACTION SIGNALS
-                        </div>
-                        <div style={{
-                          background: '#0a1a0f', border: '1px solid #10b98130',
-                          borderRadius: 8, padding: '14px 16px'
-                        }}>
-                          <div style={{ fontSize: 13, color: '#8888aa', lineHeight: 1.7 }}>{startup.traction_signals}</div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Red Flags */}
-                    {startup.red_flags && startup.red_flags !== 'None identified' && (
-                      <div style={{ marginBottom: 20 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', letterSpacing: 0.5, marginBottom: 10 }}>
-                          ⚠ RED FLAGS
-                        </div>
-                        <div style={{
-                          background: '#1a0a0a', border: '1px solid #ef444430',
-                          borderRadius: 8, padding: '14px 16px'
-                        }}>
-                          <div style={{ fontSize: 13, color: '#8888aa', lineHeight: 1.7 }}>{startup.red_flags}</div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Research pending state */}
-                    {!startup.business_model && !startup.research_status && (
-                      <div style={{
-                        background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8,
-                        padding: '16px', display: 'flex', alignItems: 'center', gap: 10
-                      }}>
-                        <div style={{ fontSize: 20 }}>🔍</div>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: '#6366f1', marginBottom: 4 }}>
-                            Autonomous research pending
-                          </div>
-                          <div style={{ fontSize: 12, color: '#3a3a5a' }}>
-                            Radar will visit this company's website tonight and generate a full research brief.
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {false && startup.research_status === 'failed' && (
-                      <div style={{
-                        background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8,
-                        padding: '16px', display: 'flex', alignItems: 'center', gap: 10
-                      }}>
-                        <div style={{ fontSize: 20 }}>⚠️</div>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: '#f59e0b', marginBottom: 4 }}>
-                            Research failed
-                          </div>
-                          <div style={{ fontSize: 12, color: '#3a3a5a' }}>
-                            Could not access this company's website. Will retry on next cycle.
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Research badge */}
-                    {startup.research_completed_at && (
-                      <div style={{ marginTop: 16, fontSize: 11, color: '#3a3a5a', textAlign: 'right' }}>
-                        🤖 Autonomously researched by Radar · {new Date(startup.research_completed_at).toLocaleDateString()}
-                      </div>
-                    )}
-
-                    {/* File Upload Zone */}
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 10 }}>DOCUMENTS</div>
-                      <div
-                        onDragOver={e => e.preventDefault()}
-                        onDrop={e => {
-                          e.preventDefault()
-                          const file = e.dataTransfer.files[0]
-                          if (file) uploadFile(file)
-                        }}
-                        onClick={() => document.getElementById(`file-input-${startup.id}`).click()}
-                        style={{
-                          border: '2px dashed #2a2a4a', borderRadius: 10, padding: '20px',
-                          textAlign: 'center', cursor: 'pointer', background: '#0a0a14',
-                          color: '#555577', fontSize: 12, transition: 'border-color 0.2s'
-                        }}
-                      >
-                        {uploading ? '⏳ Uploading...' : '📎 Drop files here or click to upload (PDF, TXT, MD)'}
-                        <input
-                          id={`file-input-${startup.id}`}
-                          type="file"
-                          accept=".pdf,.txt,.md"
-                          style={{ display: 'none' }}
-                          onChange={e => { if (e.target.files[0]) uploadFile(e.target.files[0]) }}
-                        />
-                      </div>
-                      {memoFiles.length > 0 && (
-                        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {memoFiles.map((f, i) => (
-                            <div key={i} style={{
-                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                              background: '#0f0f1a', border: '1px solid #1e1e2e', borderRadius: 7,
-                              padding: '8px 12px'
-                            }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ fontSize: 14 }}>📄</span>
-                                <div>
-                                  <div style={{ fontSize: 12, color: '#c0c0e0', fontWeight: 500 }}>{f.original_name || f.name}</div>
-                                  <div style={{ fontSize: 10, color: '#555577' }}>
-                                    {(f.size / 1024).toFixed(1)} KB · {f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString() : ''}
-                                  </div>
-                                </div>
-                              </div>
-                              <button onClick={() => deleteFile(f.name)} style={{
-                                background: 'none', border: 'none', color: '#555577',
-                                cursor: 'pointer', fontSize: 14, padding: '2px 6px'
-                              }}>✕</button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
 
                     {/* Generate Button */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
