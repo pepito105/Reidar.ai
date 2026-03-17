@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     clerk_secret_key: str = ""
     DATABASE_URL: str
     ANTHROPIC_API_KEY: str
+    OPENAI_API_KEY: str = ""
     ENVIRONMENT: str = "development"
     SENDGRID_API_KEY: Optional[str] = None
     NOTIFICATION_EMAIL: str = "remi@balassanian.com"
