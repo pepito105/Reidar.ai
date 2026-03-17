@@ -701,7 +701,7 @@ function ProductPreview() {
 /* ─── CONSTANTS ─── */
 const TICKER_ITEMS = ["MANDATE-AWARE SOURCING","AI INVESTMENT MEMOS","PIPELINE TRACKING","MARKET INTELLIGENCE","HOT SIGNALS","THESIS-FIRST FILTERING","AUTONOMOUS RESEARCH","13 LIVE SOURCES","CLAUDE-POWERED ANALYSIS","EMERGING FUND TOOLING"];
 const STEPS = [
-  { n:"01", t:"Scrape",   d:"YC batches, ProductHunt, 13 RSS feeds, web signals — every night" },
+  { n:"01", t:"Source",   d:"YC batches + AI-powered web search — mandate-aware sourcing every night" },
   { n:"02", t:"Classify", d:"Claude scores AI-nativeness, vertical, sector, thesis tags" },
   { n:"03", t:"Filter",   d:"Mandate score 1–5. Below threshold = invisible to you" },
   { n:"04", t:"Surface",  d:"Only relevant deals in your Coverage feed, sorted by fit" },
@@ -779,7 +779,7 @@ export default function LandingPage() {
             </button>
           </div>
           <div className="hero-stats">
-            {[["13", "live sources"], ["< 5 min", "to set up"], ["1–5", "thesis scoring"]].map(([n, l]) => (
+            {[["Nightly", "AI sourcing"], ["< 5 min", "to set up"], ["1–5", "thesis scoring"]].map(([n, l]) => (
               <div key={l}><div className="stat-n">{n}</div><div className="stat-l">{l}</div></div>
             ))}
           </div>
@@ -800,7 +800,7 @@ export default function LandingPage() {
         <section id="how" className="sec">
           <div className="s-tag sr">The core loop</div>
           <h2 className="s-h2 sr d1">Six steps. <em>Runs every night.</em></h2>
-          <p className="s-p sr d2">Every night Radar scrapes, classifies, and scores. Your Coverage feed updates with only what matches your mandate — nothing else.</p>
+          <p className="s-p sr d2">Every night Radar sources, classifies, and scores. Your Coverage feed updates with only what matches your mandate — nothing else.</p>
           <div className="steps sr d3">
             {STEPS.map(s => (
               <div className="step" key={s.n}>

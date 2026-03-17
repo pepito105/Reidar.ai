@@ -226,11 +226,11 @@ function MockOnboarding() {
 
 function MockScraping() {
   const sources = [
-    { name: "YC W25 Batch",     count: "+43",  status: "done",    color: "#4ade80" },
-    { name: "TechCrunch AI",    count: "+12",  status: "done",    color: "#4ade80" },
-    { name: "ProductHunt",      count: "+28",  status: "running", color: "#facc15" },
-    { name: "VentureBeat",      count: "...",  status: "queued",  color: "rgba(235,235,235,.2)" },
-    { name: "Hacker News",      count: "...",  status: "queued",  color: "rgba(235,235,235,.2)" },
+    { name: "YC W25/S24 Batches",      count: "+43",  status: "done",    color: "#4ade80" },
+    { name: "AI Web Search (query 1)",  count: "+12",  status: "done",    color: "#4ade80" },
+    { name: "AI Web Search (query 2)",  count: "+9",   status: "running", color: "#facc15" },
+    { name: "AI Web Search (query 3)",  count: "+7",   status: "running", color: "#facc15" },
+    { name: "AI Web Search (query 4)",  count: "+11",  status: "queued",  color: "#6366f1" },
   ];
   return (
     <div className="mini-mock">
@@ -238,7 +238,7 @@ function MockScraping() {
         <div className="mm-dot" style={{ background: "#FF5F57" }} />
         <div className="mm-dot" style={{ background: "#FFBD2E" }} />
         <div className="mm-dot" style={{ background: "#28C840" }} />
-        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>nightly scrape · 02:14 AM</span>
+        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>nightly sourcing · 04:00 AM</span>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>
           <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#facc15", animation: "pulse 1.2s infinite" }} />
           <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "#facc15" }}>RUNNING</span>
@@ -562,14 +562,14 @@ const STORY = [
   {
     time: "Step 5 · ~30 seconds",
     title: <>Set up <em>notifications.</em></>,
-    body: "Choose what Radar emails you about: daily top matches from the nightly scrape, diligence signals when pipeline companies get new funding or press, and a weekly market brief every Friday. Then hit Launch — your first sourcing run starts immediately.",
+    body: "Choose what Radar emails you about: daily top matches from the nightly sourcing run, diligence signals when pipeline companies get new funding or press, and a weekly market brief every Friday. Then hit Launch — your first sourcing run starts immediately.",
     side: "left",
     Mock: MockNotifSetup,
   },
   {
     time: "Every night, automatically",
     title: <>Radar works while <em>you sleep.</em></>,
-    body: "Radar scrapes 13 live sources every night — YC batches, ProductHunt, TechCrunch, VentureBeat, and more. Claude scores every company against your mandate. By morning, your inbox has a digest of the highest-conviction matches. Your feed keeps growing. You never miss a company worth seeing.",
+    body: "Radar runs AI-powered sourcing every night — generating mandate-specific search queries, finding early-stage companies across the web, and scoring each one against your thesis. By morning, your inbox has a digest of the highest-conviction matches. Your feed keeps growing. You never miss a company worth seeing.",
     side: "right",
     Mock: MockNotification,
   },
@@ -703,7 +703,7 @@ export default function HowItWorks() {
               {[
                 ["5", "onboarding steps, ~10 min total"],
                 ["13", "live sourcing channels"],
-                ["every night", "Radar scrapes & scores automatically"],
+                ["every night", "Radar sources & scores automatically"],
                 ["3", "email alerts — daily, signals, weekly brief"],
               ].map(([n, l]) => (
                 <div key={l} style={{ marginBottom: 28 }}>
