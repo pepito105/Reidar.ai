@@ -62,9 +62,10 @@ const InfoItem = ({ label, value }) => (
   </div>
 )
 
-export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
+export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSelectCompany }) {
   const { getToken } = useAuth()
   const [startup, setStartup] = useState(s)
+  const [similarCompanies, setSimilarCompanies] = useState([])
   const [notes, setNotes] = useState(s.notes || '')
   const [pipelineStatus, setPipelineStatus] = useState(s.pipeline_status || 'new')
   const [signals, setSignals] = useState([])
@@ -99,6 +100,20 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
   const [showFocusInput, setShowFocusInput] = useState(false)
 
   const badge = startup.fit_score != null ? (FIT_BADGES[startup.fit_score] || FIT_BADGES[2]) : { label: 'Pending', color: '#555577', bg: '#1a1a2e' }
+
+  useEffect(() => {
+    if (!startup?.id) return
+    getToken()
+      .catch(() => null)
+      .then(token =>
+        fetch(`${import.meta.env.VITE_API_URL}/startups/${startup.id}/similar`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        })
+      )
+      .then(r => r.json())
+      .then(data => setSimilarCompanies(Array.isArray(data) ? data : []))
+      .catch(() => setSimilarCompanies([]))
+  }, [startup?.id])
 
   const loadMemo = async (id) => {
     const token = await getToken().catch(() => null)
@@ -332,6 +347,35 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate }) {
             </a>
           )}
         </div>
+
+        {similarCompanies.length > 0 && (
+          <div style={{
+            background: 'rgba(232, 197, 71, 0.08)',
+            border: '1px solid rgba(232, 197, 71, 0.2)',
+            borderRadius: '8px',
+            padding: '8px 14px',
+            marginBottom: '16px',
+            fontSize: '13px',
+            color: '#e8c547',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <span>⟳</span>
+            <span>Similar to {similarCompanies.map((c, i) => (
+              <span key={c.id}>
+                <button
+                  onClick={() => onSelectCompany?.(c.id)}
+                  style={{ color: '#e8c547', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '13px' }}
+                >
+                  {c.name}
+                </button>
+                {` (${c.fit_score}/5 · ${c.pipeline_status})`}
+                {i < similarCompanies.length - 1 ? ' and ' : ''}
+              </span>
+            ))}</span>
+          </div>
+        )}
 
         <Divider />
 

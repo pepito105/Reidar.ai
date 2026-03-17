@@ -2,10 +2,28 @@ import json
 import logging
 from typing import Optional
 from anthropic import AsyncAnthropic
+from openai import AsyncOpenAI
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+
+
+async def generate_embedding(text: str) -> list[float] | None:
+    """Generate a 1536-dim embedding using text-embedding-3-small."""
+    try:
+        text = text.strip().replace("\n", " ")[:8000]
+        response = await openai_client.embeddings.create(
+            model="text-embedding-3-small",
+            input=text,
+        )
+        return response.data[0].embedding
+    except Exception as e:
+        logger.warning(f"Embedding generation failed: {e}")
+        return None
+
+
 MODEL = "claude-haiku-4-5-20251001"
 
 # Universal sector taxonomy — used across all firms

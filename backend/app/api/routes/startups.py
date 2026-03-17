@@ -1,9 +1,12 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, or_, func
 from pydantic import BaseModel
 from datetime import timedelta, timezone
 from typing import List, Optional, Any, Dict
+
+logger = logging.getLogger(__name__)
 
 
 def _utc_isoformat(dt) -> Optional[str]:
@@ -508,6 +511,16 @@ async def analyze_startup_stream(startup_id: int, request: Request, db: AsyncSes
             await db.commit()
             await db.refresh(startup)
 
+            try:
+                from app.services.classifier import generate_embedding
+                embed_input = f"{startup.name}. {startup.one_liner or ''}. {startup.sector or ''}. {', '.join(startup.thesis_tags or [])}"
+                embedding = await generate_embedding(embed_input)
+                if embedding is not None:
+                    startup.embedding = embedding
+                    await db.commit()
+            except Exception as e:
+                logger.warning(f"Embedding storage failed for {startup.name}: {e}")
+
         # Stage 4 — Complete
         async for chunk in emit("stage", "Generating investment brief...", {"stage": 4, "total": 4}):
             yield chunk
@@ -596,6 +609,49 @@ def _normalize_text_or_list(value):
     if isinstance(value, list):
         return "\n\n".join(str(x) for x in value)
     return value
+
+
+@router.get("/{startup_id}/similar")
+async def get_similar_startups(startup_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    """Return up to 3 semantically similar companies using pgvector cosine similarity."""
+    from sqlalchemy import text
+    user_id = _user_id_from_request(request)
+
+    result = await db.execute(
+        select(Startup.embedding).where(Startup.id == startup_id).where(Startup.user_id == user_id)
+    )
+    row = result.first()
+    if not row or row.embedding is None:
+        return []
+
+    embedding = row.embedding
+
+    similar = await db.execute(
+        text("""
+            SELECT id, name, fit_score, pipeline_status, scraped_at,
+                   1 - (embedding <=> CAST(:embedding AS vector)) AS similarity
+            FROM startups
+            WHERE id != :startup_id
+              AND user_id = :user_id
+              AND embedding IS NOT NULL
+              AND 1 - (embedding <=> CAST(:embedding AS vector)) > 0.72
+            ORDER BY similarity DESC
+            LIMIT 3
+        """),
+        {"embedding": str(embedding), "startup_id": startup_id, "user_id": user_id}
+    )
+    rows = similar.fetchall()
+    return [
+        {
+            "id": r.id,
+            "name": r.name,
+            "fit_score": r.fit_score,
+            "pipeline_status": r.pipeline_status,
+            "scraped_at": r.scraped_at.isoformat() if r.scraped_at else None,
+            "similarity": round(r.similarity, 2),
+        }
+        for r in rows
+    ]
 
 
 @router.get("/{startup_id}")

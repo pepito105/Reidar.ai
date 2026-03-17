@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import Column, String, Integer, Float, Text, DateTime, JSON, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
@@ -64,3 +65,4 @@ class Startup(Base):
     traction_signals = Column(Text, nullable=True)
     red_flags = Column(Text, nullable=True)
     enriched_one_liner = Column(Text, nullable=True)
+    embedding = Column(Vector(1536), nullable=True)
