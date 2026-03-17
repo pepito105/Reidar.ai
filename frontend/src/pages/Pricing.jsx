@@ -220,7 +220,7 @@ const COMPARE_ROWS = [
   { section: "Sourcing" },
   { label: "Nightly autonomous sourcing", solo: true, fund: true, platform: true },
   { label: "Companies per month", solo: "200", fund: "Unlimited", platform: "Unlimited" },
-  { label: "Sourcing sources (RSS, YC, ProductHunt, HN, GitHub)", solo: true, fund: true, platform: true },
+  { label: "Mandate-aware AI sourcing (YC + web search)", solo: true, fund: true, platform: true },
   { label: "Custom sourcing rules", solo: false, fund: false, platform: true },
   { section: "Analysis" },
   { label: "Mandate-aware AI scoring", solo: true, fund: true, platform: true },
@@ -255,7 +255,7 @@ const FAQS = [
   },
   {
     q: "What sourcing sources does Radar use?",
-    a: "YC batches, ProductHunt, 13+ RSS feeds (TechCrunch, VentureBeat, The Information, StrictlyVC, HN, MIT Tech Review, and more), plus Brave Search and GitHub trending — all filtered through your thesis.",
+    a: "YC batches (seeded once) plus nightly AI-powered web search — Claude generates mandate-specific queries and finds early-stage companies across the web, all scored against your thesis.",
   },
   {
     q: "Do you offer discounts for pre-seed funds or solo GPs?",
@@ -279,10 +279,9 @@ export default function Pricing() {
             <div className="nav-mark-ring" />
             <div className="nav-mark-ring delay" />
             <div className="nav-mark">
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                <circle cx="6.5" cy="6.5" r="2" fill="white" />
-                <circle cx="6.5" cy="6.5" r="4.5" stroke="white" strokeOpacity=".4" strokeWidth="1" />
-                <circle cx="6.5" cy="6.5" r="6" stroke="white" strokeOpacity=".15" strokeWidth=".8" />
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                <path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke="white" strokeWidth="1.5" fill="none"/>
+                <circle cx="7" cy="7" r="2" fill="white"/>
               </svg>
             </div>
           </div>
