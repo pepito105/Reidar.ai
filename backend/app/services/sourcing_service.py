@@ -16,12 +16,16 @@ client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
 
 async def generate_search_queries(thesis: str, firm_name: str, firm_website: str = None, firm_context: dict = None, custom_brief: str = None, count: int = 3) -> List[str]:
-    prompt = f"""You are a VC analyst generating search queries to find real early-stage startups.
+    website_line = f"FIRM WEBSITE: {firm_website}" if firm_website else ""
+    portfolio_line = f'PORTFOLIO COMPANIES (already invested — do not source these): {", ".join(firm_context.get("portfolio_companies") or [])}' if firm_context and firm_context.get("portfolio_companies") else ""
+    themes_line = f'INVESTMENT THEMES: {", ".join(firm_context.get("investment_themes") or [])}' if firm_context and firm_context.get("investment_themes") else ""
+    custom_line = f"CUSTOM SEARCH BRIEF: {custom_brief}" if custom_brief else ""
+    optional_lines = "\n".join(line for line in [website_line, portfolio_line, themes_line, custom_line] if line)
 
+    prompt = f"""You are a VC analyst generating search queries to find real early-stage startups.
 FIRM: {firm_name}
 INVESTMENT THESIS: {thesis}
-{f'FIRM WEBSITE: {firm_website}\n' if firm_website else ''}{f'PORTFOLIO COMPANIES (already invested — do not source these): {", ".join(firm_context.get("portfolio_companies") or [])}\n' if firm_context and firm_context.get("portfolio_companies") else ''}{f'INVESTMENT THEMES: {", ".join(firm_context.get("investment_themes") or [])}\n' if firm_context and firm_context.get("investment_themes") else ''}
-{f'CUSTOM SEARCH BRIEF: {custom_brief}' if custom_brief else ''}
+{optional_lines}
 
 Generate exactly {count} search queries to find startups that match this thesis.
 
