@@ -28,6 +28,8 @@ const STYLES = `
   .typing-dots span:nth-child(3){animation-delay:.3s}
   @keyframes progbar { from{width:0%} to{width:100%} }
   @keyframes radarPing { 0%{transform:scale(1);opacity:.5} 100%{transform:scale(2.2);opacity:0} }
+  @keyframes slideRight { 0%{transform:translateX(0);opacity:1} 100%{transform:translateX(160px);opacity:0} }
+  @keyframes fadeIn { 0%{opacity:0;transform:translateY(-8px)} 100%{opacity:1;transform:translateY(0)} }
 
   /* NAV */
   .nav { position:relative;z-index:200;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 36px;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(7,7,10,.88);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px); }
@@ -259,38 +261,124 @@ const COMPANIES = [
 ];
 
 function MockCoverage() {
+  const [selected, setSelected] = useState(0);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [stage, setStage] = useState(null);
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    // Auto-select second card after 1.5s to show the panel opening
+    const t = setTimeout(() => setSelected(1), 1500);
+    return () => clearTimeout(t);
+  }, []);
+
+  const runAnalysis = () => {
+    if (analyzing || done) return;
+    setAnalyzing(true);
+    const stages = ['Visiting company website...', 'Evaluating thesis fit...', 'Running investment analysis...', 'Generating investment brief...'];
+    let i = 0;
+    setStage(stages[0]);
+    const iv = setInterval(() => {
+      i++;
+      if (i < stages.length) {
+        setStage(stages[i]);
+      } else {
+        clearInterval(iv);
+        setAnalyzing(false);
+        setDone(true);
+        setStage(null);
+      }
+    }, 900);
+  };
+
+  const co = COMPANIES[selected] || COMPANIES[0];
+
   return (
-    <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: 8, overflowY: "auto", height: "100%" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "#EBEBEB" }}>Coverage</div>
-          <div style={{ fontSize: 10, color: "rgba(235,235,235,.3)", marginTop: 2, fontFamily: "'DM Mono',monospace" }}>34 companies matched to mandate</div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", animation: "pulse 2s infinite" }} />
-          <span style={{ fontSize: 10, color: "#4ade80", fontFamily: "'DM Mono',monospace", letterSpacing: ".06em" }}>Live</span>
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: "#fff", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", padding: "6px 12px", borderRadius: 6, cursor: "pointer" }}>⚡ Deploy Research Agents</div>
-        <div style={{ fontSize: 11, color: "rgba(235,235,235,.4)", background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.08)", padding: "6px 12px", borderRadius: 6, cursor: "pointer" }}>+ Add focus</div>
-      </div>
-      {COMPANIES.map((c, i) => (
-        <div key={i} style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)", borderRadius: 8, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, borderLeft: `2px solid ${c.fit === "Top Match" ? "#4ade80" : c.fit === "Strong Fit" ? "#818cf8" : "#facc15"}`, transition: "background .15s", cursor: "pointer" }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
-              <span style={{ fontSize: 13, fontWeight: 500, color: "#EBEBEB" }}>{c.name}</span>
-              <span style={{ fontSize: 9, fontFamily: "'DM Mono',monospace", color: "rgba(235,235,235,.28)", background: "rgba(255,255,255,.05)", padding: "1px 5px", borderRadius: 3 }}>{c.stage}</span>
-            </div>
-            <div style={{ fontSize: 11, color: "rgba(235,235,235,.45)", marginBottom: 7, lineHeight: 1.5 }}>{c.one_liner}</div>
-            <Tag label={c.sector} />
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5, flexShrink: 0 }}>
+    <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
+      {/* Left: company list */}
+      <div style={{ width: 180, borderRight: '1px solid rgba(255,255,255,.07)', display: 'flex', flexDirection: 'column', overflowY: 'auto', flexShrink: 0 }}>
+        <div style={{ padding: '10px 12px 6px', fontSize: 10, fontFamily: "'DM Mono',monospace", color: 'rgba(235,235,235,.25)', letterSpacing: '.08em' }}>COVERAGE · 34</div>
+        {COMPANIES.map((c, i) => (
+          <div key={i} onClick={() => { setSelected(i); setDone(false); setAnalyzing(false); }}
+            style={{
+              padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,.04)',
+              background: selected === i ? 'rgba(107,71,245,.12)' : 'transparent',
+              borderLeft: selected === i ? '2px solid #6B47F5' : '2px solid transparent',
+              transition: 'all .15s'
+            }}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: selected === i ? '#EBEBEB' : 'rgba(235,235,235,.6)', marginBottom: 3 }}>{c.name}</div>
+            <div style={{ fontSize: 10, color: 'rgba(235,235,235,.3)', marginBottom: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.sector}</div>
             <FitBadge level={c.fit} />
-            <span style={{ fontSize: 9, fontFamily: "'DM Mono',monospace", color: "rgba(235,235,235,.25)" }}>AI {c.ai}/5</span>
           </div>
+        ))}
+      </div>
+
+      {/* Right: detail panel */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#EBEBEB' }}>{co.name}</div>
+            <div style={{ fontSize: 11, color: 'rgba(235,235,235,.4)', marginTop: 2 }}>{co.one_liner}</div>
+          </div>
+          <FitBadge level={co.fit} />
         </div>
-      ))}
+        <div style={{ display: 'flex', gap: 5 }}>
+          <Tag label={co.stage} /><Tag label={co.sector} />
+        </div>
+
+        {/* Deploy agents section */}
+        {!done ? (
+          <div style={{ background: 'rgba(107,71,245,.06)', border: '1px solid rgba(107,71,245,.15)', borderRadius: 8, padding: '12px 14px' }}>
+            <div style={{ fontSize: 11, color: 'rgba(235,235,235,.45)', marginBottom: 10, lineHeight: 1.5 }}>Deploy research agents to unlock a full investment analysis.</div>
+            {!analyzing ? (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <div onClick={runAnalysis} style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', padding: '7px 14px', borderRadius: 6, cursor: 'pointer' }}>⚡ Deploy Research Agents</div>
+                <div style={{ fontSize: 11, color: 'rgba(235,235,235,.4)', background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', padding: '7px 12px', borderRadius: 6, cursor: 'pointer' }}>+ Add focus</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#6366f1', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                <span style={{ fontSize: 11, color: '#a5b4fc', fontWeight: 600 }}>{stage}</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            <div style={{ background: 'rgba(255,255,255,.025)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 8, padding: '12px 14px' }}>
+              <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: 'rgba(107,71,245,.7)', letterSpacing: '.1em', marginBottom: 10 }}>THESIS FIT REASONING</div>
+              {[
+                { t: 'AI-native architecture: LLM-first, no legacy layer', c: '#4ade80' },
+                { t: 'Regulated vertical: HIPAA-compliant clinical environment', c: '#4ade80' },
+                { t: 'B2B SaaS: per-seat enterprise contracts', c: '#facc15' },
+              ].map((r, i) => (
+                <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                  <span style={{ color: r.c, fontSize: 11 }}>•</span>
+                  <span style={{ fontSize: 11, color: 'rgba(235,235,235,.55)', lineHeight: 1.5 }}>{r.t}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: 'rgba(74,222,128,.06)', border: '1px solid rgba(74,222,128,.15)', borderRadius: 8, padding: '12px 14px' }}>
+              <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: 'rgba(74,222,128,.7)', letterSpacing: '.1em', marginBottom: 6 }}>RECOMMENDED NEXT STEP</div>
+              <div style={{ fontSize: 11, color: 'rgba(235,235,235,.6)', lineHeight: 1.5 }}>Request warm intro via <strong style={{ color: '#EBEBEB' }}>Index Ventures</strong>. Move to outreach within 7 days.</div>
+            </div>
+          </>
+        )}
+
+        {/* Blurred locked sections */}
+        {!done && (
+          <div style={{ opacity: 0.25, pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {['THESIS FIT REASONING', 'COMPARABLE COMPANIES', 'KEY RISKS'].map(label => (
+              <div key={label} style={{ background: '#0d0d18', border: '1px solid #1e1e30', borderRadius: 8, padding: '12px 14px' }}>
+                <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: '#6366f1', marginBottom: 8 }}>{label}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {[80, 65, 75].map((w, i) => <div key={i} style={{ height: 8, background: '#2a2a4a', borderRadius: 3, width: `${w}%` }} />)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -353,48 +441,67 @@ function MockMemo() {
 }
 
 function MockPipeline() {
+  const [movingCard, setMovingCard] = useState(false);
+  const [movedCard, setMovedCard] = useState(false);
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setMovingCard(true), 2000);
+    const t2 = setTimeout(() => { setMovingCard(false); setMovedCard(true); }, 3200);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+
+  const watchingCards = movedCard
+    ? [{ name: 'Atheneum', fit: 'Strong Fit', days: '2d ago' }, { name: 'Tessera', fit: 'Strong Fit', days: '1w ago' }]
+    : [{ name: 'Atheneum', fit: 'Strong Fit', days: '2d ago' }, { name: 'Nexora', fit: 'Possible Fit', days: '5d ago' }, { name: 'Tessera', fit: 'Strong Fit', days: '1w ago' }];
+
+  const outreachCards = movedCard
+    ? [{ name: 'Nexora', fit: 'Possible Fit', days: 'Just now', highlight: true }, { name: 'Corpora', fit: 'Strong Fit', days: '1d ago' }, { name: 'Lumina AI', fit: 'Top Match', days: '3d ago' }]
+    : [{ name: 'Corpora', fit: 'Strong Fit', days: '1d ago' }, { name: 'Lumina AI', fit: 'Top Match', days: '3d ago' }];
+
   const cols = [
-    {
-      label: "Watching", count: 8, color: "rgba(235,235,235,.2)",
-      cards: [
-        { name: "Atheneum", fit: "Strong Fit", days: "2d ago" },
-        { name: "Nexora", fit: "Possible Fit", days: "5d ago" },
-        { name: "Tessera", fit: "Strong Fit", days: "1w ago" },
-      ]
-    },
-    {
-      label: "Outreach", count: 3, color: "#818cf8",
-      cards: [
-        { name: "Corpora", fit: "Strong Fit", days: "1d ago" },
-        { name: "Lumina AI", fit: "Top Match", days: "3d ago" },
-      ]
-    },
-    {
-      label: "Diligence", count: 2, color: "#6B47F5",
-      cards: [
-        { name: "Synthos", fit: "Top Match", days: "Today" },
-      ]
-    },
+    { label: 'Watching', count: movedCard ? 2 : 3, color: 'rgba(235,235,235,.2)', cards: watchingCards },
+    { label: 'Outreach', count: movedCard ? 3 : 2, color: '#818cf8', cards: outreachCards },
+    { label: 'Diligence', count: 2, color: '#6B47F5', cards: [{ name: 'Synthos', fit: 'Top Match', days: 'Today' }] },
   ];
+
   return (
-    <div style={{ padding: "16px", display: "flex", gap: 10, height: "100%", overflowX: "auto" }}>
+    <div style={{ padding: '16px', display: 'flex', gap: 10, height: '100%', overflowX: 'auto' }}>
+      {movingCard && (
+        <div style={{
+          position: 'absolute', top: 80, left: 190, zIndex: 10,
+          background: 'rgba(107,71,245,.15)', border: '1px solid rgba(107,71,245,.4)',
+          borderRadius: 7, padding: '10px 12px', width: 140,
+          boxShadow: '0 8px 32px rgba(107,71,245,.3)',
+          animation: 'slideRight 1.2s ease-in-out forwards',
+          pointerEvents: 'none'
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: '#EBEBEB', marginBottom: 5 }}>Nexora</div>
+          <FitBadge level="Possible Fit" />
+        </div>
+      )}
       {cols.map(col => (
-        <div key={col.label} style={{ flex: 1, minWidth: 160, display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0 8px" }}>
+        <div key={col.label} style={{ flex: 1, minWidth: 140, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0 8px' }}>
             <span style={{ fontSize: 11, fontWeight: 500, color: col.color }}>{col.label}</span>
-            <span style={{ fontSize: 9, fontFamily: "'DM Mono',monospace", color: "rgba(235,235,235,.25)", background: "rgba(255,255,255,.04)", padding: "1px 5px", borderRadius: 3 }}>{col.count}</span>
+            <span style={{ fontSize: 9, fontFamily: "'DM Mono',monospace", color: 'rgba(235,235,235,.25)', background: 'rgba(255,255,255,.04)', padding: '1px 5px', borderRadius: 3 }}>{col.count}</span>
           </div>
           {col.cards.map((card, i) => (
-            <div key={i} style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.07)", borderRadius: 7, padding: "10px 12px", cursor: "pointer", transition: "background .15s" }}>
-              <div style={{ fontSize: 12, fontWeight: 500, color: "#EBEBEB", marginBottom: 5 }}>{card.name}</div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div key={card.name + i} style={{
+              background: card.highlight ? 'rgba(107,71,245,.1)' : 'rgba(255,255,255,.04)',
+              border: card.highlight ? '1px solid rgba(107,71,245,.3)' : '1px solid rgba(255,255,255,.07)',
+              borderRadius: 7, padding: '10px 12px', cursor: 'pointer',
+              transition: 'all .4s ease',
+              animation: card.highlight ? 'fadeIn .5s ease' : 'none'
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: '#EBEBEB', marginBottom: 5 }}>{card.name}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <FitBadge level={card.fit} />
-                <span style={{ fontSize: 9, fontFamily: "'DM Mono',monospace", color: "rgba(235,235,235,.22)" }}>{card.days}</span>
+                <span style={{ fontSize: 9, fontFamily: "'DM Mono',monospace", color: card.highlight ? '#a5b4fc' : 'rgba(235,235,235,.22)' }}>{card.days}</span>
               </div>
             </div>
           ))}
-          <div style={{ height: 36, border: "1px dashed rgba(255,255,255,.06)", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ fontSize: 16, color: "rgba(255,255,255,.1)" }}>+</span>
+          <div style={{ height: 36, border: '1px dashed rgba(255,255,255,.06)', borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: 16, color: 'rgba(255,255,255,.1)' }}>+</span>
           </div>
         </div>
       ))}
