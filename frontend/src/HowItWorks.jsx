@@ -508,7 +508,7 @@ function MockNotifSetup() {
           {[
             { label: "Daily top matches", desc: "New companies above your threshold", on: true },
             { label: "Diligence signals", desc: "Pipeline companies get new funding or press", on: true },
-            { label: "Weekly market brief", desc: "Friday summary of your thesis areas", on: true },
+            { label: "Weekly market brief", desc: "Monday summary of your thesis areas", on: true },
           ].map(({ label, desc, on }) => (
             <div key={label} style={{ background: on ? "rgba(107,71,245,.08)" : "rgba(255,255,255,.03)", border: `1px solid ${on ? "rgba(107,71,245,.25)" : "rgba(255,255,255,.07)"}`, borderRadius: 8, padding: "9px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
@@ -562,7 +562,7 @@ const STORY = [
   {
     time: "Step 5 · ~30 seconds",
     title: <>Set up <em>notifications.</em></>,
-    body: "Choose what Radar emails you about: daily top matches from the nightly sourcing run, diligence signals when pipeline companies get new funding or press, and a weekly market brief every Friday. Then hit Launch — your first sourcing run starts immediately.",
+    body: "Choose what Radar emails you about: daily top matches from the nightly sourcing run, diligence signals when pipeline companies get new funding or press, and a weekly market brief every Monday. Then hit Launch — your first sourcing run starts immediately.",
     side: "left",
     Mock: MockNotifSetup,
   },
@@ -702,7 +702,7 @@ export default function HowItWorks() {
             <div style={{ textAlign: "center", padding: "20px" }}>
               {[
                 ["5", "onboarding steps, ~10 min total"],
-                ["13", "live sourcing channels"],
+                ["8", "sourcing queries per night"],
                 ["every night", "Radar sources & scores automatically"],
                 ["3", "email alerts — daily, signals, weekly brief"],
               ].map(([n, l]) => (

@@ -76,7 +76,7 @@ async def job_run_scrapers():
         except Exception as e:
             logger.error(f'Nightly scrape failed: {e}', exc_info=True)
             try:
-                await fail_job_run(db, run.id, error=str(e))
+                await fail_job_run(db, run.id, error=str(e), job_name="nightly_scrape")
             except Exception:
                 pass
 
@@ -159,7 +159,7 @@ async def job_refresh_signals():
         except Exception as e:
             logger.error(f'Signal refresh failed: {e}', exc_info=True)
             try:
-                await fail_job_run(db, run.id, error=str(e))
+                await fail_job_run(db, run.id, error=str(e), job_name="signal_refresh")
             except Exception:
                 pass
 
@@ -273,7 +273,7 @@ async def job_weekly_summary():
         except Exception as e:
             logger.error(f'Weekly summary failed: {e}', exc_info=True)
             try:
-                await fail_job_run(db, run.id, error=str(e))
+                await fail_job_run(db, run.id, error=str(e), job_name="weekly_summary")
             except Exception:
                 pass
 
@@ -292,7 +292,7 @@ async def job_run_research():
         except Exception as e:
             logger.error(f'Research batch failed: {e}', exc_info=True)
             try:
-                await fail_job_run(db, run.id, error=str(e))
+                await fail_job_run(db, run.id, error=str(e), job_name="research_batch")
             except Exception:
                 pass
 
@@ -346,7 +346,7 @@ async def job_run_sourcing():
         except Exception as e:
             logger.error(f'Nightly sourcing job failed: {e}', exc_info=True)
             try:
-                await fail_job_run(db, run.id, error=str(e))
+                await fail_job_run(db, run.id, error=str(e), job_name="autonomous_sourcing")
             except Exception:
                 pass
 

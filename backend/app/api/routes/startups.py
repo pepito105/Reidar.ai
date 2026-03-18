@@ -1,6 +1,6 @@
 import json
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, or_, func
 from pydantic import BaseModel
@@ -8,6 +8,11 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Any, Dict
 
 logger = logging.getLogger(__name__)
+
+import asyncio as _asyncio
+# In-memory progress queues: startup_id -> asyncio.Queue
+# Allows background research tasks to stream progress to SSE clients
+_research_queues: dict[int, _asyncio.Queue] = {}
 
 
 def _utc_isoformat(dt) -> Optional[str]:
@@ -19,7 +24,7 @@ def _utc_isoformat(dt) -> Optional[str]:
     else:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.isoformat().replace("+00:00", "Z")
-from app.core.database import get_db
+from app.core.database import get_db, AsyncSessionLocal
 from app.models.startup import Startup
 from app.models.firm_profile import FirmProfile
 
@@ -389,67 +394,185 @@ async def get_pending_analysis(request: Request, db: AsyncSession = Depends(get_
 
 
 @router.post("/{startup_id}/analyze")
-async def analyze_startup(startup_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    """Run on-demand classification for a single startup."""
+async def analyze_startup_background(
+    startup_id: int,
+    background_tasks: BackgroundTasks,
+    focus: str = None,
+    request: Request = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Non-blocking research trigger. Starts research as a background task
+    and returns 202 immediately. Frontend gets notified via the
+    notifications system when research completes.
+    """
     user_id = _user_id_from_request(request)
-    startup_result = await db.execute(
-        select(Startup).where(Startup.id == startup_id).where(Startup.user_id == user_id)
+
+    # Fetch startup
+    result = await db.execute(
+        select(Startup)
+        .where(Startup.id == startup_id)
+        .where(or_(Startup.user_id == user_id, Startup.user_id.is_(None)))
     )
-    startup = startup_result.scalar_one_or_none()
+    startup = result.scalar_one_or_none()
     if not startup:
         raise HTTPException(status_code=404, detail="Startup not found")
-    if startup.fit_reasoning is not None:
-        return _startup_to_card(startup)
-    firm_result = await db.execute(
-        select(FirmProfile).where(FirmProfile.is_active == True).where(FirmProfile.user_id == user_id)
+
+    # Fetch firm profile
+    profile_result = await db.execute(
+        select(FirmProfile)
+        .where(FirmProfile.user_id == user_id)
+        .where(FirmProfile.is_active == True)
+        .limit(1)
     )
-    firm = firm_result.scalar_one_or_none()
-    if not firm:
-        raise HTTPException(status_code=400, detail="No firm profile found")
-    from app.services.classifier import classify_startup as run_classify
-    result = await run_classify(
-        name=startup.name,
-        description=startup.one_liner or startup.name,
-        website=startup.website,
-        source=startup.source or "sourced",
-        firm=firm,
-    )
-    if result:
-        startup.one_liner = (result.get("one_liner") or startup.one_liner or "")[:499]
-        startup.ai_summary = (result.get("ai_summary") or "")[:2000]
-        startup.ai_score = result.get("ai_score")
-        startup.fit_score = result.get("fit_score")
-        fit_reasoning = result.get("fit_reasoning")
-        if isinstance(fit_reasoning, dict):
-            startup.fit_reasoning = json.dumps(fit_reasoning)
-        elif isinstance(fit_reasoning, str):
-            startup.fit_reasoning = fit_reasoning[:3000]
-        startup.business_model = (result.get("business_model") or "")[:499]
-        startup.target_customer = (result.get("target_customer") or "")[:499]
-        startup.sector = (result.get("sector") or startup.sector or "")[:99]
-        startup.mandate_category = (result.get("mandate_category") or "")[:99]
-        startup.thesis_tags = result.get("thesis_tags", [])
-        startup.recommended_next_step = (result.get("recommended_next_step") or "")[:499]
-        key_risks = result.get("key_risks")
-        startup.key_risks = json.dumps(key_risks) if isinstance(key_risks, list) else (key_risks or None)
-        bull_case = result.get("bull_case")
-        startup.bull_case = json.dumps(bull_case) if isinstance(bull_case, list) else (bull_case or None)
-        startup.comparable_companies = result.get("comparable_companies", [])
-        if (startup.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):
-            startup.funding_stage = result["funding_stage"][:49]
-        if result.get("research_status") == "complete":
-            startup.research_status = "complete"
-            startup.research_completed_at = datetime.utcnow()
-        await db.commit()
-        # Write research complete notification
-        if result.get("research_status") == "complete":
+    profile = profile_result.scalars().first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="No firm profile found")
+
+    # Mark as pending immediately
+    startup.research_status = "pending"
+    await db.commit()
+
+    # Create progress queue for SSE stream to read from
+    progress_queue = _asyncio.Queue()
+    _research_queues[startup_id] = progress_queue
+
+    # Extract profile data before session closes
+    firm_name = profile.firm_name
+    investment_thesis = profile.investment_thesis
+    firm_website = profile.firm_website
+    firm_context = profile.firm_context
+    excluded_sectors = profile.excluded_sectors
+    investment_stages = profile.investment_stages
+    check_size_min = profile.check_size_min
+    check_size_max = profile.check_size_max
+
+    # Start background task
+    async def run_background():
+        async with AsyncSessionLocal() as bg_db:
             try:
-                from app.services.notification_writer import write_research_complete_notification
-                await write_research_complete_notification(db, startup, user_id=user_id)
-            except Exception as notify_err:
-                logger.warning(f"Failed to write research complete notification: {notify_err}")
-        await db.refresh(startup)
-    return _startup_to_card(startup)
+                bg_result = await bg_db.execute(
+                    select(Startup).where(Startup.id == startup_id)
+                )
+                bg_startup = bg_result.scalar_one_or_none()
+                if not bg_startup:
+                    return
+
+                queue = _research_queues.get(startup_id)
+
+                async def on_progress(message: str):
+                    if queue:
+                        await queue.put({"type": "stage", "message": message})
+
+                from app.services.classifier import research_startup
+                from app.models.firm_profile import FirmProfile
+                bg_profile_result = await bg_db.execute(
+                    select(FirmProfile)
+                    .where(FirmProfile.user_id == user_id)
+                    .where(FirmProfile.is_active == True)
+                    .limit(1)
+                )
+                bg_profile = bg_profile_result.scalars().first()
+                if not bg_profile:
+                    logger.error(f"No profile found in background task for user {user_id}")
+                    bg_startup.research_status = None
+                    await bg_db.commit()
+                    return
+
+                result = await research_startup(
+                    bg_startup.name,
+                    bg_startup.one_liner or "",
+                    bg_startup.website,
+                    bg_profile,
+                    custom_focus=focus,
+                    progress_callback=on_progress,
+                )
+                if not result:
+                    bg_startup.research_status = None
+                    await bg_db.commit()
+                    return
+
+                # Apply all research fields
+                import json as _json
+
+                # Fields that must be stored as JSON strings (VARCHAR columns)
+                stringify_fields = {'fit_reasoning', 'key_risks', 'bull_case',
+                                    'traction_signals', 'red_flags', 'recommended_next_step'}
+
+                fields = [
+                    'one_liner', 'ai_summary', 'ai_score', 'fit_score',
+                    'fit_reasoning', 'business_model', 'target_customer',
+                    'sector', 'mandate_category', 'thesis_tags',
+                    'recommended_next_step', 'key_risks', 'bull_case',
+                    'comparable_companies', 'traction_signals', 'red_flags',
+                    'enriched_one_liner', 'sources_visited',
+                ]
+                for field in fields:
+                    value = result.get(field)
+                    if value is not None:
+                        if field in stringify_fields and not isinstance(value, str):
+                            value = _json.dumps(value)
+                        setattr(bg_startup, field, value)
+
+                if (bg_startup.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):
+                    bg_startup.funding_stage = result["funding_stage"]
+
+                bg_startup.research_status = "complete"
+                bg_startup.research_completed_at = datetime.utcnow()
+                await bg_db.commit()
+
+                # Signal completion to SSE stream
+                if queue:
+                    await queue.put({"type": "complete", "startup": None})
+                # Clean up queue
+                _research_queues.pop(startup_id, None)
+
+                # Write notification
+                try:
+                    from app.services.notification_writer import write_research_complete_notification
+                    await write_research_complete_notification(bg_db, bg_startup, user_id=user_id)
+                except Exception as e:
+                    logger.warning(f"Failed to write research notification: {e}")
+
+                # Write activity event
+                try:
+                    from app.services.activity_writer import write_research_complete
+                    await write_research_complete(
+                        db=bg_db,
+                        startup_id=bg_startup.id,
+                        startup_name=bg_startup.name,
+                        fit_score=bg_startup.fit_score,
+                        user_id=user_id,
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to write research activity: {e}")
+
+            except Exception as e:
+                logger.error(f"Background research failed for {startup_id}: {e}")
+                # Signal error to SSE stream and clean up
+                if startup_id in _research_queues:
+                    q = _research_queues.pop(startup_id, None)
+                    if q:
+                        await q.put({"type": "error", "message": str(e)})
+                async with AsyncSessionLocal() as err_db:
+                    try:
+                        err_result = await err_db.execute(
+                            select(Startup).where(Startup.id == startup_id)
+                        )
+                        err_startup = err_result.scalar_one_or_none()
+                        if err_startup:
+                            err_startup.research_status = None
+                            await err_db.commit()
+                    except Exception:
+                        pass
+
+    background_tasks.add_task(run_background)
+
+    return {
+        "status": "queued",
+        "message": "Research started. You'll be notified when the brief is ready.",
+        "startup_id": startup_id,
+    }
 
 
 @router.get("/{startup_id}/analyze/stream")
@@ -484,6 +607,32 @@ async def analyze_startup_stream(startup_id: int, request: Request, db: AsyncSes
         if startup.fit_reasoning is not None:
             async for chunk in emit("complete", "Already analyzed", {"startup": _startup_to_card(startup)}):
                 yield chunk
+            return
+
+        # If background task already started via POST /analyze,
+        # stream from the existing queue instead of starting a new task
+        existing_queue = _research_queues.get(startup.id)
+        if existing_queue:
+            try:
+                while True:
+                    try:
+                        msg = await _asyncio.wait_for(
+                            existing_queue.get(), timeout=2.0
+                        )
+                        if msg["type"] == "complete":
+                            await db.refresh(startup)
+                            card = _startup_to_card(startup)
+                            yield f"data: {json.dumps({'type': 'complete', 'message': 'Research complete', 'startup': card})}\n\n"
+                            return
+                        elif msg["type"] == "error":
+                            yield f"data: {json.dumps({'type': 'error', 'message': msg.get('message', 'Research failed')})}\n\n"
+                            return
+                        else:
+                            yield f"data: {json.dumps(msg)}\n\n"
+                    except _asyncio.TimeoutError:
+                        yield f"data: {json.dumps({'type': 'ping', 'message': 'Analyzing...'})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
             return
 
         firm_result = await db.execute(

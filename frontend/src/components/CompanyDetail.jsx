@@ -288,42 +288,63 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
 
   const runAnalysis = async () => {
     setAnalyzing(true)
-    setAnalyzeStage('Initializing research agents...')
-    setShowFocusInput(false)
+    setAnalyzeStage('Deploying research agents...')
     try {
       const token = await getToken().catch(() => null)
-      const streamUrl = `${API}/startups/${startup.id}/analyze/stream${token ? `?token=${token}` : ''}${customFocus ? `&focus=${encodeURIComponent(customFocus)}` : ''}`
-      const es = new EventSource(streamUrl)
-      es.onmessage = (e) => {
-        const data = JSON.parse(e.data)
-        if (data.type === 'ping') {
-          // keepalive - do nothing, connection stays alive
-          return
-        }
-        if (data.type === 'stage') {
-          setAnalyzeStage(data.message)
-        } else if (data.type === 'complete') {
-          es.close()
-          setStartup(data.startup)
-          onUpdate && onUpdate(data.startup)
-          setAnalyzing(false)
-          setAnalyzeStage(null)
-          setCustomFocus('')
-        } else if (data.type === 'error') {
-          es.close()
-          setAnalyzing(false)
-          setAnalyzeStage(null)
-        }
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
       }
-      es.onerror = () => {
-        es.close()
-        setAnalyzing(false)
-        setAnalyzeStage(null)
+      const focusParam = showFocusInput && customFocus.trim()
+        ? `?focus=${encodeURIComponent(customFocus.trim())}`
+        : ''
+      const res = await axios.post(
+        `${API}/startups/${startup.id}/analyze${focusParam}`,
+        {},
+        { headers }
+      )
+      if (res.data.status === 'queued') {
+        setAnalyzeStage('Deploying research agents...')
+        const updated = { ...startup, research_status: 'pending' }
+        setStartup(updated)
+        onUpdate && onUpdate(updated)
+
+        // Open SSE stream to show live progress if user stays
+        const focusValue = showFocusInput && customFocus.trim() ? customFocus.trim() : ''
+        const streamUrl = `${API}/startups/${startup.id}/analyze/stream${token ? `?token=${token}` : ''}${focusValue ? `&focus=${encodeURIComponent(focusValue)}` : ''}`
+        const es = new EventSource(streamUrl)
+        es.onmessage = (e) => {
+          try {
+            const data = JSON.parse(e.data)
+            if (data.type === 'stage') {
+              setAnalyzeStage(data.message)
+            } else if (data.type === 'ping') {
+              // keep alive, do nothing
+            } else if (data.type === 'complete') {
+              es.close()
+              if (data.startup) {
+                setStartup(data.startup)
+                onUpdate && onUpdate(data.startup)
+              }
+              setAnalyzing(false)
+              setAnalyzeStage('')
+            } else if (data.type === 'error') {
+              es.close()
+              setAnalyzing(false)
+              setAnalyzeStage('')
+            }
+          } catch {}
+        }
+        es.onerror = () => {
+          es.close()
+          setAnalyzing(false)
+          setAnalyzeStage('')
+        }
       }
     } catch (e) {
-      console.error('Analysis failed:', e)
+      console.error('Failed to start research:', e)
       setAnalyzing(false)
-      setAnalyzeStage(null)
+      setAnalyzeStage('')
     }
   }
 
@@ -551,8 +572,8 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
           }}>
             <div style={{ fontSize: 18 }}>🔍</div>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#6366f1', marginBottom: 2 }}>Autonomous research pending</div>
-              <div style={{ fontSize: 11, color: '#3a3a5a' }}>Radar will visit this company's website tonight and generate a full research brief.</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#6366f1', marginBottom: 2 }}>Research agents deployed</div>
+              <div style={{ fontSize: 11, color: '#3a3a5a' }}>Radar is analyzing this company now. You'll receive a notification when the brief is ready — usually within 2-3 minutes.</div>
             </div>
           </div>
         )}

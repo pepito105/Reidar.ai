@@ -68,6 +68,179 @@ async def _build_firm_context(db: AsyncSession, user_id: str) -> str:
     return f"FIRM: {firm.firm_name}\nThesis: {firm.investment_thesis or 'Not set'}\nStages: {stages}"
 
 
+async def _build_activity_context(db: AsyncSession, user_id: str) -> str:
+    """
+    Fetch recent activity events for pipeline companies.
+    Gives the associate awareness of what's happened recently.
+    """
+    try:
+        from app.models.activity_event import ActivityEvent
+        from datetime import timedelta
+        cutoff = datetime.utcnow() - timedelta(days=30)
+
+        result = await db.execute(
+            select(ActivityEvent)
+            .join(Startup, ActivityEvent.startup_id == Startup.id)
+            .where(ActivityEvent.user_id == user_id)
+            .where(ActivityEvent.created_at >= cutoff)
+            .where(Startup.pipeline_status.in_(
+                ['watching', 'outreach', 'diligence', 'passed', 'invested']
+            ))
+            .order_by(ActivityEvent.created_at.desc())
+            .limit(30)
+        )
+        events = result.scalars().all()
+
+        if not events:
+            return ""
+
+        lines = []
+        for e in events:
+            age = datetime.utcnow() - e.created_at
+            days = age.days
+            age_str = "today" if days == 0 else f"{days}d ago"
+            lines.append(
+                f"- [{age_str}] {e.startup_name}: {e.title}"
+                + (f" — {e.detail[:100]}" if e.detail else "")
+            )
+
+        return "RECENT PIPELINE ACTIVITY (last 30 days):\n" + "\n".join(lines)
+    except Exception as e:
+        logger.warning(f"Failed to build activity context: {e}")
+        return ""
+
+
+async def _build_coverage_context(db: AsyncSession, user_id: str) -> str:
+    """
+    Surface top-fit Coverage companies not yet in pipeline.
+    Lets the associate answer "what should we look at next?"
+    """
+    try:
+        from sqlalchemy import select, or_
+        from app.models.startup import Startup
+        result = await db.execute(
+            select(Startup)
+            .where(Startup.user_id == user_id)
+            .where(Startup.fit_score >= 4)
+            .where(
+                or_(
+                    Startup.pipeline_status.is_(None),
+                    Startup.pipeline_status == 'new'
+                )
+            )
+            .where(or_(Startup.is_portfolio == False, Startup.is_portfolio.is_(None)))
+            .order_by(Startup.fit_score.desc())
+            .limit(20)
+        )
+        companies = result.scalars().all()
+        if not companies:
+            return ""
+        lines = []
+        for c in companies:
+            score_label = "Top Match" if c.fit_score == 5 else "Strong Fit"
+            lines.append(
+                f"- {c.name} ({score_label}, {c.sector or 'unknown sector'}): "
+                f"{(c.one_liner or '')[:100]}"
+            )
+        return "TOP COVERAGE (not yet in pipeline, fit 4-5/5):\n" + "\n".join(lines)
+    except Exception as e:
+        logger.warning(f"Failed to build coverage context: {e}")
+        return ""
+
+
+async def _build_signals_context(db: AsyncSession, user_id: str) -> str:
+    """
+    Fetch actual signal content for pipeline companies.
+    Lets the associate reason about real news and events.
+    """
+    try:
+        from sqlalchemy import select, or_
+        from app.models.signal import CompanySignal
+        from app.models.startup import Startup
+        from datetime import timedelta
+        cutoff = datetime.utcnow() - timedelta(days=30)
+        result = await db.execute(
+            select(CompanySignal, Startup.name)
+            .join(Startup, CompanySignal.startup_id == Startup.id)
+            .where(Startup.user_id == user_id)
+            .where(CompanySignal.detected_at >= cutoff)
+            .where(Startup.pipeline_status.in_(
+                ['watching', 'outreach', 'diligence']
+            ))
+            .order_by(CompanySignal.detected_at.desc())
+            .limit(20)
+        )
+        rows = result.all()
+        if not rows:
+            return ""
+        lines = []
+        for signal, company_name in rows:
+            age = datetime.utcnow() - signal.detected_at.replace(tzinfo=None)
+            age_str = "today" if age.days == 0 else f"{age.days}d ago"
+            line = f"- [{age_str}] {company_name} — {signal.title}"
+            if signal.summary:
+                line += f": {signal.summary[:120]}"
+            if signal.source_url:
+                line += f" ({signal.source_url})"
+            lines.append(line)
+        return "RECENT SIGNALS (pipeline companies, last 30 days):\n" + "\n".join(lines)
+    except Exception as e:
+        logger.warning(f"Failed to build signals context: {e}")
+        return ""
+
+
+async def _build_research_context(db: AsyncSession, user_id: str) -> str:
+    """
+    Surface fit reasoning and key risks for pipeline companies
+    that have completed research. Lets the associate explain
+    scoring decisions and surface red flags.
+    """
+    try:
+        from sqlalchemy import select, or_
+        from app.models.startup import Startup
+        import json as _json
+        from datetime import timedelta
+        research_cutoff = datetime.utcnow() - timedelta(days=14)
+        result = await db.execute(
+            select(Startup)
+            .where(Startup.user_id == user_id)
+            .where(Startup.research_status == 'complete')
+            .where(Startup.research_completed_at >= research_cutoff)
+            .where(Startup.fit_reasoning.isnot(None))
+            .order_by(Startup.fit_score.desc())
+            .limit(15)
+        )
+        companies = result.scalars().all()
+        if not companies:
+            return ""
+        lines = []
+        for c in companies:
+            lines.append(f"\n{c.name} (fit {c.fit_score}/5):")
+            if c.fit_reasoning:
+                try:
+                    reasoning = _json.loads(c.fit_reasoning)
+                    if isinstance(reasoning, dict):
+                        summary = reasoning.get('summary') or reasoning.get('overall') or str(reasoning)[:200]
+                    else:
+                        summary = str(reasoning)[:200]
+                except Exception:
+                    summary = str(c.fit_reasoning)[:200]
+                lines.append(f"  Fit reasoning: {summary}")
+            if c.recommended_next_step:
+                lines.append(f"  Next step: {str(c.recommended_next_step)[:150]}")
+            if c.red_flags:
+                try:
+                    flags = _json.loads(c.red_flags) if isinstance(c.red_flags, str) else c.red_flags
+                    if isinstance(flags, list) and flags:
+                        lines.append(f"  Red flags: {str(flags[0])[:120]}")
+                except Exception:
+                    pass
+        return "RESEARCH BRIEFS (pipeline companies with completed research):" + "\n".join(lines)
+    except Exception as e:
+        logger.warning(f"Failed to build research context: {e}")
+        return ""
+
+
 ASSOCIATE_TOOLS = [
     {
         "name": "search_pipeline",
@@ -332,6 +505,10 @@ async def associate_chat(
         # Build pipeline context
         pipeline_context = await _build_pipeline_context(db, user_id)
         firm_context = await _build_firm_context(db, user_id)
+        activity_context = await _build_activity_context(db, user_id)
+        coverage_context = await _build_coverage_context(db, user_id)
+        signals_context = await _build_signals_context(db, user_id)
+        research_context = await _build_research_context(db, user_id)
 
         system_prompt = f"""You are Radar's AI Associate — a senior investment analyst embedded in a VC firm's deal flow platform.
 
@@ -341,7 +518,7 @@ You have full context about the firm's pipeline, past decisions, and investment 
 
 {pipeline_context}
 
-{memory_context}
+{activity_context + chr(10) + chr(10) if activity_context else ""}{coverage_context + chr(10) + chr(10) if coverage_context else ""}{signals_context + chr(10) + chr(10) if signals_context else ""}{research_context + chr(10) + chr(10) if research_context else ""}{memory_context}
 
 When asked about specific companies, draw on what you know from the pipeline and memory above.
 When asked for recommendations, be specific and actionable — name companies, suggest next steps, flag risks.

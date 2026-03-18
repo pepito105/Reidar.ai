@@ -44,6 +44,7 @@ async def fail_job_run(
     db: AsyncSession,
     run_id,
     error: str = None,
+    job_name: str = None,
 ) -> None:
     """Call when a job fails."""
     from sqlalchemy import update
@@ -59,3 +60,49 @@ async def fail_job_run(
     )
     await db.commit()
     logger.error(f"Job failed: run_id={run_id} error={error}")
+
+    # Send admin alert on job failure
+    try:
+        from app.core.config import settings
+        if settings.SENDGRID_API_KEY and settings.NOTIFICATION_EMAIL:
+            import httpx
+            subject = f"Radar: Scheduler job failed — {job_name or run_id}"
+            html = f"""
+            <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+              <div style="color:#ef4444;font-size:18px;font-weight:700;margin-bottom:12px;">
+                ⚠️ Scheduler Job Failed
+              </div>
+              <div style="background:#0f0f1a;border:1px solid #2a2a4a;border-left:4px solid #ef4444;
+                          border-radius:8px;padding:16px;margin-bottom:16px;">
+                <div style="color:#f0f0ff;font-size:14px;font-weight:600;margin-bottom:6px;">
+                  {job_name or run_id}
+                </div>
+                <div style="color:#8888aa;font-size:13px;margin-bottom:8px;">
+                  Failed at: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}
+                </div>
+                {f'<div style="color:#ef4444;font-size:12px;font-family:monospace;word-break:break-all;">{error}</div>' if error else ''}
+              </div>
+              <div style="color:#555577;font-size:12px;">
+                Check Railway logs for full traceback.
+              </div>
+            </div>
+            """
+            recipients = [r.strip() for r in settings.NOTIFICATION_EMAIL.split(',') if r.strip()]
+            async with httpx.AsyncClient() as client:
+                await client.post(
+                    "https://api.sendgrid.com/v3/mail/send",
+                    headers={
+                        "Authorization": f"Bearer {settings.SENDGRID_API_KEY}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "personalizations": [{"to": [{"email": r} for r in recipients]}],
+                        "from": {"email": settings.FROM_EMAIL},
+                        "subject": subject,
+                        "content": [{"type": "text/html", "value": html}],
+                    },
+                    timeout=10.0,
+                )
+            logger.info(f"Admin failure alert sent for {job_name or run_id}")
+    except Exception as alert_err:
+        logger.warning(f"Failed to send admin failure alert: {alert_err}")

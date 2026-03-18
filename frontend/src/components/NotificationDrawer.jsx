@@ -38,6 +38,8 @@ export default function NotificationDrawer({ API, onSelectCompany }) {
   const [feed, setFeed] = useState([])
   const [unseenCount, setUnseenCount] = useState(0)
   const drawerRef = useRef(null)
+  const [toasts, setToasts] = useState([])
+  const prevFeedIdsRef = useRef(new Set())
 
   const fetchFeed = async () => {
     try {
@@ -47,9 +49,34 @@ export default function NotificationDrawer({ API, onSelectCompany }) {
         params: { days: 30, limit: 50 },
         headers,
       })
-      setFeed(res.data.feed)
+      const newFeed = res.data.feed || []
+      setFeed(newFeed)
       setUnseenCount(res.data.unseen_count)
+
+      // Detect genuinely new unseen notifications
+      const prevIds = prevFeedIdsRef.current
+      if (prevIds.size > 0) {
+        const newUnseen = newFeed.filter(
+          n => !n.is_seen && !prevIds.has(n.id)
+        )
+        newUnseen.forEach(notif => {
+          showToast(notif)
+        })
+      }
+      prevFeedIdsRef.current = new Set(newFeed.map(n => n.id))
     } catch (e) {}
+  }
+
+  const showToast = (notif) => {
+    const id = notif.id + '_toast_' + Date.now()
+    setToasts(prev => [...prev.slice(-2), { ...notif, toastId: id }])
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.toastId !== id))
+    }, 5000)
+  }
+
+  const dismissToast = (toastId) => {
+    setToasts(prev => prev.filter(t => t.toastId !== toastId))
   }
 
   useEffect(() => {
@@ -93,6 +120,72 @@ export default function NotificationDrawer({ API, onSelectCompany }) {
 
   return (
     <>
+      <style>{`
+        @keyframes slideInRight {
+          from { transform: translateX(120%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `}</style>
+      {/* Toast notifications */}
+      <div style={{
+        position: 'fixed', top: 70, right: 20,
+        zIndex: 2000, display: 'flex', flexDirection: 'column', gap: 8,
+        pointerEvents: 'none',
+      }}>
+        {toasts.map(toast => {
+          const style = EVENT_STYLES[toast.event_type] || EVENT_STYLES.company_signal
+          return (
+            <div
+              key={toast.toastId}
+              onClick={() => {
+                dismissToast(toast.toastId)
+                if (toast.startup_id) {
+                  handleSelectCompany(toast)
+                }
+              }}
+              style={{
+                background: '#0d0d14',
+                border: `1px solid ${style.color}44`,
+                borderLeft: `3px solid ${style.color}`,
+                borderRadius: 10,
+                padding: '12px 14px',
+                width: 300,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                cursor: toast.startup_id ? 'pointer' : 'default',
+                pointerEvents: 'all',
+                animation: 'slideInRight 0.3s ease',
+                display: 'flex', gap: 10, alignItems: 'flex-start',
+              }}
+            >
+              <span style={{ fontSize: 16, flexShrink: 0 }}>{style.icon}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: 12, fontWeight: 700, color: '#f0f0ff',
+                  marginBottom: 2, whiteSpace: 'nowrap',
+                  overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>
+                  {toast.startup_name || toast.title}
+                </div>
+                <div style={{
+                  fontSize: 11, color: '#8888aa', lineHeight: 1.4,
+                  display: '-webkit-box', WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                }}>
+                  {toast.title}
+                </div>
+              </div>
+              <button
+                onClick={e => { e.stopPropagation(); dismissToast(toast.toastId) }}
+                style={{
+                  background: 'none', border: 'none', color: '#3a3a5a',
+                  cursor: 'pointer', fontSize: 12, padding: '0 0 0 4px',
+                  flexShrink: 0, lineHeight: 1,
+                }}
+              >✕</button>
+            </div>
+          )
+        })}
+      </div>
       {/* Bell */}
       <button
         onClick={() => setOpen(true)}

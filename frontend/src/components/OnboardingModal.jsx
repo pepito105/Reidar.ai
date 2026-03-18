@@ -394,6 +394,8 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
       await axios.post(`${API}/firm-profile/`, { ...form, fit_threshold: fitThreshold, firm_website: firmWebsite.trim() || null }, { headers })
     } catch (e) {
       console.error('firm profile save failed:', e.response?.status, e.response?.data)
+      setSaving(false)
+      return
     }
     setSaving(false)
     runSourcing()
