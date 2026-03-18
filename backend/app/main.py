@@ -56,6 +56,8 @@ from app.api.routes.associate import router as associate_router
 app.include_router(associate_router, prefix="/api")
 from app.api.routes.notifications import router as notifications_router
 app.include_router(notifications_router, prefix="/api")
+from app.api.routes.activity import router as activity_router
+app.include_router(activity_router, prefix="/api")
 
 
 @app.get("/health")

@@ -40,6 +40,18 @@ async def refresh_company(startup: Startup, db: AsyncSession) -> list:
                 await write_company_signal_notification(db, startup, signal)
             except Exception as notify_err:
                 logger.warning(f"Failed to write signal notification: {notify_err}")
+            try:
+                from app.services.activity_writer import write_signal_detected
+                await write_signal_detected(
+                    db=db,
+                    startup_id=startup.id,
+                    startup_name=startup.name,
+                    signal_title=title,
+                    signal_type=signal_type,
+                    user_id=getattr(startup, 'user_id', None),
+                )
+            except Exception as e:
+                logger.warning(f"Failed to write signal activity for {startup.name}: {e}")
             added.append(signal)
         if added:
             startup.has_unseen_signals = True

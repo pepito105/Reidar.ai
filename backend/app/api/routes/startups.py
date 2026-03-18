@@ -539,6 +539,19 @@ async def analyze_startup_stream(startup_id: int, request: Request, db: AsyncSes
             except Exception as notify_err:
                 logger.warning(f"Failed to write research complete notification: {notify_err}")
 
+            # Write research complete activity event
+            try:
+                from app.services.activity_writer import write_research_complete
+                await write_research_complete(
+                    db=db,
+                    startup_id=startup.id,
+                    startup_name=startup.name,
+                    fit_score=startup.fit_score,
+                    user_id=user_id,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to write research activity: {e}")
+
             # Write research completion memory
             try:
                 from app.services.associate_memory_service import write_memory
@@ -785,6 +798,21 @@ async def update_startup(startup_id: int, data: StartupUpdate, request: Request,
         except Exception as e:
             logger.warning(f"Failed to write pipeline memory: {e}")
 
+        # Write pipeline activity event
+        if data.pipeline_status and data.pipeline_status != old_pipeline_status:
+            try:
+                from app.services.activity_writer import write_pipeline_moved
+                await write_pipeline_moved(
+                    db=db,
+                    startup_id=startup.id,
+                    startup_name=startup.name,
+                    new_status=data.pipeline_status,
+                    old_status=old_pipeline_status,
+                    user_id=user_id,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to write pipeline activity: {e}")
+
     # Write memory if meeting notes were added
     if data.meeting_notes and len(data.meeting_notes) > old_meeting_notes_len:
         try:
@@ -804,6 +832,22 @@ async def update_startup(startup_id: int, data: StartupUpdate, request: Request,
         except Exception as e:
             logger.warning(f"Failed to write meeting notes memory: {e}")
 
+        # Write meeting note activity event
+        if data.meeting_notes and len(data.meeting_notes) > old_meeting_notes_len:
+            try:
+                from app.services.activity_writer import write_meeting_note_added
+                latest_note = data.meeting_notes[-1]
+                note_text = latest_note.get("note", "") if isinstance(latest_note, dict) else str(latest_note)
+                await write_meeting_note_added(
+                    db=db,
+                    startup_id=startup.id,
+                    startup_name=startup.name,
+                    note_preview=note_text[:200] if note_text else None,
+                    user_id=user_id,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to write meeting note activity: {e}")
+
     # Write memory if conviction score was set
     if data.conviction_score is not None and data.conviction_score != old_conviction_score:
         try:
@@ -821,6 +865,34 @@ async def update_startup(startup_id: int, data: StartupUpdate, request: Request,
             )
         except Exception as e:
             logger.warning(f"Failed to write conviction memory: {e}")
+
+        # Write conviction activity event
+        if data.conviction_score is not None and data.conviction_score != old_conviction_score:
+            try:
+                from app.services.activity_writer import write_conviction_set
+                await write_conviction_set(
+                    db=db,
+                    startup_id=startup.id,
+                    startup_name=startup.name,
+                    conviction_score=data.conviction_score,
+                    user_id=user_id,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to write conviction activity: {e}")
+
+        # Write notes activity event
+        if data.notes is not None and data.notes != (startup.notes or ''):
+            try:
+                from app.services.activity_writer import write_notes_saved
+                await write_notes_saved(
+                    db=db,
+                    startup_id=startup.id,
+                    startup_name=startup.name,
+                    notes_preview=data.notes[:200] if data.notes else None,
+                    user_id=user_id,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to write notes activity: {e}")
 
     await db.refresh(startup)
     return _startup_to_card(startup)

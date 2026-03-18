@@ -70,48 +70,64 @@ async def write_company_signal_notification(db, startup, signal, user_id: str = 
 
 async def write_stale_deal_notifications(db, user_id: str = None):
     """
-    Called nightly by scheduler. Writes stale_deal notifications using
-    stage-specific thresholds:
+    Called nightly by scheduler. Writes stale_deal notifications
+    using activity_events table for accurate last-activity detection.
+    Stage-specific thresholds:
       - watching  > 14 days no activity
       - outreach  > 21 days no activity
       - diligence > 30 days no activity
     Does not write duplicate stale notifications within a 7-day window.
     """
+    from sqlalchemy import func
+    from app.models.activity_event import ActivityEvent
+
     THRESHOLDS = {
         "watching": 14,
         "outreach": 21,
         "diligence": 30,
     }
-    result = await db.execute(
-        select(Startup).where(
-            Startup.pipeline_status.in_(list(THRESHOLDS.keys()))
+
+    if user_id:
+        result = await db.execute(
+            select(Startup)
+            .where(Startup.pipeline_status.in_(list(THRESHOLDS.keys())))
+            .where(Startup.user_id == user_id)
         )
-    )
+    else:
+        result = await db.execute(
+            select(Startup).where(
+                Startup.pipeline_status.in_(list(THRESHOLDS.keys()))
+            )
+        )
     companies = result.scalars().all()
+
+    # Batch fetch last activity timestamps from activity_events
+    startup_ids = [c.id for c in companies]
+    last_activity_map = {}
+    if startup_ids:
+        activity_result = await db.execute(
+            select(
+                ActivityEvent.startup_id,
+                func.max(ActivityEvent.created_at).label('last_at')
+            )
+            .where(ActivityEvent.startup_id.in_(startup_ids))
+            .group_by(ActivityEvent.startup_id)
+        )
+        for row in activity_result.fetchall():
+            last_activity_map[row.startup_id] = row.last_at
 
     for company in companies:
         threshold_days = THRESHOLDS.get(company.pipeline_status)
         if not threshold_days:
             continue
 
-        # Derive last activity from activity_log
-        log = company.activity_log or []
-        dates = []
-        for entry in log:
-            if isinstance(entry, dict) and entry.get("created_at"):
-                try:
-                    d = datetime.fromisoformat(entry["created_at"].replace("Z", "+00:00"))
-                    dates.append(d.replace(tzinfo=None))
-                except Exception:
-                    pass
-        last_activity = max(dates) if dates else None
-
+        last_activity = last_activity_map.get(company.id)
         cutoff = datetime.utcnow() - timedelta(days=threshold_days)
         is_stale = (last_activity is None) or (last_activity < cutoff)
         if not is_stale:
             continue
 
-        # Skip if a stale notification was already written in the last 7 days
+        # Don't write duplicate stale notifications within 7 days
         existing = await db.execute(
             select(Notification).where(
                 Notification.startup_id == company.id,
@@ -122,12 +138,14 @@ async def write_stale_deal_notifications(db, user_id: str = None):
         if existing.scalar_one_or_none():
             continue
 
-        days_stale = (datetime.utcnow() - last_activity).days if last_activity else threshold_days + 1
+        days_stale = (datetime.utcnow() - last_activity).days \
+            if last_activity else threshold_days + 1
         notif = Notification(
             user_id=user_id,
             event_type="stale_deal",
             title=f"{company.name} needs attention",
-            body=f"In {company.pipeline_status.capitalize()} for {days_stale} days with no activity.",
+            body=f"In {company.pipeline_status.capitalize()} for "
+                 f"{days_stale} days with no activity.",
             startup_id=company.id,
             startup_name=company.name,
             fit_score=company.fit_score,

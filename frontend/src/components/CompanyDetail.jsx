@@ -35,6 +35,20 @@ const InfoItem = ({ label, value }) => (
   </div>
 )
 
+function formatRelativeTime(dateStr) {
+  if (!dateStr) return ''
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+  if (minutes < 1) return 'Just now'
+  if (minutes < 60) return `${minutes}m ago`
+  if (hours < 24) return `${hours}h ago`
+  if (days === 1) return 'Yesterday'
+  if (days < 7) return `${days}d ago`
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
 export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSelectCompany }) {
   const { getToken } = useAuth()
   const [startup, setStartup] = useState(s)
@@ -71,6 +85,8 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
   const [analyzeStage, setAnalyzeStage] = useState(null)
   const [customFocus, setCustomFocus] = useState('')
   const [showFocusInput, setShowFocusInput] = useState(false)
+  const [activityEvents, setActivityEvents] = useState([])
+  const [activityLoading, setActivityLoading] = useState(false)
 
   const badge = startup.fit_score != null ? (FIT_BADGES[startup.fit_score] || FIT_BADGES[2]) : { label: 'Pending', color: '#555577', bg: '#1a1a2e' }
 
@@ -180,6 +196,24 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
     }
     fn()
   }, [s?.id])
+
+  useEffect(() => {
+    if (activeTab !== 'activity') return
+    const fetchActivity = async () => {
+      setActivityLoading(true)
+      try {
+        const token = await getToken().catch(() => null)
+        const headers = token ? { Authorization: `Bearer ${token}` } : {}
+        const res = await axios.get(`${API}/activity/${startup.id}`, { headers })
+        setActivityEvents(res.data.events || [])
+      } catch (e) {
+        console.error('Failed to fetch activity:', e)
+      } finally {
+        setActivityLoading(false)
+      }
+    }
+    fetchActivity()
+  }, [activeTab, startup.id])
 
   const save = async () => {
     const token = await getToken().catch(() => null)
@@ -941,7 +975,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
               {/* Right column */}
               <div style={{ flexBasis: '60%', maxWidth: '60%', padding: '18px 20px', overflow: 'auto' }}>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-                  {['overview', 'memo', 'signals', ...(startup.research_status === 'complete' ? ['research'] : []), 'outreach'].map(tab => (
+                  {['overview', 'memo', 'signals', ...(startup.research_status === 'complete' ? ['research'] : []), 'outreach', 'activity'].map(tab => (
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
@@ -1524,6 +1558,63 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
                         <div style={{ fontSize: 12, color: '#555577' }}>No outreach logged yet</div>
                       )}
                     </div>
+                  </div>
+                )}
+                {activeTab === 'activity' && (
+                  <div style={{ padding: '20px 0' }}>
+                    {activityLoading ? (
+                      <div style={{ textAlign: 'center', color: '#555577', padding: 40 }}>
+                        Loading activity...
+                      </div>
+                    ) : activityEvents.length === 0 ? (
+                      <div style={{ textAlign: 'center', color: '#555577', padding: 40 }}>
+                        <div style={{ fontSize: 24, marginBottom: 8 }}>📋</div>
+                        <div style={{ fontSize: 13 }}>No activity yet</div>
+                        <div style={{ fontSize: 12, marginTop: 4, color: '#3a3a5a' }}>
+                          Activity appears when you add this company to your pipeline
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ position: 'relative' }}>
+                        {activityEvents.map((event, i) => (
+                          <div key={event.id} style={{
+                            display: 'flex', gap: 12, marginBottom: 16,
+                            paddingBottom: 16,
+                            borderBottom: i < activityEvents.length - 1
+                              ? '1px solid #1e1e2e' : 'none',
+                          }}>
+                            <div style={{
+                              width: 28, height: 28, borderRadius: '50%',
+                              background: '#1e1e2e', border: '1px solid #2a2a4a',
+                              display: 'flex', alignItems: 'center',
+                              justifyContent: 'center', fontSize: 13, flexShrink: 0,
+                              marginTop: 2,
+                            }}>
+                              {event.icon}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{
+                                fontSize: 13, fontWeight: 600, color: '#f0f0ff',
+                                marginBottom: 2
+                              }}>
+                                {event.title}
+                              </div>
+                              {event.detail && (
+                                <div style={{
+                                  fontSize: 12, color: '#8888aa', marginBottom: 4,
+                                  lineHeight: 1.5
+                                }}>
+                                  {event.detail}
+                                </div>
+                              )}
+                              <div style={{ fontSize: 11, color: '#3a3a5a' }}>
+                                {formatRelativeTime(event.created_at)}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

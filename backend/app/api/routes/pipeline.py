@@ -47,6 +47,27 @@ async def get_pipeline(request: Request, db: AsyncSession = Depends(get_db)):
     )
     result = await db.execute(query)
     startups = result.scalars().all()
+
+    # Fetch last activity timestamps for all pipeline companies
+    from app.services.activity_writer import get_last_activity_at
+    from sqlalchemy import func
+    from app.models.activity_event import ActivityEvent
+
+    startup_ids = [s.id for s in startups]
+    last_activity_map = {}
+    if startup_ids:
+        activity_result = await db.execute(
+            select(
+                ActivityEvent.startup_id,
+                func.max(ActivityEvent.created_at).label('last_at')
+            )
+            .where(ActivityEvent.startup_id.in_(startup_ids))
+            .where(ActivityEvent.user_id == user_id)
+            .group_by(ActivityEvent.startup_id)
+        )
+        for row in activity_result.fetchall():
+            last_activity_map[row.startup_id] = row.last_at
+
     board = {stage: [] for stage in PIPELINE_STAGES}
     for s in startups:
         if s.pipeline_status in board:
@@ -90,6 +111,7 @@ async def get_pipeline(request: Request, db: AsyncSession = Depends(get_db)):
                 "is_portfolio": s.is_portfolio or False,
                 "scraped_at": s.scraped_at.isoformat() if s.scraped_at else None,
                 "updated_at": s.scraped_at.isoformat() if s.scraped_at else None,
+                "last_activity_at": last_activity_map.get(s.id).isoformat() if last_activity_map.get(s.id) else None,
             })
     return board
 
@@ -136,6 +158,24 @@ async def move_in_pipeline(data: PipelineMove, request: Request, db: AsyncSessio
         except Exception as e:
             import logging
             logging.getLogger(__name__).warning(f"Failed to write pipeline memory: {e}")
+
+    # Write activity event
+    if old_status != data.new_status:
+        try:
+            from app.services.activity_writer import write_pipeline_moved
+            await write_pipeline_moved(
+                db=db,
+                startup_id=startup.id,
+                startup_name=startup.name,
+                new_status=data.new_status,
+                old_status=old_status,
+                user_id=user_id,
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(
+                f"Failed to write pipeline activity for {startup.name}: {e}"
+            )
 
     # Trigger immediate signal check when company enters pipeline
     if data.new_status in ("watching", "outreach", "diligence"):

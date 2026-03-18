@@ -16,6 +16,8 @@ const FIT_BADGES = {
 }
 
 const COLUMN_WIDTH = 260
+const STAGE_ORDER = ['watching', 'outreach', 'diligence', 'passed', 'invested']
+const STAGE_LABELS = { watching: 'Watching', outreach: 'Outreach', diligence: 'Diligence', passed: 'Passed', invested: 'Invested' }
 
 function relativeTime(dateStr) {
   if (!dateStr) return null
@@ -27,6 +29,140 @@ function relativeTime(dateStr) {
   if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`
   if (sec < 86400 * 7) return `${Math.floor(sec / 86400)}d ago`
   return `${Math.floor(sec / 86400 / 7)}w ago`
+}
+
+function PipelineListView({ board, selectedCompany, onSelectCompany, FIT_BADGES, STAGE_COLORS }) {
+  const [sortBy, setSortBy] = useState('fit_score') // 'fit_score' | 'conviction' | 'activity'
+
+  const sorted = (list) => {
+    const copy = [...list]
+    if (sortBy === 'fit_score') copy.sort((a, b) => (b.fit_score || 0) - (a.fit_score || 0))
+    else if (sortBy === 'conviction') copy.sort((a, b) => (b.conviction_score || 0) - (a.conviction_score || 0))
+    else if (sortBy === 'activity') copy.sort((a, b) => {
+      const aMs = a.last_activity_at ? new Date(a.last_activity_at).getTime()
+        : (a.activity_log?.length ? new Date(a.activity_log[a.activity_log.length - 1].date).getTime() : 0)
+      const bMs = b.last_activity_at ? new Date(b.last_activity_at).getTime()
+        : (b.activity_log?.length ? new Date(b.activity_log[b.activity_log.length - 1].date).getTime() : 0)
+      return bMs - aMs
+    })
+    return copy
+  }
+
+  return (
+    <div>
+      {/* Sort controls */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
+        <span style={{ fontSize: 11, color: '#555577', marginRight: 4 }}>Sort by</span>
+        {[['fit_score', 'Fit Score'], ['conviction', 'Conviction'], ['activity', 'Last Activity']].map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setSortBy(key)}
+            style={{
+              padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: 4,
+              border: '1px solid', cursor: 'pointer',
+              background: sortBy === key ? '#1e1e3a' : 'transparent',
+              borderColor: sortBy === key ? '#6366f1' : '#2a2a4a',
+              color: sortBy === key ? '#a5b4fc' : '#555577',
+            }}
+          >{label}</button>
+        ))}
+      </div>
+
+      {/* Column headers */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 80px 60px',
+        gap: 8, padding: '6px 12px', marginBottom: 4,
+        fontSize: 10, fontWeight: 600, color: '#555577', textTransform: 'uppercase', letterSpacing: '0.5px',
+      }}>
+        <span>Company</span>
+        <span>Sector</span>
+        <span>Fit</span>
+        <span>Conviction</span>
+        <span>Stage</span>
+        <span>Activity</span>
+      </div>
+
+      {/* Rows grouped by stage */}
+      {STAGE_ORDER.map(stage => {
+        const list = sorted(board[stage] || [])
+        if (!list.length) return null
+        const color = STAGE_COLORS[stage]
+        return (
+          <div key={stage} style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
+              <span style={{ fontSize: 11, fontWeight: 600, color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                {STAGE_LABELS[stage]}
+              </span>
+              <span style={{ fontSize: 11, color: '#555577' }}>{list.length}</span>
+            </div>
+            {list.map(company => {
+              const isSelected = selectedCompany?.id === company.id
+              const lastActivityTs = company.last_activity_at
+                || (company.activity_log?.length ? company.activity_log[company.activity_log.length - 1]?.date : null)
+              const convictionDots = company.conviction_score
+                ? Math.max(1, Math.min(5, Math.round(company.conviction_score)))
+                : 0
+              return (
+                <div
+                  key={company.id}
+                  onClick={() => onSelectCompany(company)}
+                  style={{
+                    display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 80px 60px',
+                    gap: 8, padding: '10px 12px', marginBottom: 4,
+                    background: isSelected ? '#13132a' : '#0f0f1a',
+                    border: '1px solid',
+                    borderColor: isSelected ? '#3730a3' : '#1e1e2e',
+                    borderLeft: `3px solid ${color}`,
+                    borderRadius: 7,
+                    cursor: 'pointer',
+                    alignItems: 'center',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#f0f0ff', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {company.name}
+                      {company.has_unseen_signals && (
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                      )}
+                    </div>
+                    {company.one_liner && (
+                      <div style={{ fontSize: 11, color: '#8888aa', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 280 }}>
+                        {company.one_liner}
+                      </div>
+                    )}
+                  </div>
+                  <span style={{ fontSize: 11, color: '#8888aa' }}>{company.sector || '—'}</span>
+                  <span style={{ fontSize: 11, color: FIT_BADGES[company.fit_score]?.color || '#555577' }}>
+                    {FIT_BADGES[company.fit_score]?.label || '—'}
+                  </span>
+                  <span style={{ fontSize: 13, color: '#555577', letterSpacing: 2 }}>
+                    {convictionDots > 0
+                      ? '●'.repeat(convictionDots) + '○'.repeat(5 - convictionDots)
+                      : '—'}
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <span style={{
+                      fontSize: 10, fontWeight: 600, padding: '2px 8px',
+                      borderRadius: 4, textTransform: 'capitalize',
+                      color: STAGE_COLORS[company.pipeline_status] || '#6b7280',
+                      background: `${STAGE_COLORS[company.pipeline_status] || '#6b7280'}22`,
+                      border: `1px solid ${STAGE_COLORS[company.pipeline_status] || '#6b7280'}44`,
+                    }}>
+                      {company.pipeline_status}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 11, color: '#555577' }}>
+                    {lastActivityTs ? relativeTime(lastActivityTs) : (company.updated_at ? relativeTime(company.updated_at) : '—')}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 export default function Pipeline({ API }) {
@@ -45,6 +181,7 @@ export default function Pipeline({ API }) {
   const [dragging, setDragging] = useState(null)
   const [dragOverStage, setDragOverStage] = useState(null)
   const [selectedCompany, setSelectedCompany] = useState(null)
+  const [viewMode, setViewMode] = useState('kanban') // 'kanban' | 'list'
 
   const onDragStart = (company, fromStage) => setDragging({ company, fromStage })
 
@@ -95,9 +232,29 @@ export default function Pipeline({ API }) {
   return (
     <div style={{ display: 'flex', height: '100%' }}>
     <div style={{ flex: 1, padding: '28px 32px', overflow: 'auto' }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#f0f0ff', margin: 0, letterSpacing: '-0.5px' }}>Pipeline</h1>
-        <p style={{ fontSize: 13, color: '#555577', margin: '4px 0 0' }}>{totalInPipeline} companies being tracked</p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#f0f0ff', margin: 0, letterSpacing: '-0.5px' }}>Pipeline</h1>
+          <p style={{ fontSize: 13, color: '#555577', margin: '4px 0 0' }}>{totalInPipeline} companies being tracked</p>
+        </div>
+        <div style={{ display: 'flex', background: '#0f0f1a', border: '1px solid #2a2a4a', borderRadius: 7, overflow: 'hidden' }}>
+          {[['kanban', '⬜ Kanban'], ['list', '☰ List']].map(([mode, label]) => (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              style={{
+                padding: '6px 14px',
+                fontSize: 12,
+                fontWeight: 600,
+                border: 'none',
+                cursor: 'pointer',
+                background: viewMode === mode ? '#1e1e3a' : 'transparent',
+                color: viewMode === mode ? '#a5b4fc' : '#555577',
+                transition: 'all 0.15s',
+              }}
+            >{label}</button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
@@ -160,6 +317,14 @@ export default function Pipeline({ API }) {
             ))}
           </div>
         </div>
+      ) : viewMode === 'list' ? (
+        <PipelineListView
+          board={board}
+          selectedCompany={selectedCompany}
+          onSelectCompany={setSelectedCompany}
+          FIT_BADGES={FIT_BADGES}
+          STAGE_COLORS={STAGE_COLORS}
+        />
       ) : (
         <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 16 }}>
           {STAGES.map(stage => {
