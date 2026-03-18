@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useAuth } from '@clerk/clerk-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
+import CompanyDetail from './CompanyDetail.jsx'
 
 const STAGES = ['watching', 'outreach', 'diligence', 'passed', 'invested']
 const STAGE_COLORS = {
@@ -43,6 +44,7 @@ export default function Pipeline({ API }) {
   })
   const [dragging, setDragging] = useState(null)
   const [dragOverStage, setDragOverStage] = useState(null)
+  const [selectedCompany, setSelectedCompany] = useState(null)
 
   const onDragStart = (company, fromStage) => setDragging({ company, fromStage })
 
@@ -91,7 +93,8 @@ export default function Pipeline({ API }) {
   const isValidDropTarget = (stage) => dragging && dragging.fromStage !== stage
 
   return (
-    <div style={{ padding: '28px 32px', height: '100%', overflow: 'auto' }}>
+    <div style={{ display: 'flex', height: '100%' }}>
+    <div style={{ flex: 1, padding: '28px 32px', overflow: 'auto' }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: '#f0f0ff', margin: 0, letterSpacing: '-0.5px' }}>Pipeline</h1>
         <p style={{ fontSize: 13, color: '#555577', margin: '4px 0 0' }}>{totalInPipeline} companies being tracked</p>
@@ -211,20 +214,22 @@ export default function Pipeline({ API }) {
                         draggable
                         onDragStart={() => onDragStart(company, stage)}
                         onDragEnd={onDragEnd}
+                        onClick={() => setSelectedCompany(company)}
                         style={{
-                          background: '#0f0f1a',
+                          background: selectedCompany?.id === company.id ? '#13132a' : '#0f0f1a',
                           border: '1px solid #1e1e2e',
                           borderLeft: `3px solid ${color}`,
                           borderRadius: 8,
                           padding: '12px',
-                          cursor: 'grab',
+                          cursor: isDraggingCard ? 'grabbing' : 'pointer',
                           opacity: isDraggingCard ? 0.4 : 1,
+                          boxShadow: selectedCompany?.id === company.id ? '0 0 0 2px #3730a3' : 'none',
                         }}
                       >
                         <div style={{ fontWeight: 600, fontSize: 13, color: '#f0f0ff', marginBottom: 4 }}>{company.name}</div>
                         <div style={{ fontSize: 11, color: '#8888aa', marginBottom: 8, lineHeight: 1.4 }}>{company.one_liner}</div>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                          {company.funding_stage && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 3, background: '#1a1a2e', color: '#6b7280' }}>{company.funding_stage}</span>}
+                          {company.funding_stage && company.funding_stage !== 'unknown' && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 3, background: '#1a1a2e', color: '#6b7280' }}>{company.funding_stage}</span>}
                           {company.fit_score && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 3, color: FIT_BADGES[company.fit_score]?.color || '#6b7280' }}>● {FIT_BADGES[company.fit_score]?.label}</span>}
                           {company.updated_at && (
                             <span style={{ marginLeft: 'auto', fontSize: 10, color: '#555577' }}>{relativeTime(company.updated_at)}</span>
@@ -273,6 +278,26 @@ export default function Pipeline({ API }) {
           })}
         </div>
       )}
+    </div>
+
+    {/* Detail panel */}
+    {selectedCompany && (
+      <div style={{
+        width: 520, borderLeft: '1px solid #1e1e2e',
+        overflow: 'auto', flexShrink: 0
+      }}>
+        <CompanyDetail
+          API={API}
+          startup={selectedCompany}
+          onClose={() => setSelectedCompany(null)}
+          onUpdate={(updatedCompany) => {
+            setSelectedCompany(updatedCompany)
+            queryClient.invalidateQueries({ queryKey: ['pipeline'] })
+            queryClient.invalidateQueries({ queryKey: ['startups'] })
+          }}
+        />
+      </div>
+    )}
     </div>
   )
 }

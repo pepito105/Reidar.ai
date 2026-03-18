@@ -667,7 +667,7 @@ const CompanyCard = forwardRef(function CompanyCard({ startup: s, onClick, isSel
         {s.source === 'manual' && (
           <span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 10, background: '#1a1a2e', color: '#6b7280', border: '1px solid #2a2a4a' }}>Added by you</span>
         )}
-        {s.funding_stage && <Tag>{s.funding_stage}</Tag>}
+        {s.funding_stage && s.funding_stage !== 'unknown' && <Tag>{s.funding_stage}</Tag>}
         {s.has_unseen_signals && (
           <span style={{
             padding: '2px 6px', borderRadius: 4, fontSize: 10,
