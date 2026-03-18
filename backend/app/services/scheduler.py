@@ -20,6 +20,9 @@ async def job_run_scrapers():
     from app.services.scraping_service import run_full_scrape
     async with AsyncSessionLocal() as db:
         try:
+            from app.services.job_health import start_job_run, complete_job_run, fail_job_run
+            run = await start_job_run(db, "nightly_scrape")
+
             stats = await run_full_scrape(db)
             logger.info(f'Nightly scrape complete: {stats}')
 
@@ -29,6 +32,7 @@ async def job_run_scrapers():
             from datetime import timezone
             from app.services.notification_service import send_top_match_alert
             cutoff = datetime.utcnow() - timedelta(hours=2)
+            total_fives = 0
 
             for profile in profiles:
                 user_id = profile.user_id
@@ -48,6 +52,7 @@ async def job_run_scrapers():
                 new_top = new_result.scalars().all()
 
                 fives = [s for s in new_top if s.fit_score == 5]
+                total_fives += len(fives)
                 if fives and should_notify:
                     for s in fives:
                         await send_top_match_alert(
@@ -66,8 +71,14 @@ async def job_run_scrapers():
                 else:
                     logger.info(f'No 5/5 companies from this scrape for {firm_name} — skipping alert')
 
+            await complete_job_run(db, run.id, stats={"total_fives": total_fives, "firms_processed": len(profiles)}, firm_count=len(profiles))
+
         except Exception as e:
             logger.error(f'Nightly scrape failed: {e}', exc_info=True)
+            try:
+                await fail_job_run(db, run.id, error=str(e))
+            except Exception:
+                pass
 
 
 async def job_refresh_signals():
@@ -76,6 +87,9 @@ async def job_refresh_signals():
     from app.services.notification_service import send_diligence_batch_alert
     async with AsyncSessionLocal() as db:
         try:
+            from app.services.job_health import start_job_run, complete_job_run, fail_job_run
+            run = await start_job_run(db, "signal_refresh")
+
             profiles_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
             profiles = profiles_result.scalars().all()
 
@@ -142,8 +156,13 @@ async def job_refresh_signals():
                 total_signals += new_signals
 
             logger.info(f'Signal refresh complete: {total_refreshed} companies, {total_signals} signals')
+            await complete_job_run(db, run.id, stats={"total_refreshed": total_refreshed, "total_signals": total_signals, "firms_processed": len(profiles)}, firm_count=len(profiles))
         except Exception as e:
             logger.error(f'Signal refresh failed: {e}', exc_info=True)
+            try:
+                await fail_job_run(db, run.id, error=str(e))
+            except Exception:
+                pass
 
 
 def _last_activity_at(startup: Startup) -> Optional[datetime]:
@@ -166,6 +185,10 @@ async def job_weekly_summary():
     from app.models.signal import CompanySignal
     async with AsyncSessionLocal() as db:
         try:
+            from app.services.job_health import start_job_run, complete_job_run, fail_job_run
+            run = await start_job_run(db, "weekly_summary")
+            firms_notified = 0
+
             profiles_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
             profiles = profiles_result.scalars().all()
 
@@ -245,8 +268,15 @@ async def job_weekly_summary():
                     notification_emails=notify_emails,
                 )
                 logger.info(f'Weekly summary sent for {firm_name}')
+                firms_notified += 1
+
+            await complete_job_run(db, run.id, stats={"firms_notified": firms_notified}, firm_count=len(profiles))
         except Exception as e:
             logger.error(f'Weekly summary failed: {e}', exc_info=True)
+            try:
+                await fail_job_run(db, run.id, error=str(e))
+            except Exception:
+                pass
 
 
 async def job_run_research():
@@ -254,10 +284,18 @@ async def job_run_research():
     from app.services.research_service import run_research_batch
     async with AsyncSessionLocal() as db:
         try:
+            from app.services.job_health import start_job_run, complete_job_run, fail_job_run
+            run = await start_job_run(db, "research_batch")
+
             stats = await run_research_batch(db, limit=50)
             logger.info(f'Research batch complete: {stats}')
+            await complete_job_run(db, run.id, stats={"result": str(stats)})
         except Exception as e:
             logger.error(f'Research batch failed: {e}', exc_info=True)
+            try:
+                await fail_job_run(db, run.id, error=str(e))
+            except Exception:
+                pass
 
 
 async def job_run_sourcing():
@@ -267,12 +305,16 @@ async def job_run_sourcing():
     from sqlalchemy import select
     async with AsyncSessionLocal() as db:
         try:
+            from app.services.job_health import start_job_run, complete_job_run, fail_job_run
+            run = await start_job_run(db, "autonomous_sourcing")
+
             profiles_result = await db.execute(
                 select(FirmProfile).where(FirmProfile.is_active == True)
             )
             profiles = profiles_result.scalars().all()
             if not profiles:
                 logger.info('No active firm profiles — skipping nightly sourcing')
+                await complete_job_run(db, run.id, stats={"firms_processed": 0}, firm_count=0)
                 return
             for profile in profiles:
                 firm_name = profile.firm_name or 'Unknown'
@@ -301,8 +343,13 @@ async def job_run_sourcing():
                 except Exception as e:
                     logger.error(f'Stale deal notifications failed for {firm_name}: {e}')
 
+            await complete_job_run(db, run.id, stats={"firms_processed": len(profiles)}, firm_count=len(profiles))
         except Exception as e:
             logger.error(f'Nightly sourcing job failed: {e}', exc_info=True)
+            try:
+                await fail_job_run(db, run.id, error=str(e))
+            except Exception:
+                pass
 
 
 async def run_startup_check():
