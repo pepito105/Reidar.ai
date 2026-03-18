@@ -10,16 +10,23 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
-async def brave_search(query: str, count: int = 5) -> list[dict]:
-    """Search the web using Brave Search API. Returns list of {title, url, description}."""
+async def brave_search(query: str, count: int = 5, freshness: str = None) -> list[dict]:
+    """
+    Search the web using Brave Search API.
+    Returns list of {title, url, description}.
+    freshness options: 'pd' (past day), 'pw' (past week), 'pm' (past month)
+    """
     if not settings.BRAVE_API_KEY:
         logger.warning("No BRAVE_API_KEY configured")
         return []
     try:
+        params = {"q": query, "count": count, "search_lang": "en"}
+        if freshness:
+            params["freshness"] = freshness
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 "https://api.search.brave.com/res/v1/web/search",
-                params={"q": query, "count": count, "search_lang": "en"},
+                params=params,
                 headers={
                     "X-Subscription-Token": settings.BRAVE_API_KEY,
                     "Accept": "application/json",

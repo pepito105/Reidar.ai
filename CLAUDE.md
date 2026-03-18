@@ -1,188 +1,150 @@
-# Radar — Project Brief for Claude Code
+# Radar — Project Context for Claude Code
 
-## What is Radar?
-Radar is an AI investment associate for VC firms. It sources, classifies, and surfaces startups filtered through a firm's investment mandate. Think of it as the analyst that never sleeps — it knows your mandate, sources proactively every night, scores every company against your thesis, and helps analysts track deals and read investment memos.
+## What This Is
+Radar is a multi-tenant AI-powered VC deal sourcing platform. It acts as
+an AI investment associate for VC firms — sourcing, classifying, and
+surfacing startups filtered through each firm's investment mandate.
 
-**Live URLs**
-- Frontend: https://zestful-creativity-production.up.railway.app
-- Backend: https://radar-production-8cea.up.railway.app
-- Deployed on Railway (Hobby plan), PostgreSQL provisioned in `cozy-youthfulness` project
-
----
-
-## Tech Stack
-- **Backend**: Python 3.11 + FastAPI, PostgreSQL + pgvector, SQLAlchemy async ORM, APScheduler, asyncpg
-- **Frontend**: React + Vite, inline styles (no Tailwind, no CSS files), Inter font
-- **AI**: Anthropic Claude (Haiku for batch scoring, Sonnet for deep analysis and research)
-- **Scraping**: Firecrawl (`.scrape()` method — synchronous, must use `loop.run_in_executor` in async contexts)
-- **Sourcing**: Brave Search API, HN Algolia, GitHub trending
-- **Auth**: Clerk (currently in dev mode — needs custom domain for production)
-- **Email**: SendGrid
-- **IDE**: Cursor for frontend, Claude Code for backend
-
----
+## Stack
+- Backend: Python 3.11, FastAPI, SQLAlchemy async, PostgreSQL (Supabase)
+- Frontend: React + Vite, inline styles only (no Tailwind, no CSS files)
+- Auth: Clerk JWT tokens
+- AI: Anthropic API (Claude Sonnet for deep research, Haiku for batch scoring)
+- Search: Brave Search API + Firecrawl for real web research
+- Email: SendGrid
+- Deployment: Railway (backend + frontend as separate services)
+- Local Python: /opt/homebrew/bin/python3.11
 
 ## Project Structure
-```
-~/radar/
+radar/
   backend/
     app/
-      api/routes/          # FastAPI endpoints
-        startups.py        # Main startup CRUD, analyze endpoint
-        signals.py         # Sourcing stream, research, signals
-        firm_profile.py    # Firm profile CRUD
-        chat.py            # AI Analyst chat
-        pipeline.py        # Pipeline/kanban
-        market_map.py      # Market map data
-        memo.py            # Investment memo generation
-      services/
-        classifier.py      # Core AI classification (Haiku + Sonnet)
-        scraping_service.py  # Nightly RSS/YC/ProductHunt scraper
-        sourcing_service.py  # Autonomous sourcing (Brave, HN, GitHub)
-        research_service.py  # Deep analysis via Firecrawl + Claude
-        scheduler.py       # APScheduler nightly jobs
-        notification_service.py  # SendGrid email alerts
-      models/
-        startup.py         # Main startup model
-        firm_profile.py    # Firm profile model
-      core/
-        config.py          # Settings (env vars)
-        database.py        # Async DB session
+      api/routes/        # FastAPI route files
+      core/              # database, config, auth
+      models/            # SQLAlchemy models
+      services/          # business logic
+    alembic/             # migrations
   frontend/
     src/
-      App.jsx              # Main app shell, routing between screens
-      main.jsx             # React entry point, routes
-      pages/
-        LandingPage.jsx    # Public landing page
-        HowItWorks.jsx     # How it works page
-      components/
-        Coverage.jsx       # Main feed of companies
-        CompanyDetail.jsx  # Side panel + full memo view
-        Pipeline.jsx       # Kanban board
-        MarketMap.jsx      # Market intelligence view
-        Home.jsx           # Home/dashboard
-        Sidebar.jsx        # Navigation
-        OnboardingModal.jsx  # New user onboarding flow
-        FirmSettings.jsx   # Firm profile settings
-```
+      components/        # React components
+      App.jsx
+      main.jsx
 
----
+## Critical Rules — Never Violate These
+1. NEVER run alembic migrations — Remi runs these manually with: alembic upgrade head
+2. NEVER run scraping, sourcing, or classification jobs
+3. NEVER modify .env files
+4. NEVER install packages without asking first
+5. NEVER run the dev server or any long-running process
+6. NEVER touch scheduler.py background jobs without explicit instruction
+7. Always make surgical changes — one file at a time
+8. Always show diffs before applying, wait for confirmation
+9. Always lint-check after changes
 
-## Architecture — Critical Decisions
+## Multi-Tenancy — Most Important Pattern
+Every query must be scoped to user_id. This is the most common bug source.
 
-### Two-tier classification (DO NOT change this)
-- **`classify_batch()`** — fast Haiku batch scoring. Used for ALL incoming companies (scraper, nightly sourcing, onboarding sourcing). Returns: `fit_score`, `one_liner`, `sector`, `thesis_tags`, `business_model`, `target_customer`. No reasoning, no deep analysis.
-- **`classify_startup()`** — deep Sonnet analysis. Only runs when user clicks ⚡ Deploy Research Agents. Returns everything above plus: `fit_reasoning`, `comparable_companies`, `key_risks`, `bull_case`, `recommended_next_step`.
+WRONG:
+  select(FirmProfile).where(FirmProfile.is_active == True)
 
-### Lazy analysis flow
-1. Company arrives → `classify_batch` → fit_score assigned → shown in Coverage if above threshold
-2. User clicks company → sees basic info + locked preview sections
-3. User clicks ⚡ Deploy Research Agents → `POST /startups/{id}/analyze` → `classify_startup` runs → full analysis unlocked
-4. The `/analyze` endpoint checks `fit_reasoning is not None` (NOT `fit_score`) to determine if already analyzed
+RIGHT:
+  select(FirmProfile)
+    .where(FirmProfile.user_id == user_id)
+    .where(FirmProfile.is_active == True)
+    .limit(1)
+  result.scalars().first()  # never scalar_one_or_none() on FirmProfile
 
-### Coverage filter logic
-- Shows companies where `fit_score >= firm.fit_threshold` (default 3)
-- Manual companies (`source = 'manual'`) always show regardless of fit_score
-- `min_fit_score=0` in the query includes unscored companies + manual + above threshold
+user_id is extracted from Clerk Bearer token using this helper
+(already defined in most route files):
 
-### Multi-tenancy
-- Every startup row has `user_id` from Clerk
-- Every firm_profile row has `user_id`
-- ALL queries must filter by `user_id` — missing this causes data leaks between firms
-- Always use `.limit(1).scalars().first()` NOT `.scalar_one_or_none()` on FirmProfile queries — multiple profiles can exist and `scalar_one_or_none()` crashes
+  def _user_id_from_request(request: Request) -> Optional[str]:
+      auth_header = request.headers.get("Authorization", "")
+      if auth_header.startswith("Bearer "):
+          token = auth_header[7:]
+          try:
+              import jwt
+              decoded = jwt.decode(
+                  token,
+                  options={"verify_signature": False},
+                  algorithms=["RS256", "HS256"]
+              )
+              return decoded.get("sub")
+          except Exception:
+              return None
+      return None
 
-### Auth pattern
-- Clerk JWT tokens in `Authorization: Bearer <token>` header
-- SSE/EventSource endpoints receive token as `?token=` query param (EventSource can't send headers)
-- `_user_id_from_request(request)` helper extracts user_id from request
+## Database Models
+Key models and their purposes:
+- Startup — core company record, user_id scoped
+- FirmProfile — VC firm config, thesis, notification prefs, user_id scoped
+- CompanySignal — real signal events for pipeline companies (funding, news, etc)
+- Notification — unified notification table (new_top_match, new_strong_fit,
+  research_complete, company_signal, stale_deal)
+- AssociateMemory — AI associate memory layer with pgvector embeddings
+- SchedulerRun — job health tracking (running/success/failure per job)
 
----
+## Key Services
+- classifier.py — classify_startup, classify_batch, research_startup, detect_signals
+- sourcing_service.py — autonomous company discovery via Brave Search
+- research_service.py — brave_search(), firecrawl_scrape(),
+  research_with_brave_and_firecrawl()
+- refresh_service.py — nightly signal refresh for pipeline companies
+- notification_service.py — email delivery (weekly digest, top match alert,
+  diligence batch)
+- notification_writer.py — writes to notifications table
+- job_health.py — start_job_run, complete_job_run, fail_job_run
+- scheduler.py — APScheduler jobs (nightly scrape 4:30AM, signal refresh 3AM,
+  research batch 3:30AM, sourcing 4AM, weekly summary Monday 8AM ET)
 
-## Nightly Scheduler (APScheduler, America/New_York)
-- **2:00 AM** — `job_run_scrapers()` → RSS feeds, YC, ProductHunt → `classify_batch` per firm
-- **3:00 AM** — `job_refresh_signals()` → refresh diligence signals for pipeline companies
-- **3:30 AM** — `job_run_research()` → autonomous research via Firecrawl + Claude
-- **4:00 AM** — `job_run_sourcing()` → autonomous sourcing via Brave/HN/GitHub → `classify_batch`
-- **Monday 8:00 AM** — `job_weekly_summary()` → SendGrid weekly email
+## Signal System
+detect_signals in classifier.py uses real Brave Search + Firecrawl to find
+signals. It searches with freshness="pw" (past week), deduplicates against
+existing signals in the DB, and asks Claude to extract only grounded events
+with source_url. Signals only run for pipeline companies
+(watching/outreach/diligence), not all companies.
 
----
+## Notification System
+Two tables work together:
+- company_signals — stores actual signal events with source_url
+- notifications — unified feed for the in-app bell drawer
 
-## Email Alerts (SendGrid)
-- Sender: remi@balassanian.com (verified)
-- Three alert types: Top Match, Diligence Signal batch, Monday weekly summary
-- Per-firm notification preferences stored in `firm_profiles`
-- Multi-recipient support via `notification_emails` field
+NotificationDrawer.jsx reads from /api/notifications/feed (NOT /signals/feed).
+The signals/feed endpoint still exists for Home.jsx and other components.
 
----
+## Emails
+Three email types via SendGrid:
+1. Weekly digest (Monday 8AM) — Claude-generated narrative, top new companies,
+   pipeline snapshot, stale deals
+2. Top match alert — fires per 5/5 company, Claude writes investment take
+3. Diligence batch — nightly, Claude interprets each signal in deal context
+All emails use APP_URL env var (not localhost). Sent to profile.notification_emails.
 
-## Database — Key Fields on `startups`
-```
-id, name, slug, user_id
-one_liner, ai_summary          # Basic description
-fit_score (1-5)               # From classify_batch — always present
-ai_score (1-5)                # AI-nativeness score
-sector, mandate_category       # Classification
-thesis_tags []                 # Array of tags
-business_model, target_customer  # From batch scoring
-fit_reasoning                  # From deep analysis ONLY (null until ⚡ clicked)
-comparable_companies []        # From deep analysis ONLY
-key_risks                      # From deep analysis ONLY (stored as JSON string)
-bull_case                      # From deep analysis ONLY (stored as JSON string)
-recommended_next_step          # From deep analysis ONLY
-source                         # 'autonomous_sourcing', 'manual', 'rss', 'yc', etc.
-pipeline_status                # 'new', 'watching', 'outreach', 'diligence', 'passed', 'invested'
-is_portfolio                   # Boolean — portfolio companies
-research_status                # null, 'completed', 'failed'
-```
-
----
-
-## Known Issues / Things Not to Break
-1. **`key_risks` and `bull_case`** — Claude returns these as lists, but DB columns are TEXT. Must `json.dumps()` before saving if value is a list.
-2. **Firecrawl is synchronous** — must use `loop.run_in_executor(None, ...)` in async FastAPI contexts.
-3. **VARCHAR → TEXT** — some older columns are VARCHAR and truncate Claude outputs. TEXT is correct type for all LLM-generated content.
-4. **Sourcing stream auth** — uses `?token=` query param not Authorization header.
-5. **`rescore-unscored` endpoint** — must be scoped by `user_id` or it rescores all firms.
-6. **No background auto-classification** — companies should NEVER be deep-analyzed automatically. Only `classify_batch` runs automatically. `classify_startup` is on-demand only.
-
----
-
-## Pending Work
-- Custom domain (needed for Clerk production mode)
-- Clerk → production mode
-- Failup Ventures demo account setup
-- Company cards redesign
-- Rotate credentials (Supabase password + Clerk secret exposed in chat transcripts)
-- Remove `uploads/` from GitHub tracking
-- Performance: Coverage rerenders on every tab switch (should cache data)
-- Sweep all endpoints for missing `user_id` filter on FirmProfile queries
-
----
+## Frontend Patterns
+- No Tailwind — inline styles only
+- API base URL comes from environment variable
+- Auth via useAuth() from @clerk/clerk-react
+- All API calls include Bearer token in Authorization header
+- Polling interval for notifications: 60 seconds
 
 ## Environment Variables (backend)
-```
-DATABASE_URL
-ANTHROPIC_API_KEY
-CLERK_SECRET_KEY
-FIRECRAWL_API_KEY
-BRAVE_API_KEY
-SENDGRID_API_KEY
-FROM_EMAIL=remi@balassanian.com
-```
+Key vars (never modify .env directly):
+- DATABASE_URL — Supabase pooler connection string
+- ANTHROPIC_API_KEY
+- OPENAI_API_KEY — for embeddings only (text-embedding-3-small)
+- BRAVE_API_KEY — for real web search
+- FIRECRAWL_API_KEY — for page scraping
+- SENDGRID_API_KEY
+- FROM_EMAIL, NOTIFICATION_EMAIL
+- APP_URL — Railway frontend URL (not localhost)
+- CLERK_SECRET_KEY
 
----
+## Deployment
+- Backend: https://radar-production-8cea.up.railway.app
+- Frontend: https://zestful-creativity-production.up.railway.app
+- Database: Supabase (shared between local and Railway)
+- Push to deploy: git push triggers Railway auto-deploy
+- Never add migrations to Procfile
 
-## Key Commands
-```bash
-# Push to Railway
-cd ~/radar && git add -A && git commit -m "message" && git push origin main
-
-# View Railway logs
-# Go to railway.app → project → backend service → Logs
-
-# Local backend (if needed)
-cd ~/radar/backend && source venv/bin/activate && uvicorn app.main:app --reload
-
-# Local frontend (if needed)  
-cd ~/radar/frontend && npm run dev
-```
+## Known Issues / In Progress
+- Layer 2 (admin failure alerts) and Layer 3 (in-app health indicator)
+  for scheduler observability not yet built

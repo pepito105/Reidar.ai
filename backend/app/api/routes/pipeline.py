@@ -106,4 +106,42 @@ async def move_in_pipeline(data: PipelineMove, request: Request, db: AsyncSessio
             import logging
             logging.getLogger(__name__).warning(f"Failed to write pipeline memory: {e}")
 
+    # Trigger immediate signal check when company enters pipeline
+    if data.new_status in ("watching", "outreach", "diligence"):
+        try:
+            import asyncio
+            from app.core.database import AsyncSessionLocal
+            from app.services.refresh_service import refresh_company
+
+            startup_id = startup.id
+
+            async def _background_signal_check():
+                try:
+                    async with AsyncSessionLocal() as bg_db:
+                        from sqlalchemy import select
+                        from app.models.startup import Startup as StartupModel
+                        result = await bg_db.execute(
+                            select(StartupModel).where(StartupModel.id == startup_id)
+                        )
+                        s = result.scalar_one_or_none()
+                        if s:
+                            await refresh_company(s, bg_db)
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).warning(
+                        f"Background signal check failed for startup {startup_id}: {e}"
+                    )
+
+            asyncio.create_task(_background_signal_check())
+            import logging
+            logging.getLogger(__name__).info(
+                f"Background signal check triggered for {startup.name} "
+                f"(moved to {data.new_status})"
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(
+                f"Failed to trigger signal check for {startup.name}: {e}"
+            )
+
     return {"success": True, "startup_id": data.startup_id}

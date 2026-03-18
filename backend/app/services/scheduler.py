@@ -107,13 +107,12 @@ async def job_refresh_signals():
                 result = await db.execute(
                     select(Startup)
                     .where(Startup.user_id == user_id)
-                    .where(Startup.fit_score >= 3)
+                    .where(Startup.pipeline_status.in_(["watching", "outreach", "diligence"]))
                     .where(
                         (Startup.last_refreshed_at == None) |
                         (Startup.last_refreshed_at < cutoff)
                     )
                     .order_by(Startup.fit_score.desc())
-                    .limit(30)
                 )
                 companies = result.scalars().all()
                 refreshed = 0

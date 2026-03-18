@@ -501,31 +501,100 @@ Respond with ONLY a JSON object, no markdown, no backticks:
         return {}
 
 
-async def detect_signals(company_name: str, one_liner: str, website: Optional[str], funding_stage: Optional[str]) -> list:
-    prompt = f"""You are an AI analyst monitoring a startup portfolio.
+async def detect_signals(
+    company_name: str,
+    one_liner: str,
+    website: Optional[str],
+    funding_stage: Optional[str],
+    db=None,
+) -> list:
+    """
+    Detect real signals for a pipeline company using Brave Search +
+    Firecrawl. Falls back to empty list if Brave is not configured.
+    Never fabricates signals.
+    """
+    from app.services.research_service import brave_search, firecrawl_scrape
+
+    if not settings.BRAVE_API_KEY:
+        logger.warning(f"No BRAVE_API_KEY — skipping signal detection for {company_name}")
+        return []
+
+    # Search for recent news about the company
+    queries = [
+        f"{company_name} funding round 2025 2026",
+        f"{company_name} product launch news",
+        f"{company_name} startup announcement",
+    ]
+
+    all_results = []
+    for query in queries:
+        results = await brave_search(query, count=3, freshness="pw")
+        all_results.extend(results)
+
+    if not all_results:
+        logger.info(f"No search results for {company_name} — no signals generated")
+        return []
+
+    # Deduplicate URLs
+    seen_urls = set()
+    unique_results = []
+    for r in all_results:
+        if r["url"] not in seen_urls:
+            seen_urls.add(r["url"])
+            unique_results.append(r)
+
+    # Scrape top 3 results for full content
+    scraped = []
+    for r in unique_results[:3]:
+        content = await firecrawl_scrape(r["url"], max_length=2000)
+        if content:
+            scraped.append(f"URL: {r['url']}\nTITLE: {r['title']}\n{content}")
+        else:
+            # Fall back to search snippet if scrape fails
+            scraped.append(f"URL: {r['url']}\nTITLE: {r['title']}\n{r['description']}")
+
+    if not scraped:
+        return []
+
+    # Ask Claude to extract real signal events from the content
+    combined = "\n\n---\n\n".join(scraped)
+    prompt = f"""You are a VC analyst reviewing recent news about a portfolio company.
 
 COMPANY: {company_name}
 DESCRIPTION: {one_liner or 'No description'}
-WEBSITE: {website or 'Unknown'}
 FUNDING STAGE: {funding_stage or 'Unknown'}
 
-Identify 1-3 realistic recent signals an investor would care about.
-Focus on: funding rounds, product launches, key hires, traction milestones, press coverage.
+RECENT WEB CONTENT:
+{combined}
 
-Respond with ONLY a JSON array:
+Extract real signal events from the content above. Only include events
+that actually appear in the content — do not invent or infer signals.
+
+Signal types:
+- funding_round: raised money, closed round, new investors
+- product_launch: new product, feature, or major update shipped
+- headcount_growth: hiring, team expansion, new office
+- news_mention: press coverage, awards, partnerships
+- leadership_change: new executives, founders leaving/joining
+- traction_update: revenue milestone, customer announcement, growth metric
+
+For each real signal found, include the source_url where it was found.
+
+Respond with ONLY a JSON array. If no real signals are found, return [].
+
 [
   {{
-    "signal_type": "funding_round or product_launch or news_mention or headcount_growth or leadership_change or traction_update",
-    "title": "short headline max 80 chars",
-    "summary": "1-2 sentence description"
+    "signal_type": "one of the types above",
+    "title": "short headline max 80 chars — use the actual news headline",
+    "summary": "1-2 sentences describing what happened, grounded in the content",
+    "source_url": "the URL where this signal was found"
   }}
-]
+]"""
 
-If no meaningful signals exist, return an empty array: []"""
     try:
         response = await client.messages.create(
             model=MODEL,
-            max_tokens=2000,
+            max_tokens=1000,
             messages=[{"role": "user", "content": prompt}]
         )
         raw = response.content[0].text.strip()
@@ -534,7 +603,37 @@ If no meaningful signals exist, return an empty array: []"""
             if raw.startswith("json"):
                 raw = raw[4:]
         result = json.loads(raw.strip())
-        return result if isinstance(result, list) else []
+        signals = result if isinstance(result, list) else []
+        logger.info(f"Signal detection for {company_name}: {len(signals)} real signals found")
+
+        if not signals:
+            return []
+
+        # Deduplicate against existing signals in the database
+        if db is not None:
+            try:
+                from sqlalchemy import select
+                from app.models.startup import Startup
+                from app.models.signal import CompanySignal
+
+                existing_result = await db.execute(
+                    select(CompanySignal.title)
+                    .join(Startup, CompanySignal.startup_id == Startup.id)
+                    .where(Startup.name == company_name)
+                )
+                existing_titles = {row[0].lower() for row in existing_result.fetchall()}
+
+                signals = [
+                    s for s in signals
+                    if s.get("title", "").lower() not in existing_titles
+                ]
+                logger.info(
+                    f"After deduplication: {len(signals)} new signals for {company_name}"
+                )
+            except Exception as e:
+                logger.warning(f"Deduplication check failed for {company_name}: {e}")
+
+        return signals
     except Exception as e:
         logger.error(f"Signal detection error for {company_name}: {e}")
         return []

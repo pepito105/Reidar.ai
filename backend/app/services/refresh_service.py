@@ -16,6 +16,7 @@ async def refresh_company(startup: Startup, db: AsyncSession) -> list:
             one_liner=startup.one_liner or startup.ai_summary or "",
             website=startup.website,
             funding_stage=startup.funding_stage,
+            db=db,
         )
         added = []
         for sig in raw_signals:
@@ -29,6 +30,7 @@ async def refresh_company(startup: Startup, db: AsyncSession) -> list:
                 signal_type=signal_type,
                 title=title,
                 summary=summary,
+                source_url=sig.get("source_url"),
                 is_seen=False,
                 detected_at=datetime.utcnow(),
             )

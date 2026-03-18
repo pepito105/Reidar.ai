@@ -206,18 +206,21 @@ Be specific, use company names and numbers, stay under 700 words total. Write li
 
 @router.get("/feed")
 async def get_activity_feed(
+    request: Request,
     days: int = 30,
     signal_type: str = None,
     unseen_only: bool = False,
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
 ):
+    user_id = _user_id_from_request(request)
     from datetime import datetime, timedelta
     since = datetime.utcnow() - timedelta(days=days)
     query = (
         select(CompanySignal, Startup.name, Startup.one_liner, Startup.fit_score)
         .join(Startup, CompanySignal.startup_id == Startup.id)
         .where(CompanySignal.detected_at >= since)
+        .where(Startup.user_id == user_id)
     )
     if signal_type:
         query = query.where(CompanySignal.signal_type == signal_type)
@@ -228,7 +231,10 @@ async def get_activity_feed(
     rows = result.fetchall()
 
     unseen_result = await db.execute(
-        select(CompanySignal).where(CompanySignal.is_seen == False)
+        select(CompanySignal)
+        .join(Startup, CompanySignal.startup_id == Startup.id)
+        .where(CompanySignal.is_seen == False)
+        .where(Startup.user_id == user_id)
     )
     unseen_count = len(unseen_result.scalars().all())
 
@@ -258,12 +264,22 @@ async def get_activity_feed(
 
 
 @router.post("/mark-all-seen")
-async def mark_all_seen(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(CompanySignal).where(CompanySignal.is_seen == False))
+async def mark_all_seen(request: Request, db: AsyncSession = Depends(get_db)):
+    user_id = _user_id_from_request(request)
+    result = await db.execute(
+        select(CompanySignal)
+        .join(Startup, CompanySignal.startup_id == Startup.id)
+        .where(CompanySignal.is_seen == False)
+        .where(Startup.user_id == user_id)
+    )
     signals = result.scalars().all()
     for s in signals:
         s.is_seen = True
-    startup_result = await db.execute(select(Startup).where(Startup.has_unseen_signals == True))
+    startup_result = await db.execute(
+        select(Startup)
+        .where(Startup.user_id == user_id)
+        .where(Startup.has_unseen_signals == True)
+    )
     startups = startup_result.scalars().all()
     for startup in startups:
         startup.has_unseen_signals = False
@@ -272,7 +288,8 @@ async def mark_all_seen(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/mark-seen/{startup_id}")
-async def mark_company_seen(startup_id: int, db: AsyncSession = Depends(get_db)):
+async def mark_company_seen(startup_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user_id = _user_id_from_request(request)
     result = await db.execute(
         select(CompanySignal).where(
             CompanySignal.startup_id == startup_id,
@@ -282,7 +299,11 @@ async def mark_company_seen(startup_id: int, db: AsyncSession = Depends(get_db))
     signals = result.scalars().all()
     for s in signals:
         s.is_seen = True
-    startup_result = await db.execute(select(Startup).where(Startup.id == startup_id))
+    startup_result = await db.execute(
+        select(Startup)
+        .where(Startup.id == startup_id)
+        .where(Startup.user_id == user_id)
+    )
     startup = startup_result.scalar_one_or_none()
     if startup:
         startup.has_unseen_signals = False
@@ -293,9 +314,16 @@ async def mark_company_seen(startup_id: int, db: AsyncSession = Depends(get_db))
 @router.get("/company/{startup_id}")
 async def get_company_signals(
     startup_id: int,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    user_id = _user_id_from_request(request)
     from sqlalchemy import desc
+    owner_check = await db.execute(
+        select(Startup).where(Startup.id == startup_id).where(Startup.user_id == user_id)
+    )
+    if not owner_check.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Startup not found")
     result = await db.execute(
         select(CompanySignal)
         .where(CompanySignal.startup_id == startup_id)
@@ -334,8 +362,8 @@ async def test_notification(
     """Test endpoint to trigger notification emails manually."""
     user_id = _user_id_from_request(request)
     from app.services.notification_service import (
-        send_new_top_match_alert,
-        send_diligence_signal_alert,
+        send_top_match_alert,
+        send_diligence_batch_alert,
         send_weekly_summary,
     )
     from app.models.firm_profile import FirmProfile
@@ -345,6 +373,7 @@ async def test_notification(
     profile = profile_result.scalars().first()
     firm_name = profile.firm_name if profile else "Failup Ventures"
     notify_emails = profile.notification_emails if profile else None
+    thesis = profile.investment_thesis if profile else ""
 
     if notification_type == "top_match":
         # Pull real top companies from DB
@@ -361,7 +390,11 @@ async def test_notification(
             }
             for s in result.scalars().all()
         ]
-        success = await send_new_top_match_alert(companies, firm_name, notification_emails=notify_emails)
+        results = [
+            await send_top_match_alert(c, firm_name, thesis=thesis, notification_emails=notify_emails)
+            for c in companies
+        ]
+        success = any(results)
         return {"sent": success, "type": "top_match", "companies": len(companies)}
 
     elif notification_type == "diligence":
@@ -384,11 +417,14 @@ async def test_notification(
             {"signal_type": "funding_round", "title": "Raised $4M seed round", "summary": "Led by Benchmark with participation from YC. Will use funds to expand enterprise sales team."},
             {"signal_type": "product_launch", "title": "Launched v2 with new AI features", "summary": "Major product update including automated workflow builder and native CRM integrations."},
         ]
-        success = await send_diligence_signal_alert(
-            company_name=company.name,
-            signals=mock_signals,
-            fit_score=company.fit_score or 4,
+        success = await send_diligence_batch_alert(
+            alerts=[{
+                "company_name": company.name,
+                "signals": mock_signals,
+                "fit_score": company.fit_score or 4,
+            }],
             firm_name=firm_name,
+            thesis=thesis,
             notification_emails=notify_emails,
         )
         return {"sent": success, "type": "diligence", "company": company.name}
