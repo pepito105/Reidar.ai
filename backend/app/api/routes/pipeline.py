@@ -94,7 +94,7 @@ async def get_pipeline(request: Request, db: AsyncSession = Depends(get_db)):
                 "notes": s.notes,
                 "conviction_score": s.conviction_score,
                 "next_action": s.next_action,
-                "next_action_due": s.next_action_due.isoformat() if s.next_action_due else None,
+                "next_action_due": (s.next_action_due.isoformat() + "Z") if s.next_action_due else None,
                 "activity_log": s.activity_log or [],
                 "meeting_notes": s.meeting_notes or [],
                 "founder_contacts": s.founder_contacts or [],
@@ -106,11 +106,11 @@ async def get_pipeline(request: Request, db: AsyncSession = Depends(get_db)):
                 "red_flags": s.red_flags,
                 "sources_visited": s.sources_visited,
                 "research_status": s.research_status,
-                "research_completed_at": s.research_completed_at.isoformat() if s.research_completed_at else None,
+                "research_completed_at": (s.research_completed_at.isoformat() + "Z") if s.research_completed_at else None,
                 "has_unseen_signals": bool(s.has_unseen_signals) if s.has_unseen_signals is not None else False,
                 "is_portfolio": s.is_portfolio or False,
-                "scraped_at": s.scraped_at.isoformat() if s.scraped_at else None,
-                "updated_at": s.scraped_at.isoformat() if s.scraped_at else None,
+                "scraped_at": (s.scraped_at.isoformat() + "Z") if s.scraped_at else None,
+                "updated_at": (s.scraped_at.isoformat() + "Z") if s.scraped_at else None,
                 "last_activity_at": last_activity_map.get(s.id).isoformat() if last_activity_map.get(s.id) else None,
             })
     return board

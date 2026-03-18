@@ -200,7 +200,7 @@ Be specific, use company names and numbers, stay under 700 words total. Write li
         "new_count": len(new_companies),
         "signals_count": len(signals_by_company),
         "pipeline_attention_count": len(needs_attention),
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": datetime.utcnow().isoformat() + "Z",
     }
 
 
@@ -257,7 +257,7 @@ async def get_activity_feed(
             "title": signal.title,
             "summary": signal.summary,
             "is_seen": signal.is_seen,
-            "detected_at": signal.detected_at.isoformat(),
+            "detected_at": (signal.detected_at.isoformat() + "Z") if signal.detected_at else None,
         })
 
     return {"feed": feed, "total": len(feed), "unseen_count": unseen_count, "days": days}
@@ -345,7 +345,7 @@ async def get_company_signals(
                 "title": s.title,
                 "summary": s.summary,
                 "is_seen": s.is_seen,
-                "detected_at": s.detected_at.isoformat(),
+                "detected_at": (s.detected_at.isoformat() + "Z") if s.detected_at else None,
             }
             for s in signals
         ],

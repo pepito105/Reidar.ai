@@ -133,9 +133,9 @@ def _startup_to_card(startup: Startup) -> Dict[str, Any]:
         "bull_case": startup.bull_case,
         "meeting_notes": startup.meeting_notes or [],
         "activity_log": startup.activity_log or [],
-        "scraped_at": startup.scraped_at.isoformat() if startup.scraped_at else None,
+        "scraped_at": _utc_isoformat(startup.scraped_at),
         "research_status": startup.research_status,
-        "research_completed_at": startup.research_completed_at.isoformat() if startup.research_completed_at else None,
+        "research_completed_at": _utc_isoformat(startup.research_completed_at),
         "enriched_one_liner": startup.enriched_one_liner,
         "business_model": startup.business_model,
         "target_customer": startup.target_customer,
@@ -254,7 +254,7 @@ async def add_company(data: AddCompanyRequest, request: Request, db: AsyncSessio
         recommended_next_step=t(result.get("recommended_next_step"), 499),
         funding_stage=t(data.funding_stage or result.get("funding_stage") or "unknown", 49),
         source=data.source or "manual",
-        meeting_notes=[{"note": data.meeting_notes, "created_at": _dt.datetime.now().isoformat()}] if data.meeting_notes else [],
+        meeting_notes=[{"note": data.meeting_notes, "created_at": _dt.datetime.utcnow().isoformat() + "Z"}] if data.meeting_notes else [],
         scraped_at=_dt.datetime.utcnow(),
         user_id=user_id,
     )
@@ -337,7 +337,7 @@ async def get_portfolio(request: Request, db: AsyncSession = Depends(get_db)):
             "funding_stage": s.funding_stage,
             "sector": s.sector,
             "portfolio_status": s.portfolio_status,
-            "investment_date": s.investment_date.isoformat() if s.investment_date else None,
+            "investment_date": (s.investment_date.isoformat() + "Z") if s.investment_date else None,
             "check_size_usd": s.check_size_usd,
             "co_investors": s.co_investors or [],
         }
@@ -713,7 +713,7 @@ async def get_similar_startups(startup_id: int, request: Request, db: AsyncSessi
             "name": r.name,
             "fit_score": r.fit_score,
             "pipeline_status": r.pipeline_status,
-            "scraped_at": r.scraped_at.isoformat() if r.scraped_at else None,
+            "scraped_at": (r.scraped_at.isoformat() + "Z") if r.scraped_at else None,
             "similarity": round(r.similarity, 2),
         }
         for r in rows

@@ -420,7 +420,7 @@ async def get_memories(request: Request, db: AsyncSession = Depends(get_db)):
             "memory_type": m.memory_type,
             "content": m.content,
             "company_name": m.company_name,
-            "created_at": m.created_at.isoformat() if m.created_at else None,
+            "created_at": (m.created_at.isoformat() + "Z") if m.created_at else None,
         }
         for m in memories
     ]

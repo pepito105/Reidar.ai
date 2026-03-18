@@ -45,7 +45,7 @@ def _serialize(n: Notification) -> dict:
         "startup_name": n.startup_name,
         "fit_score": n.fit_score,
         "is_seen": n.is_seen,
-        "created_at": n.created_at.isoformat() if n.created_at else None,
+        "created_at": (n.created_at.isoformat() + "Z") if n.created_at else None,
         "metadata": n.metadata_ or {},
     }
 

@@ -39,7 +39,7 @@ async def get_scrape_status(db: AsyncSession = Depends(get_db)):
         "is_running": _scrape_running,
         "total_companies": total_companies,
         "new_this_week": new_this_week,
-        "last_scraped": last_scraped.isoformat() if last_scraped else None,
+        "last_scraped": (last_scraped.isoformat() + "Z") if last_scraped else None,
         "next_scheduled": "2:00 AM ET nightly",
     }
 

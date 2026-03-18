@@ -85,7 +85,7 @@ async def upload_file(
         "original_name": file.filename,
         "path": file_path,
         "size": len(contents),
-        "uploaded_at": datetime.now().isoformat()
+        "uploaded_at": datetime.utcnow().isoformat() + "Z"
     })
     startup.memo_files = files
     await db.commit()
@@ -226,13 +226,13 @@ async def generate_memo(
         raise HTTPException(status_code=500, detail="Memo generation failed")
 
     startup.memo = memo_text
-    startup.memo_generated_at = datetime.now()
+    startup.memo_generated_at = datetime.utcnow()
     await db.commit()
     await db.refresh(startup)
     return {
         "success": True,
         "memo": memo_text,
-        "generated_at": startup.memo_generated_at.isoformat() if startup.memo_generated_at else None,
+        "generated_at": (startup.memo_generated_at.isoformat() + "Z") if startup.memo_generated_at else None,
         "bull_case": startup.bull_case or None,
         "key_risks": startup.key_risks or None,
     }
@@ -247,7 +247,7 @@ async def get_memo(startup_id: int, db: AsyncSession = Depends(get_db)):
     return {
         "memo": startup.memo,
         "memo_files": startup.memo_files or [],
-        "memo_generated_at": startup.memo_generated_at.isoformat() if startup.memo_generated_at else None,
+        "memo_generated_at": (startup.memo_generated_at.isoformat() + "Z") if startup.memo_generated_at else None,
         "bull_case": startup.bull_case or None,
         "key_risks": startup.key_risks or None,
     }
