@@ -281,6 +281,13 @@ async def run_autonomous_sourcing(db: AsyncSession, custom_brief: str = None, li
                     startup.target_customer = (result.get("target_customer") or "")[:499]
                     if (startup.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):
                         startup.funding_stage = result["funding_stage"][:49]
+                # Write notification for 4/5 and 5/5 companies
+                if (startup.fit_score or 0) >= 4:
+                    try:
+                        from app.services.notification_writer import write_new_company_notification
+                        await write_new_company_notification(db, startup, user_id=user_id)
+                    except Exception as notify_err:
+                        logger.warning(f"Failed to write new company notification for {startup.name}: {notify_err}")
             await db.commit()
         except Exception as e:
             logger.error(f"Batch classification failed in nightly sourcing: {e}")

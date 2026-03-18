@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel
@@ -10,13 +11,28 @@ import anthropic
 
 router = APIRouter(prefix="/chat")
 
+
+def _user_id_from_request(request: Request) -> Optional[str]:
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+        try:
+            import jwt
+            decoded = jwt.decode(token, options={"verify_signature": False}, algorithms=["RS256", "HS256"])
+            return decoded.get("sub")
+        except Exception:
+            return None
+    return None
+
+
 class ChatMessage(BaseModel):
     message: str
 
 @router.post("/")
-async def chat(data: ChatMessage, db: AsyncSession = Depends(get_db)):
-    profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
-    profile = profile_result.scalar_one_or_none()
+async def chat(request: Request, data: ChatMessage, db: AsyncSession = Depends(get_db)):
+    user_id = _user_id_from_request(request)
+    profile_result = await db.execute(select(FirmProfile).where(FirmProfile.user_id == user_id).where(FirmProfile.is_active == True).limit(1))
+    profile = profile_result.scalars().first()
 
     result = await db.execute(select(Startup).order_by(Startup.fit_score.desc().nulls_last()).limit(100))
     startups = result.scalars().all()

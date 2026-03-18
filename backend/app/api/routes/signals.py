@@ -50,9 +50,10 @@ def _last_activity_at(startup: Startup) -> Optional[datetime]:
 
 
 @router.post("/hot-signals")
-async def generate_hot_signals(data: SignalsRequest, db: AsyncSession = Depends(get_db)):
-    profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
-    profile = profile_result.scalar_one_or_none()
+async def generate_hot_signals(request: Request, data: SignalsRequest, db: AsyncSession = Depends(get_db)):
+    user_id = _user_id_from_request(request)
+    profile_result = await db.execute(select(FirmProfile).where(FirmProfile.user_id == user_id).where(FirmProfile.is_active == True).limit(1))
+    profile = profile_result.scalars().first()
     thesis = profile.investment_thesis if profile else "Early-stage technology companies"
     firm_name = profile.firm_name if profile else "the firm"
 
@@ -326,10 +327,12 @@ async def get_company_signals(
 
 @router.post("/notifications/test")
 async def test_notification(
+    request: Request,
     notification_type: str = "top_match",
     db: AsyncSession = Depends(get_db)
 ):
     """Test endpoint to trigger notification emails manually."""
+    user_id = _user_id_from_request(request)
     from app.services.notification_service import (
         send_new_top_match_alert,
         send_diligence_signal_alert,
@@ -338,8 +341,8 @@ async def test_notification(
     from app.models.firm_profile import FirmProfile
 
     # Get firm name
-    profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
-    profile = profile_result.scalar_one_or_none()
+    profile_result = await db.execute(select(FirmProfile).where(FirmProfile.user_id == user_id).where(FirmProfile.is_active == True).limit(1))
+    profile = profile_result.scalars().first()
     firm_name = profile.firm_name if profile else "Failup Ventures"
     notify_emails = profile.notification_emails if profile else None
 
@@ -428,15 +431,17 @@ async def test_notification(
 
 @router.post("/research/test")
 async def test_research(
+    request: Request,
     company_id: int = None,
     db: AsyncSession = Depends(get_db)
 ):
     """Test autonomous research on a single company or run a small batch."""
+    user_id = _user_id_from_request(request)
     from app.services.research_service import research_company, run_research_batch
     from app.models.firm_profile import FirmProfile
 
-    profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
-    profile = profile_result.scalar_one_or_none()
+    profile_result = await db.execute(select(FirmProfile).where(FirmProfile.user_id == user_id).where(FirmProfile.is_active == True).limit(1))
+    profile = profile_result.scalars().first()
     firm_mandate = profile.investment_thesis if profile else ""
 
     if company_id:
@@ -482,10 +487,11 @@ def _normalize_key_risks_or_bull_case(value):
 
 
 @router.post("/rescore-all")
-async def rescore_all(db: AsyncSession = Depends(get_db)):
+async def rescore_all(request: Request, db: AsyncSession = Depends(get_db)):
     """Rescore all startups in batches of 20 using classify_batch."""
-    profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
-    profile = profile_result.scalar_one_or_none()
+    user_id = _user_id_from_request(request)
+    profile_result = await db.execute(select(FirmProfile).where(FirmProfile.user_id == user_id).where(FirmProfile.is_active == True).limit(1))
+    profile = profile_result.scalars().first()
     if not profile:
         raise HTTPException(status_code=400, detail="No active firm profile")
     result = await db.execute(select(Startup))

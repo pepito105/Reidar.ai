@@ -411,6 +411,13 @@ async def analyze_startup(startup_id: int, request: Request, db: AsyncSession = 
             startup.research_status = "complete"
             startup.research_completed_at = datetime.utcnow()
         await db.commit()
+        # Write research complete notification
+        if result.get("research_status") == "complete":
+            try:
+                from app.services.notification_writer import write_research_complete_notification
+                await write_research_complete_notification(db, startup, user_id=user_id)
+            except Exception as notify_err:
+                logger.warning(f"Failed to write research complete notification: {notify_err}")
         await db.refresh(startup)
     return _startup_to_card(startup)
 
@@ -524,6 +531,13 @@ async def analyze_startup_stream(startup_id: int, request: Request, db: AsyncSes
                 startup.research_status = "complete"
                 startup.research_completed_at = datetime.utcnow()
             await db.commit()
+
+            # Write research complete notification
+            try:
+                from app.services.notification_writer import write_research_complete_notification
+                await write_research_complete_notification(db, startup, user_id=user_id)
+            except Exception as notify_err:
+                logger.warning(f"Failed to write research complete notification: {notify_err}")
 
             # Write research completion memory
             try:

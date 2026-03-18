@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     SENDGRID_API_KEY: Optional[str] = None
     NOTIFICATION_EMAIL: str = "remi@balassanian.com"
     FROM_EMAIL: str = "remi@balassanian.com"
+    APP_URL: str = "http://localhost:5173"
     FIRECRAWL_API_KEY: Optional[str] = None
     BRAVE_API_KEY: Optional[str] = None
 

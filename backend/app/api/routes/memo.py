@@ -3,7 +3,7 @@ import json
 import logging
 from datetime import datetime
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import get_db
@@ -14,6 +14,19 @@ from anthropic import AsyncAnthropic
 
 router = APIRouter(prefix="/memo")
 logger = logging.getLogger(__name__)
+
+
+def _user_id_from_request(request: Request) -> Optional[str]:
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+        try:
+            import jwt
+            decoded = jwt.decode(token, options={"verify_signature": False}, algorithms=["RS256", "HS256"])
+            return decoded.get("sub")
+        except Exception:
+            return None
+    return None
 client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
 UPLOAD_DIR = "/Users/remibalassanian/radar/uploads"
@@ -196,15 +209,17 @@ One page maximum. Be direct."""
 @router.post("/generate/{startup_id}")
 async def generate_memo(
     startup_id: int,
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ):
+    user_id = _user_id_from_request(request)
     result = await db.execute(select(Startup).where(Startup.id == startup_id))
     startup = result.scalar_one_or_none()
     if not startup:
         raise HTTPException(status_code=404, detail="Startup not found")
 
-    firm_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True).limit(1))
-    firm = firm_result.scalar_one_or_none()
+    firm_result = await db.execute(select(FirmProfile).where(FirmProfile.user_id == user_id).where(FirmProfile.is_active == True).limit(1))
+    firm = firm_result.scalars().first()
 
     memo_text = await generate_memo_for_startup(startup, firm, db)
     if not memo_text:

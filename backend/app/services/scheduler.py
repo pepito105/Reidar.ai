@@ -18,7 +18,6 @@ scheduler = AsyncIOScheduler(timezone='America/New_York')
 async def job_run_scrapers():
     logger.info('Scheduler: Starting nightly scrape')
     from app.services.scraping_service import run_full_scrape
-    from app.services.notification_service import send_new_top_match_alert
     async with AsyncSessionLocal() as db:
         try:
             stats = await run_full_scrape(db)
@@ -43,21 +42,26 @@ async def job_run_scrapers():
             )
             new_top = new_result.scalars().all()
 
-            if new_top and should_notify:
-                logger.info(f'Sending top match alert for {len(new_top)} companies')
-                companies = [
-                    {
-                        "name": s.name,
-                        "fit_score": s.fit_score,
-                        "one_liner": s.one_liner,
-                        "funding_stage": s.funding_stage,
-                        "sector": s.sector,
-                    }
-                    for s in new_top
-                ]
-                await send_new_top_match_alert(companies, firm_name, notification_emails=notify_emails)
+            thesis = profile.investment_thesis if profile else ""
+            fives = [s for s in new_top if s.fit_score == 5]
+            if fives and should_notify:
+                from app.services.notification_service import send_top_match_alert
+                for s in fives:
+                    await send_top_match_alert(
+                        company={
+                            "name": s.name,
+                            "fit_score": s.fit_score,
+                            "one_liner": s.one_liner,
+                            "funding_stage": s.funding_stage,
+                            "sector": s.sector,
+                        },
+                        firm_name=firm_name,
+                        thesis=thesis,
+                        notification_emails=notify_emails,
+                    )
+                logger.info(f'Top match alerts sent for {len(fives)} 5/5 companies')
             else:
-                logger.info('No new top matches from this scrape — skipping alert')
+                logger.info('No 5/5 companies from this scrape — skipping alert')
 
         except Exception as e:
             logger.error(f'Nightly scrape failed: {e}', exc_info=True)
@@ -73,6 +77,7 @@ async def job_refresh_signals():
             profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
             profile = profile_result.scalar_one_or_none()
             firm_name = profile.firm_name if profile else "your firm"
+            thesis = profile.investment_thesis if profile else ""
             notify_emails = profile.notification_emails if profile else None
             should_notify_diligence = profile.notify_diligence_signal if profile else True
 
@@ -120,6 +125,7 @@ async def job_refresh_signals():
                 await send_diligence_batch_alert(
                     alerts=diligence_alerts,
                     firm_name=firm_name,
+                    thesis=thesis,
                     notification_emails=notify_emails,
                 )
                 logger.info(f'Diligence batch alert sent for {len(diligence_alerts)} companies')
@@ -152,6 +158,7 @@ async def job_weekly_summary():
             profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
             profile = profile_result.scalar_one_or_none()
             firm_name = profile.firm_name if profile else "your firm"
+            thesis = profile.investment_thesis if profile else ""
             notify_emails = profile.notification_emails if profile else None
             should_notify = profile.notify_weekly_summary if profile else True
             if not should_notify:
@@ -190,23 +197,37 @@ async def job_weekly_summary():
                     pipeline_summary[stage] = []
                 pipeline_summary[stage].append({"name": s.name})
 
-            # Stale deals (no activity in 7+ days, in active stages)
-            stale_cutoff = datetime.utcnow() - timedelta(days=7)
+            STALE_THRESHOLDS = {"watching": 14, "outreach": 21, "diligence": 30}
             stale_deals = []
             for s in pipeline_companies:
                 if s.pipeline_status in ("passed", "invested"):
                     continue
+                threshold_days = STALE_THRESHOLDS.get(s.pipeline_status)
+                if not threshold_days:
+                    continue
                 last = _last_activity_at(s)
                 if last and last.tzinfo:
                     last = last.replace(tzinfo=None)
-                if last is None or last < stale_cutoff:
-                    stale_deals.append({
-                        "name": s.name,
-                        "pipeline_status": s.pipeline_status,
-                        "one_liner": s.one_liner,
-                    })
+                cutoff = datetime.utcnow() - timedelta(days=threshold_days)
+                is_stale = (last is None) or (last < cutoff)
+                if not is_stale:
+                    continue
+                days_stale = (datetime.utcnow() - last).days if last else threshold_days + 1
+                stale_deals.append({
+                    "name": s.name,
+                    "pipeline_status": s.pipeline_status,
+                    "one_liner": s.one_liner,
+                    "days_stale": days_stale,
+                })
 
-            await send_weekly_summary(new_companies, pipeline_summary, stale_deals, firm_name, notification_emails=notify_emails)
+            await send_weekly_summary(
+                new_companies=new_companies,
+                pipeline_summary=pipeline_summary,
+                stale_deals=stale_deals,
+                firm_name=firm_name,
+                thesis=thesis,
+                notification_emails=notify_emails,
+            )
             logger.info('Weekly summary sent')
         except Exception as e:
             logger.error(f'Weekly summary failed: {e}', exc_info=True)
@@ -256,6 +277,14 @@ async def job_run_sourcing():
                 except Exception as e:
                     logger.error(f'Auto-research failed for {firm_name}: {e}')
 
+                # Write stale deal notifications
+                try:
+                    from app.services.notification_writer import write_stale_deal_notifications
+                    await write_stale_deal_notifications(db, user_id=user_id)
+                    logger.info(f'Stale deal notifications written for {firm_name}')
+                except Exception as e:
+                    logger.error(f'Stale deal notifications failed for {firm_name}: {e}')
+
         except Exception as e:
             logger.error(f'Nightly sourcing job failed: {e}', exc_info=True)
 
@@ -270,6 +299,13 @@ async def run_startup_check():
 
 
 def start_scheduler():
+    scheduler.add_job(
+        job_run_scrapers,
+        CronTrigger(hour=4, minute=30, timezone='America/New_York'),
+        id='nightly_scrape',
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
     scheduler.add_job(
         job_refresh_signals,
         CronTrigger(hour=3, minute=0),

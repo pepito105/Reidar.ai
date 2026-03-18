@@ -54,6 +54,8 @@ from app.api.routes.memo import router as memo_router
 app.include_router(memo_router, prefix="/api")
 from app.api.routes.associate import router as associate_router
 app.include_router(associate_router, prefix="/api")
+from app.api.routes.notifications import router as notifications_router
+app.include_router(notifications_router, prefix="/api")
 
 
 @app.get("/health")

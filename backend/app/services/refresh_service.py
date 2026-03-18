@@ -33,6 +33,11 @@ async def refresh_company(startup: Startup, db: AsyncSession) -> list:
                 detected_at=datetime.utcnow(),
             )
             db.add(signal)
+            try:
+                from app.services.notification_writer import write_company_signal_notification
+                await write_company_signal_notification(db, startup, signal)
+            except Exception as notify_err:
+                logger.warning(f"Failed to write signal notification: {notify_err}")
             added.append(signal)
         if added:
             startup.has_unseen_signals = True
