@@ -100,10 +100,62 @@ export default function Pipeline({ API }) {
       {loading ? (
         <div style={{ textAlign: 'center', color: '#555577', padding: 80 }}>Loading pipeline...</div>
       ) : totalInPipeline === 0 ? (
-        <div style={{ textAlign: 'center', color: '#555577', padding: 80 }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
-          <div style={{ fontSize: 15, marginBottom: 6 }}>Pipeline is empty</div>
-          <div style={{ fontSize: 13 }}>Add companies from Coverage by setting their pipeline status</div>
+        <div style={{ maxWidth: 580, margin: '60px auto', padding: '0 20px' }}>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#f0f0ff', marginBottom: 8 }}>
+              Your pipeline is empty
+            </div>
+            <div style={{ fontSize: 13, color: '#555577', lineHeight: 1.6 }}>
+              Add companies from Coverage to start tracking deals.
+              Drag cards between stages as your process moves forward.
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {[
+              {
+                icon: '📡',
+                stage: 'Watching',
+                color: '#6366f1',
+                description: 'Radar monitors news, funding rounds, and product launches. You\'ll be notified of any meaningful signals.',
+              },
+              {
+                icon: '📤',
+                stage: 'Outreach',
+                color: '#f59e0b',
+                description: 'Track companies you\'ve contacted. Radar flags deals that have gone quiet after 21 days.',
+              },
+              {
+                icon: '🔍',
+                stage: 'Diligence',
+                color: '#10b981',
+                description: 'Active evaluation. Radar surfaces new signals daily and alerts you to anything that changes the thesis.',
+              },
+              {
+                icon: '✓',
+                stage: 'Passed / Invested',
+                color: '#8b5cf6',
+                description: 'Keep a record of decisions. Passed deals inform future sourcing. Invested companies stay in your portfolio.',
+              },
+            ].map(({ icon, stage, color, description }) => (
+              <div key={stage} style={{
+                background: '#0f0f1a',
+                border: '1px solid #1e1e2e',
+                borderLeft: `3px solid ${color}`,
+                borderRadius: 8,
+                padding: '14px 16px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <span style={{ fontSize: 16 }}>{icon}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#f0f0ff' }}>{stage}</span>
+                </div>
+                <div style={{ fontSize: 12, color: '#8888aa', lineHeight: 1.6 }}>
+                  {description}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 16 }}>

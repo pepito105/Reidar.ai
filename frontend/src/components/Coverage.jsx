@@ -127,11 +127,11 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
   const [collapsedSectors, setCollapsedSectors] = useState({})
   const [viewMode, setViewMode] = useState('grouped') // 'grouped' | 'flat'
   const [showAddModal, setShowAddModal] = useState(false)
-  const [showNewOnly, setShowNewOnly] = useState(false)
-  const [showUnseenOnly, setShowUnseenOnly] = useState(false)
-  const [showTodayOnly, setShowTodayOnly] = useState(false)
   const [savedId, setSavedId] = useState(null)
   const cardRefs = useRef({})
+  const [searchQuery, setSearchQuery] = useState('')
+  const [addedFilter, setAddedFilter] = useState('') // '' | 'today' | 'week' | 'unseen'
+  const [pipelineFilter, setPipelineFilter] = useState('') // '' | 'in_pipeline'
 
   const { data: startups = [], isLoading: loading } = useQuery({
     queryKey: ['startups', filters],
@@ -190,7 +190,6 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
   }
 
   const sectors = [...new Set(startups.map(s => s.sector).filter(Boolean))].sort()
-  const stages = ['pre-seed', 'seed', 'Series A', 'Series B', 'Series C']
 
   const inboxCards = startups.filter(s =>
     isNewThisWeek(s.scraped_at) && !seenIds.has(s.id) && !s.pipeline_status
@@ -199,15 +198,30 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
     !(isNewThisWeek(s.scraped_at) && !seenIds.has(s.id) && !s.pipeline_status)
   )
   const universeCards = (() => {
-    if (showTodayOnly) return startups.filter(s => isAddedToday(s.scraped_at))
-    if (showNewOnly) return startups.filter(s => isNewThisWeek(s.scraped_at))
-    if (showUnseenOnly) return universeCardsBase.filter(s => !seenIds.has(s.id) && (s.fit_score || 0) >= 4)
-    return universeCardsBase
+    let base
+    if (addedFilter === 'today') base = startups.filter(s => isAddedToday(s.scraped_at))
+    else if (addedFilter === 'week') base = startups.filter(s => isNewThisWeek(s.scraped_at))
+    else if (addedFilter === 'unseen') base = universeCardsBase.filter(s => !seenIds.has(s.id) && (s.fit_score || 0) >= 4)
+    else base = universeCardsBase
+    if (pipelineFilter === 'in_pipeline') {
+      base = base.filter(s => s.pipeline_status &&
+        ['watching', 'outreach', 'diligence'].includes(s.pipeline_status))
+    }
+    return base
   })()
   const unseenHighFitCount = universeCardsBase.filter(s => !seenIds.has(s.id) && (s.fit_score || 0) >= 4).length
-  const addedTodayCount = startups.filter(s => isAddedToday(s.scraped_at)).length
+  const filteredCards = searchQuery.trim()
+    ? universeCards.filter(s => {
+        const q = searchQuery.toLowerCase()
+        return (
+          (s.name || '').toLowerCase().includes(q) ||
+          (s.one_liner || '').toLowerCase().includes(q) ||
+          (s.sector || '').toLowerCase().includes(q)
+        )
+      })
+    : universeCards
 
-  const sectorGroups = groupBySector(universeCards)
+  const sectorGroups = groupBySector(filteredCards)
     .map(([sector, companies]) => {
       const visible = companies.filter(s => (s.fit_score || 0) >= 3 || s.source === 'manual')
       return [sector, visible]
@@ -219,72 +233,186 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
       <div style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#f0f0ff', margin: 0, letterSpacing: '-0.5px' }}>Coverage</h1>
-            <p style={{ fontSize: 13, color: '#555577', margin: '4px 0 0' }}>
-              {startups.length} companies matched to mandate
-              {inboxCards.length > 0 && (
-                <span style={{ marginLeft: 10, color: '#10b981', fontWeight: 600 }}>
-                  ✦ {inboxCards.length} new this week
-                </span>
-              )}
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            {/* View mode toggle */}
-            <div style={{ display: 'flex', background: '#0f0f1a', border: '1px solid #2a2a4a', borderRadius: 7, overflow: 'hidden' }}>
+        <div style={{ marginBottom: 20 }}>
+
+          {/* Title row */}
+          <div style={{
+            display: 'flex', alignItems: 'center',
+            justifyContent: 'space-between', marginBottom: 12
+          }}>
+            <div>
+              <h1 style={{
+                fontSize: 22, fontWeight: 700, color: '#f0f0ff',
+                margin: 0, letterSpacing: '-0.5px'
+              }}>Coverage</h1>
+              <p style={{ fontSize: 13, color: '#555577', margin: '4px 0 0' }}>
+                {searchQuery.trim()
+                  ? `${filteredCards.length} result${filteredCards.length !== 1 ? 's' : ''} for "${searchQuery}"`
+                  : addedFilter || filters.stage || filters.fit_level || filters.sector || pipelineFilter
+                  ? `${filteredCards.length} of ${startups.length} companies`
+                  : `${startups.length} companies in your universe`
+                }
+                {inboxCards.length > 0 && !searchQuery && (
+                  <span style={{ marginLeft: 10, color: '#10b981', fontWeight: 600 }}>
+                    ✦ {inboxCards.length} new this week
+                  </span>
+                )}
+              </p>
+            </div>
+            {/* View toggle */}
+            <div style={{
+              display: 'flex', background: '#0f0f1a',
+              border: '1px solid #2a2a4a', borderRadius: 7, overflow: 'hidden'
+            }}>
               <button onClick={() => setViewMode('grouped')} style={{
-                padding: '5px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
+                padding: '5px 12px', fontSize: 11, fontWeight: 600,
+                cursor: 'pointer', border: 'none',
                 background: viewMode === 'grouped' ? '#2a2a4a' : 'transparent',
                 color: viewMode === 'grouped' ? '#f0f0ff' : '#6b7280',
               }}>By Sector</button>
               <button onClick={() => setViewMode('flat')} style={{
-                padding: '5px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
+                padding: '5px 12px', fontSize: 11, fontWeight: 600,
+                cursor: 'pointer', border: 'none',
                 background: viewMode === 'flat' ? '#2a2a4a' : 'transparent',
                 color: viewMode === 'flat' ? '#f0f0ff' : '#6b7280',
               }}>All</button>
             </div>
+          </div>
 
-            {unseenHighFitCount > 0 && (
-              <button onClick={() => { setShowUnseenOnly(v => !v); setShowTodayOnly(false); setShowNewOnly(false) }} style={{
-                padding: '5px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                borderRadius: 7, border: `1px solid ${showUnseenOnly ? '#3730a3' : '#2a2a4a'}`,
-                background: showUnseenOnly ? '#1e1b4b' : '#0f0f1a',
-                color: showUnseenOnly ? '#a5b4fc' : '#6b7280',
-              }}>⭐ Unseen ({unseenHighFitCount})</button>
-            )}
-            {addedTodayCount > 0 && (
-              <button onClick={() => { setShowTodayOnly(v => !v); setShowUnseenOnly(false); setShowNewOnly(false) }} style={{
-                padding: '5px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                borderRadius: 7, border: `1px solid ${showTodayOnly ? '#065f46' : '#2a2a4a'}`,
-                background: showTodayOnly ? '#052e16' : '#0f0f1a',
-                color: showTodayOnly ? '#10b981' : '#6b7280',
-              }}>🌙 Last 24h ({addedTodayCount})</button>
-            )}
-            <select value={filters.stage} onChange={e => setFilters(f => ({ ...f, stage: e.target.value }))} style={selectStyle}>
+          {/* Search bar */}
+          <div style={{
+            display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center'
+          }}>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <span style={{
+                position: 'absolute', left: 12, top: '50%',
+                transform: 'translateY(-50%)', color: '#555577', fontSize: 14,
+                pointerEvents: 'none'
+              }}>🔍</span>
+              <input
+                type="text"
+                placeholder="Search by name, description, or sector..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  background: '#0f0f1a', border: '1px solid #2a2a4a',
+                  borderRadius: 8, padding: '8px 12px 8px 36px',
+                  color: '#f0f0ff', fontSize: 13, outline: 'none',
+                  fontFamily: 'inherit',
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  style={{
+                    position: 'absolute', right: 10, top: '50%',
+                    transform: 'translateY(-50%)', background: 'none',
+                    border: 'none', color: '#555577', cursor: 'pointer',
+                    fontSize: 14, padding: '0 4px'
+                  }}
+                >✕</button>
+              )}
+            </div>
+            <button onClick={() => setShowAddModal(true)} style={{
+              padding: '8px 14px', borderRadius: 8, border: 'none',
+              background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+              color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              whiteSpace: 'nowrap', flexShrink: 0
+            }}>+ Add Company</button>
+          </div>
+
+          {/* Filter row */}
+          <div style={{
+            display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap'
+          }}>
+            {/* Fit pills */}
+            {[
+              { label: 'All Fits', value: '' },
+              { label: '🎯 Top Match', value: 'top' },
+              { label: 'Strong', value: 'strong' },
+              { label: 'Possible', value: 'possible' },
+            ].map(({ label, value }) => (
+              <button
+                key={value}
+                onClick={() => setFilters(f => ({ ...f, fit_level: value }))}
+                style={{
+                  padding: '4px 10px', borderRadius: 6, fontSize: 11,
+                  fontWeight: 600, cursor: 'pointer', border: '1px solid',
+                  borderColor: filters.fit_level === value ? '#4f46e5' : '#2a2a4a',
+                  background: filters.fit_level === value ? '#1e1b4b' : '#0f0f1a',
+                  color: filters.fit_level === value ? '#a5b4fc' : '#6b7280',
+                }}
+              >{label}</button>
+            ))}
+
+            <div style={{ width: 1, height: 16, background: '#2a2a4a', margin: '0 2px' }} />
+
+            {/* Stage dropdown */}
+            <select
+              value={filters.stage}
+              onChange={e => setFilters(f => ({ ...f, stage: e.target.value }))}
+              style={selectStyle}
+            >
               <option value="">All Stages</option>
-              {stages.map(s => <option key={s} value={s}>{s}</option>)}
+              <option value="pre-seed">Pre-seed</option>
+              <option value="seed">Seed</option>
+              <option value="series-a">Series A</option>
+              <option value="series-b">Series B</option>
             </select>
-            <select value={filters.fit_level} onChange={e => setFilters(f => ({ ...f, fit_level: e.target.value }))} style={selectStyle}>
-              <option value="">All Fits</option>
-              <option value="top">Top Match</option>
-              <option value="strong">Strong Fit</option>
-              <option value="possible">Possible Fit</option>
-            </select>
-            <select value={filters.sector} onChange={e => setFilters(f => ({ ...f, sector: e.target.value }))} style={selectStyle}>
+
+            {/* Sector dropdown */}
+            <select
+              value={filters.sector}
+              onChange={e => setFilters(f => ({ ...f, sector: e.target.value }))}
+              style={selectStyle}
+            >
               <option value="">All Sectors</option>
               {sectors.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
-            <select value={filters.sort} onChange={e => setFilters(f => ({ ...f, sort: e.target.value }))} style={selectStyle}>
-              <option value="fit_score">Fit Score</option>
-              <option value="newest">Newest</option>
+
+            {/* Added dropdown */}
+            <select
+              value={addedFilter}
+              onChange={e => setAddedFilter(e.target.value)}
+              style={selectStyle}
+            >
+              <option value="">Any Time</option>
+              <option value="today">Last 24h</option>
+              <option value="week">This Week</option>
+              {unseenHighFitCount > 0 && (
+                <option value="unseen">Unseen ({unseenHighFitCount})</option>
+              )}
             </select>
-            <button onClick={() => setShowAddModal(true)} style={{
-              padding: '6px 14px', borderRadius: 7, border: 'none',
-              background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-              color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer'
-            }}>+ Add Company</button>
+
+            {/* Pipeline dropdown */}
+            <select
+              value={pipelineFilter}
+              onChange={e => setPipelineFilter(e.target.value)}
+              style={selectStyle}
+            >
+              <option value="">All Companies</option>
+              <option value="in_pipeline">In Pipeline</option>
+            </select>
+
+            {/* Clear filters */}
+            {(searchQuery || addedFilter || pipelineFilter ||
+              filters.stage || filters.fit_level || filters.sector) && (
+              <button
+                onClick={() => {
+                  setSearchQuery('')
+                  setAddedFilter('')
+                  setPipelineFilter('')
+                  setFilters({ stage: '', fit_level: '', sector: '', sort: 'fit_score' })
+                }}
+                style={{
+                  padding: '4px 10px', borderRadius: 6, fontSize: 11,
+                  fontWeight: 600, cursor: 'pointer',
+                  border: '1px solid #2a2a4a',
+                  background: 'transparent', color: '#555577',
+                }}
+              >✕ Clear</button>
+            )}
           </div>
         </div>
 
@@ -324,7 +452,9 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
             )}
 
             {/* UNIVERSE — grouped or flat */}
-            {viewMode === 'grouped' ? (
+            {addedFilter === 'unseen' && filteredCards.length === 0 ? (
+              <AllCaughtUp onDone={() => setAddedFilter('')} />
+            ) : viewMode === 'grouped' ? (
               <div>
                 {sectorGroups.map(([sector, companies]) => (
                   <div key={sector} style={{ marginBottom: 28 }}>
@@ -356,14 +486,14 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
               <div>
                 <SectionHeader
                   label="COVERAGE UNIVERSE"
-                  count={universeCards.length}
+                  count={filteredCards.length}
                   color="#6b7280"
                   borderColor="#1e1e2e"
                   countBg="#1a1a2e"
                   countBorder="#2a2a4a"
                 />
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
-                  {universeCards.map(s => (
+                  {filteredCards.map(s => (
                     <CompanyCard
                       key={s.id}
                       ref={el => { if (el) cardRefs.current[s.id] = el }}
@@ -584,6 +714,32 @@ const CompanyCard = forwardRef(function CompanyCard({ startup: s, onClick, isSel
     </div>
   )
 })
+
+function AllCaughtUp({ onDone }) {
+  useEffect(() => {
+    const timer = setTimeout(onDone, 2500)
+    return () => clearTimeout(timer)
+  }, [onDone])
+
+  return (
+    <div style={{
+      textAlign: 'center', padding: '80px 20px', color: '#555577'
+    }}>
+      <div style={{
+        fontSize: 32, marginBottom: 16,
+        animation: 'fadeIn 0.4s ease'
+      }}>✓</div>
+      <div style={{
+        fontSize: 16, fontWeight: 700, color: '#10b981', marginBottom: 8
+      }}>
+        You're all caught up
+      </div>
+      <div style={{ fontSize: 13, color: '#555577' }}>
+        No unseen top matches. Returning to your coverage universe...
+      </div>
+    </div>
+  )
+}
 
 const Tag = ({ children }) => (
   <span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 10, background: '#1a1a2e', color: '#6b7280', border: '1px solid #2a2a4a' }}>{children}</span>
