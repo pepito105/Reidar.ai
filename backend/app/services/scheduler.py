@@ -23,45 +23,48 @@ async def job_run_scrapers():
             stats = await run_full_scrape(db)
             logger.info(f'Nightly scrape complete: {stats}')
 
-            # Get firm name for email
-            profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
-            profile = profile_result.scalar_one_or_none()
-            firm_name = profile.firm_name if profile else "your firm"
-            notify_emails = profile.notification_emails if profile else None
-            min_score = profile.notify_min_fit_score if profile else 4
-            should_notify = profile.notify_top_match if profile else True
+            profiles_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
+            profiles = profiles_result.scalars().all()
 
-            # Find new top matches from this scrape (last 2 hours)
             from datetime import timezone
+            from app.services.notification_service import send_top_match_alert
             cutoff = datetime.utcnow() - timedelta(hours=2)
-            new_result = await db.execute(
-                select(Startup)
-                .where(Startup.scraped_at >= cutoff)
-                .where(Startup.fit_score >= min_score)
-                .order_by(Startup.fit_score.desc())
-            )
-            new_top = new_result.scalars().all()
 
-            thesis = profile.investment_thesis if profile else ""
-            fives = [s for s in new_top if s.fit_score == 5]
-            if fives and should_notify:
-                from app.services.notification_service import send_top_match_alert
-                for s in fives:
-                    await send_top_match_alert(
-                        company={
-                            "name": s.name,
-                            "fit_score": s.fit_score,
-                            "one_liner": s.one_liner,
-                            "funding_stage": s.funding_stage,
-                            "sector": s.sector,
-                        },
-                        firm_name=firm_name,
-                        thesis=thesis,
-                        notification_emails=notify_emails,
-                    )
-                logger.info(f'Top match alerts sent for {len(fives)} 5/5 companies')
-            else:
-                logger.info('No 5/5 companies from this scrape — skipping alert')
+            for profile in profiles:
+                user_id = profile.user_id
+                firm_name = profile.firm_name or "your firm"
+                notify_emails = profile.notification_emails
+                min_score = profile.notify_min_fit_score or 4
+                should_notify = profile.notify_top_match
+                thesis = profile.investment_thesis or ""
+
+                new_result = await db.execute(
+                    select(Startup)
+                    .where(Startup.user_id == user_id)
+                    .where(Startup.scraped_at >= cutoff)
+                    .where(Startup.fit_score >= min_score)
+                    .order_by(Startup.fit_score.desc())
+                )
+                new_top = new_result.scalars().all()
+
+                fives = [s for s in new_top if s.fit_score == 5]
+                if fives and should_notify:
+                    for s in fives:
+                        await send_top_match_alert(
+                            company={
+                                "name": s.name,
+                                "fit_score": s.fit_score,
+                                "one_liner": s.one_liner,
+                                "funding_stage": s.funding_stage,
+                                "sector": s.sector,
+                            },
+                            firm_name=firm_name,
+                            thesis=thesis,
+                            notification_emails=notify_emails,
+                        )
+                    logger.info(f'Top match alerts sent for {len(fives)} 5/5 companies ({firm_name})')
+                else:
+                    logger.info(f'No 5/5 companies from this scrape for {firm_name} — skipping alert')
 
         except Exception as e:
             logger.error(f'Nightly scrape failed: {e}', exc_info=True)
@@ -70,67 +73,75 @@ async def job_run_scrapers():
 async def job_refresh_signals():
     logger.info('Scheduler: Starting nightly signal refresh')
     from app.services.refresh_service import refresh_company
-    from app.services.notification_service import send_diligence_signal_alert, send_diligence_batch_alert
+    from app.services.notification_service import send_diligence_batch_alert
     async with AsyncSessionLocal() as db:
         try:
-            # Get firm name
-            profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
-            profile = profile_result.scalar_one_or_none()
-            firm_name = profile.firm_name if profile else "your firm"
-            thesis = profile.investment_thesis if profile else ""
-            notify_emails = profile.notification_emails if profile else None
-            should_notify_diligence = profile.notify_diligence_signal if profile else True
+            profiles_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
+            profiles = profiles_result.scalars().all()
 
             cutoff = datetime.utcnow() - timedelta(hours=23)
-            result = await db.execute(
-                select(Startup)
-                .where(Startup.fit_score >= 3)
-                .where(
-                    (Startup.last_refreshed_at == None) |
-                    (Startup.last_refreshed_at < cutoff)
+            total_refreshed = 0
+            total_signals = 0
+
+            for profile in profiles:
+                user_id = profile.user_id
+                firm_name = profile.firm_name or "your firm"
+                thesis = profile.investment_thesis or ""
+                notify_emails = profile.notification_emails
+                should_notify_diligence = profile.notify_diligence_signal
+
+                result = await db.execute(
+                    select(Startup)
+                    .where(Startup.user_id == user_id)
+                    .where(Startup.fit_score >= 3)
+                    .where(
+                        (Startup.last_refreshed_at == None) |
+                        (Startup.last_refreshed_at < cutoff)
+                    )
+                    .order_by(Startup.fit_score.desc())
+                    .limit(30)
                 )
-                .order_by(Startup.fit_score.desc())
-                .limit(30)
-            )
-            companies = result.scalars().all()
-            refreshed = 0
-            new_signals = 0
-            diligence_alerts = []  # Collect all diligence signals to batch
-            for company in companies:
-                try:
-                    sigs = await refresh_company(company, db)
-                    new_signals += len(sigs)
-                    refreshed += 1
+                companies = result.scalars().all()
+                refreshed = 0
+                new_signals = 0
+                diligence_alerts = []
+                for company in companies:
+                    try:
+                        sigs = await refresh_company(company, db)
+                        new_signals += len(sigs)
+                        refreshed += 1
 
-                    if sigs and company.pipeline_status == 'diligence' and should_notify_diligence:
-                        signals_data = [
-                            {
-                                "signal_type": s.signal_type,
-                                "title": s.title,
-                                "summary": s.summary,
-                            }
-                            for s in sigs
-                        ]
-                        diligence_alerts.append({
-                            "company_name": company.name,
-                            "signals": signals_data,
-                            "fit_score": company.fit_score or 3,
-                        })
+                        if sigs and company.pipeline_status == 'diligence' and should_notify_diligence:
+                            signals_data = [
+                                {
+                                    "signal_type": s.signal_type,
+                                    "title": s.title,
+                                    "summary": s.summary,
+                                }
+                                for s in sigs
+                            ]
+                            diligence_alerts.append({
+                                "company_name": company.name,
+                                "signals": signals_data,
+                                "fit_score": company.fit_score or 3,
+                            })
 
-                except Exception as e:
-                    logger.error(f'Refresh failed for {company.name}: {e}')
+                    except Exception as e:
+                        logger.error(f'Refresh failed for {company.name}: {e}')
 
-            # Send one combined diligence alert for all companies
-            if diligence_alerts and should_notify_diligence:
-                await send_diligence_batch_alert(
-                    alerts=diligence_alerts,
-                    firm_name=firm_name,
-                    thesis=thesis,
-                    notification_emails=notify_emails,
-                )
-                logger.info(f'Diligence batch alert sent for {len(diligence_alerts)} companies')
+                if diligence_alerts and should_notify_diligence:
+                    await send_diligence_batch_alert(
+                        alerts=diligence_alerts,
+                        firm_name=firm_name,
+                        thesis=thesis,
+                        notification_emails=notify_emails,
+                    )
+                    logger.info(f'Diligence batch alert sent for {len(diligence_alerts)} companies ({firm_name})')
 
-            logger.info(f'Signal refresh complete: {refreshed} companies, {new_signals} signals')
+                total_refreshed += refreshed
+                total_signals += new_signals
+
+            logger.info(f'Signal refresh complete: {total_refreshed} companies, {total_signals} signals')
         except Exception as e:
             logger.error(f'Signal refresh failed: {e}', exc_info=True)
 
@@ -155,80 +166,85 @@ async def job_weekly_summary():
     from app.models.signal import CompanySignal
     async with AsyncSessionLocal() as db:
         try:
-            profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
-            profile = profile_result.scalar_one_or_none()
-            firm_name = profile.firm_name if profile else "your firm"
-            thesis = profile.investment_thesis if profile else ""
-            notify_emails = profile.notification_emails if profile else None
-            should_notify = profile.notify_weekly_summary if profile else True
-            if not should_notify:
-                logger.info('Weekly summary disabled — skipping')
-                return
+            profiles_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
+            profiles = profiles_result.scalars().all()
 
-            # New companies this week (fit >= 4)
             week_cutoff = datetime.utcnow() - timedelta(days=7)
-            new_result = await db.execute(
-                select(Startup)
-                .where(Startup.scraped_at >= week_cutoff)
-                .where(Startup.fit_score >= 4)
-                .order_by(Startup.fit_score.desc())
-                .limit(20)
-            )
-            new_companies = [
-                {
-                    "name": s.name,
-                    "fit_score": s.fit_score,
-                    "one_liner": s.one_liner,
-                    "funding_stage": s.funding_stage,
-                    "sector": s.sector,
-                }
-                for s in new_result.scalars().all()
-            ]
-
-            # Pipeline snapshot
-            pipeline_result = await db.execute(select(Startup).where(
-                Startup.pipeline_status.in_(["watching", "outreach", "diligence", "passed", "invested"])
-            ))
-            pipeline_companies = pipeline_result.scalars().all()
-            pipeline_summary = {}
-            for s in pipeline_companies:
-                stage = s.pipeline_status
-                if stage not in pipeline_summary:
-                    pipeline_summary[stage] = []
-                pipeline_summary[stage].append({"name": s.name})
-
             STALE_THRESHOLDS = {"watching": 14, "outreach": 21, "diligence": 30}
-            stale_deals = []
-            for s in pipeline_companies:
-                if s.pipeline_status in ("passed", "invested"):
-                    continue
-                threshold_days = STALE_THRESHOLDS.get(s.pipeline_status)
-                if not threshold_days:
-                    continue
-                last = _last_activity_at(s)
-                if last and last.tzinfo:
-                    last = last.replace(tzinfo=None)
-                cutoff = datetime.utcnow() - timedelta(days=threshold_days)
-                is_stale = (last is None) or (last < cutoff)
-                if not is_stale:
-                    continue
-                days_stale = (datetime.utcnow() - last).days if last else threshold_days + 1
-                stale_deals.append({
-                    "name": s.name,
-                    "pipeline_status": s.pipeline_status,
-                    "one_liner": s.one_liner,
-                    "days_stale": days_stale,
-                })
 
-            await send_weekly_summary(
-                new_companies=new_companies,
-                pipeline_summary=pipeline_summary,
-                stale_deals=stale_deals,
-                firm_name=firm_name,
-                thesis=thesis,
-                notification_emails=notify_emails,
-            )
-            logger.info('Weekly summary sent')
+            for profile in profiles:
+                user_id = profile.user_id
+                firm_name = profile.firm_name or "your firm"
+                thesis = profile.investment_thesis or ""
+                notify_emails = profile.notification_emails
+                should_notify = profile.notify_weekly_summary
+                if not should_notify:
+                    logger.info(f'Weekly summary disabled for {firm_name} — skipping')
+                    continue
+
+                new_result = await db.execute(
+                    select(Startup)
+                    .where(Startup.user_id == user_id)
+                    .where(Startup.scraped_at >= week_cutoff)
+                    .where(Startup.fit_score >= 4)
+                    .order_by(Startup.fit_score.desc())
+                    .limit(20)
+                )
+                new_companies = [
+                    {
+                        "name": s.name,
+                        "fit_score": s.fit_score,
+                        "one_liner": s.one_liner,
+                        "funding_stage": s.funding_stage,
+                        "sector": s.sector,
+                    }
+                    for s in new_result.scalars().all()
+                ]
+
+                pipeline_result = await db.execute(
+                    select(Startup)
+                    .where(Startup.user_id == user_id)
+                    .where(Startup.pipeline_status.in_(["watching", "outreach", "diligence", "passed", "invested"]))
+                )
+                pipeline_companies = pipeline_result.scalars().all()
+                pipeline_summary = {}
+                for s in pipeline_companies:
+                    stage = s.pipeline_status
+                    if stage not in pipeline_summary:
+                        pipeline_summary[stage] = []
+                    pipeline_summary[stage].append({"name": s.name})
+
+                stale_deals = []
+                for s in pipeline_companies:
+                    if s.pipeline_status in ("passed", "invested"):
+                        continue
+                    threshold_days = STALE_THRESHOLDS.get(s.pipeline_status)
+                    if not threshold_days:
+                        continue
+                    last = _last_activity_at(s)
+                    if last and last.tzinfo:
+                        last = last.replace(tzinfo=None)
+                    cutoff = datetime.utcnow() - timedelta(days=threshold_days)
+                    is_stale = (last is None) or (last < cutoff)
+                    if not is_stale:
+                        continue
+                    days_stale = (datetime.utcnow() - last).days if last else threshold_days + 1
+                    stale_deals.append({
+                        "name": s.name,
+                        "pipeline_status": s.pipeline_status,
+                        "one_liner": s.one_liner,
+                        "days_stale": days_stale,
+                    })
+
+                await send_weekly_summary(
+                    new_companies=new_companies,
+                    pipeline_summary=pipeline_summary,
+                    stale_deals=stale_deals,
+                    firm_name=firm_name,
+                    thesis=thesis,
+                    notification_emails=notify_emails,
+                )
+                logger.info(f'Weekly summary sent for {firm_name}')
         except Exception as e:
             logger.error(f'Weekly summary failed: {e}', exc_info=True)
 
