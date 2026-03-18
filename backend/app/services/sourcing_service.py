@@ -10,6 +10,7 @@ from anthropic import AsyncAnthropic
 from app.core.config import settings
 from app.models.startup import Startup
 from app.models.firm_profile import FirmProfile
+from app.models.sourcing_history import SourcingHistory
 
 logger = logging.getLogger(__name__)
 client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
@@ -71,9 +72,261 @@ Example: ["query one", "query two", "query three"]"""
         ]
 
 
+async def generate_contextual_queries(
+    thesis: str, firm_name: str, profile: FirmProfile, db: AsyncSession,
+    user_id: Optional[str], firm_website: str = None, count: int = 8
+) -> List[str]:
+    """
+    Smarter nightly query generator. Pulls sourcing history, sector coverage,
+    pipeline themes, and recent signals to avoid repetition and fill gaps.
+    """
+    from sqlalchemy import select as sa_select, func
+
+    # Recent queries (last 30 days) to avoid repeating
+    recent_queries_result = await db.execute(
+        sa_select(SourcingHistory.query)
+        .where(SourcingHistory.user_id == user_id)
+        .order_by(SourcingHistory.ran_at.desc())
+        .limit(30)
+    )
+    recent_queries = [r[0] for r in recent_queries_result.all()]
+
+    # Sector coverage — what sectors are already in the pipeline?
+    sector_result = await db.execute(
+        sa_select(Startup.sector, func.count(Startup.id).label("cnt"))
+        .where(Startup.user_id == user_id)
+        .where(Startup.sector.isnot(None))
+        .group_by(Startup.sector)
+        .order_by(func.count(Startup.id).desc())
+        .limit(10)
+    )
+    sector_coverage = {row.sector: row.cnt for row in sector_result.all()}
+
+    # Pipeline companies (for themes)
+    pipeline_result = await db.execute(
+        sa_select(Startup.thesis_tags, Startup.sector)
+        .where(Startup.user_id == user_id)
+        .where(Startup.pipeline_status.in_(["watching", "outreach", "diligence"]))
+        .limit(20)
+    )
+    pipeline_rows = pipeline_result.all()
+    pipeline_themes = []
+    for row in pipeline_rows:
+        if row.thesis_tags:
+            pipeline_themes.extend(row.thesis_tags)
+
+    portfolio_companies = (profile.firm_context or {}).get("portfolio_companies", [])
+    themes_line = f'INVESTMENT THEMES: {", ".join((profile.firm_context or {}).get("investment_themes") or [])}' if (profile.firm_context or {}).get("investment_themes") else ""
+    portfolio_line = f'PORTFOLIO (skip these): {", ".join(portfolio_companies)}' if portfolio_companies else ""
+    website_line = f"FIRM WEBSITE: {firm_website}" if firm_website else ""
+
+    recent_block = "\n".join(f"  - {q}" for q in recent_queries[:15]) if recent_queries else "  (none yet)"
+    sector_block = "\n".join(f"  - {s}: {c} companies" for s, c in list(sector_coverage.items())[:8]) if sector_coverage else "  (none yet)"
+    pipeline_block = ", ".join(set(pipeline_themes[:20])) if pipeline_themes else "(none yet)"
+
+    optional_lines = "\n".join(line for line in [website_line, portfolio_line, themes_line] if line)
+
+    prompt = f"""You are a VC analyst generating search queries for nightly deal sourcing.
+FIRM: {firm_name}
+INVESTMENT THESIS: {thesis}
+{optional_lines}
+
+CONTEXT — use this to generate smarter, non-repetitive queries:
+
+RECENT QUERIES (avoid repeating these angles):
+{recent_block}
+
+SECTOR COVERAGE (sectors already well-represented — consider underexplored areas):
+{sector_block}
+
+PIPELINE THEMES (themes in active deals — look for adjacent opportunities):
+{pipeline_block}
+
+Generate exactly {count} search queries to find real early-stage startups that match the thesis.
+
+Rules:
+- Do NOT repeat angles from recent queries above
+- Prioritize sectors with thin coverage or not yet seen
+- Target adjacent themes to pipeline deals — what else would this firm want?
+- Use language founders use, not investor jargon
+- Include 2025 or 2026 in at least 2 queries
+- Mix angles: product category, problem being solved, recent funding/launch, geography
+- Never use "best", "top", "leading", "innovative"
+- Include at least one query targeting YC W25 or S25 batches if relevant to thesis
+
+Return ONLY a valid JSON array of exactly {count} strings, nothing else.
+Example: ["query one", "query two", "query three"]"""
+
+    try:
+        response = await client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=800,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        raw = response.content[0].text.strip()
+        raw = re.sub(r'^```(?:json)?\s*', '', raw)
+        raw = re.sub(r'\s*```$', '', raw)
+        queries = json.loads(raw.strip())
+        logger.info(f"Generated {len(queries)} contextual queries for {firm_name}")
+        return queries[:count]
+    except Exception as e:
+        logger.error(f"Failed to generate contextual queries, falling back: {e}")
+        return await generate_search_queries(thesis, firm_name, firm_website=firm_website, firm_context=profile.firm_context, count=count)
+
+
 async def search_and_extract_companies(query: str, thesis: str, firm_name: str) -> List[dict]:
     """
-    Single Claude web search call: searches, reads results, returns structured company data.
+    Three-step pipeline: Brave Search finds URLs, Firecrawl scrapes
+    company homepages, Claude extracts structured company data.
+    Falls back to Claude web search if Brave is not configured.
+    """
+    from app.services.research_service import brave_search, firecrawl_scrape
+
+    # Fallback to Claude web search if no Brave key
+    if not settings.BRAVE_API_KEY:
+        logger.info("No BRAVE_API_KEY — falling back to Claude web search")
+        return await _search_and_extract_claude_fallback(query, thesis, firm_name)
+
+    # Step 1 — Brave Search: find relevant URLs
+    results = await brave_search(query, count=8)
+    if not results:
+        logger.info(f"Brave returned no results for: {query[:60]}")
+        return []
+
+    # Step 2 — Filter for company homepages, not news/directories
+    NEWS_DOMAINS = {
+        'techcrunch.com', 'venturebeat.com', 'forbes.com', 'wired.com',
+        'businessinsider.com', 'reuters.com', 'bloomberg.com', 'wsj.com',
+        'ft.com', 'axios.com', 'theinformation.com', 'crunchbase.com',
+        'linkedin.com', 'twitter.com', 'x.com', 'youtube.com',
+        'medium.com', 'substack.com', 'pitchbook.com', 'tracxn.com',
+        'producthunt.com', 'ycombinator.com', 'news.ycombinator.com',
+        'github.com', 'angellist.com', 'wellfound.com',
+    }
+
+    def is_company_url(url: str) -> bool:
+        try:
+            from urllib.parse import urlparse
+            domain = urlparse(url).netloc.lower().replace('www.', '')
+            if any(domain == nd or domain.endswith('.' + nd) for nd in NEWS_DOMAINS):
+                return False
+            path = urlparse(url).path.rstrip('/')
+            path_parts = [p for p in path.split('/') if p]
+            if len(path_parts) > 2:
+                return False
+            return True
+        except Exception:
+            return False
+
+    company_urls = [r for r in results if is_company_url(r['url'])]
+    logger.info(f"Query '{query[:50]}' → {len(results)} results, {len(company_urls)} company URLs")
+
+    if not company_urls:
+        logger.info(f"No company URLs found for: {query[:60]}")
+        return []
+
+    # Step 3 — Firecrawl: scrape up to 4 company homepages
+    scraped_companies = []
+    for result in company_urls[:4]:
+        url = result['url']
+        content = await firecrawl_scrape(url, max_length=3000)
+        if content and len(content.strip()) > 100:
+            scraped_companies.append({
+                'url': url,
+                'title': result.get('title', ''),
+                'snippet': result.get('description', ''),
+                'content': content,
+            })
+        else:
+            # Use snippet as fallback if scrape fails
+            snippet = result.get('description', '')
+            if snippet and len(snippet) > 30:
+                scraped_companies.append({
+                    'url': url,
+                    'title': result.get('title', ''),
+                    'snippet': snippet,
+                    'content': snippet,
+                })
+
+    if not scraped_companies:
+        return []
+
+    # Step 4 — Claude: extract structured company data from scraped content
+    companies_text = ""
+    for i, c in enumerate(scraped_companies, 1):
+        companies_text += f"""
+COMPANY {i}:
+URL: {c['url']}
+Title: {c['title']}
+Content:
+{c['content'][:1500]}
+---
+"""
+
+    prompt = f"""You are a VC analyst at {firm_name} evaluating potential investments.
+
+INVESTMENT THESIS: {thesis}
+
+SEARCH QUERY USED: "{query}"
+
+SCRAPED COMPANY WEBSITES:
+{companies_text}
+
+For each company above, extract structured data IF it appears to be a
+real startup relevant to the thesis. Skip companies that are:
+- News sites, directories, or aggregators
+- Large established companies (not startups)
+- Not relevant to the investment thesis
+- Job boards, consulting firms, agencies
+
+For each relevant startup found, extract:
+- name: company name
+- website: the URL
+- one_liner: "We help [customer] [do X] by [mechanism]" — max 20 words
+- funding_stage: pre-seed, seed, series-a, series-b, or unknown
+- sector: the specific industry vertical
+- is_relevant: true if matches thesis, false if not
+
+Respond with ONLY a valid JSON array. If no relevant startups found, return [].
+
+Example:
+[{{"name": "Acme AI", "website": "https://acme.ai", "one_liner": "We help law firms automate contract review with AI", "funding_stage": "seed", "sector": "LegalTech", "is_relevant": true}}]"""
+
+    try:
+        response = await client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1500,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        raw = response.content[0].text.strip()
+        raw = re.sub(r'^```(?:json)?\s*', '', raw)
+        raw = re.sub(r'\s*```$', '', raw)
+        raw = raw.strip()
+
+        array_match = re.search(r'\[.*\]', raw, re.DOTALL)
+        if array_match:
+            raw = array_match.group(0)
+
+        companies = json.loads(raw)
+        if not isinstance(companies, list):
+            return []
+
+        relevant = [c for c in companies if c.get("name") and c.get("is_relevant", True)]
+        logger.info(f"Query '{query[:50]}' → {len(relevant)} relevant companies extracted")
+        return relevant
+
+    except json.JSONDecodeError as e:
+        logger.warning(f"JSON parse error for '{query[:40]}': {e}")
+        return []
+    except Exception as e:
+        logger.error(f"Search error for '{query[:40]}': {e}")
+        return []
+
+
+async def _search_and_extract_claude_fallback(query: str, thesis: str, firm_name: str) -> List[dict]:
+    """
+    Fallback when Brave API key is not configured.
+    Uses Claude's built-in web search tool.
     """
     prompt = f"""You are a VC analyst at {firm_name} finding early-stage startups.
 
@@ -87,11 +340,8 @@ For each relevant startup found, extract its information.
 You MUST respond with ONLY a valid JSON array. No explanation, no markdown, no preamble.
 If no startups found, respond with exactly: []
 
-Each item in the array must have these exact fields:
-{{"name": "string", "website": "string", "one_liner": "string", "funding_stage": "pre-seed or seed or series-a or unknown", "sector": "string", "is_relevant": true}}
-
-Example of valid response:
-[{{"name": "Acme AI", "website": "https://acme.ai", "one_liner": "AI for legal workflows", "funding_stage": "seed", "sector": "LegalTech", "is_relevant": true}}]"""
+Each item must have these exact fields:
+{{"name": "string", "website": "string", "one_liner": "string", "funding_stage": "pre-seed or seed or series-a or unknown", "sector": "string", "is_relevant": true}}"""
 
     try:
         response = await client.messages.create(
@@ -100,41 +350,24 @@ Example of valid response:
             tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 2}],
             messages=[{"role": "user", "content": prompt}]
         )
-
-        # Get the final text block (after tool use)
         final_text = ""
         for block in response.content:
             if hasattr(block, 'type') and block.type == "text":
                 final_text = block.text
-
         if not final_text or not final_text.strip():
-            logger.warning(f"Empty response for query: {query[:50]}")
             return []
-
-        # Clean and parse JSON
         raw = final_text.strip()
         raw = re.sub(r'^```(?:json)?\s*', '', raw)
         raw = re.sub(r'\s*```$', '', raw)
-        raw = raw.strip()
-
-        # Find JSON array in response if Claude added preamble
         array_match = re.search(r'\[.*\]', raw, re.DOTALL)
         if array_match:
             raw = array_match.group(0)
-
         companies = json.loads(raw)
         if not isinstance(companies, list):
             return []
-
-        relevant = [c for c in companies if c.get("name") and c.get("is_relevant", True)]
-        logger.info(f"Query '{query[:50]}' → {len(relevant)} companies")
-        return relevant
-
-    except json.JSONDecodeError as e:
-        logger.warning(f"JSON parse error for '{query[:40]}': {e} | Response was: {final_text[:200] if final_text else 'empty'}")
-        return []
+        return [c for c in companies if c.get("name") and c.get("is_relevant", True)]
     except Exception as e:
-        logger.error(f"Search error for '{query[:40]}': {e}")
+        logger.error(f"Claude fallback search error for '{query[:40]}': {e}")
         return []
 
 
@@ -191,7 +424,16 @@ async def run_autonomous_sourcing(db: AsyncSession, custom_brief: str = None, li
     logger.info(f"Starting autonomous sourcing for {firm_name}")
 
     query_count = 8 if nightly else 3
-    queries = await generate_search_queries(thesis, firm_name, firm_website=profile.firm_website, firm_context=profile.firm_context, custom_brief=custom_brief, count=query_count)
+    if nightly and not custom_brief:
+        queries = await generate_contextual_queries(
+            thesis, firm_name, profile, db, user_id,
+            firm_website=profile.firm_website, count=query_count
+        )
+    else:
+        queries = await generate_search_queries(
+            thesis, firm_name, firm_website=profile.firm_website,
+            firm_context=profile.firm_context, custom_brief=custom_brief, count=query_count
+        )
     logger.info(f"Search queries: {queries}")
 
     all_companies = []
@@ -200,11 +442,27 @@ async def run_autonomous_sourcing(db: AsyncSession, custom_brief: str = None, li
     for i, query in enumerate(queries):
         logger.info(f"Searching {i+1}/{len(queries)}: {query[:60]}")
         companies = await search_and_extract_companies(query, thesis, firm_name)
+        new_from_query = 0
         for company in companies:
             name = company.get("name", "").strip()
             if name and name.lower() not in seen_names:
                 seen_names.add(name.lower())
                 all_companies.append(company)
+                new_from_query += 1
+
+        # Write sourcing history entry
+        try:
+            history_entry = SourcingHistory(
+                user_id=user_id,
+                query=query,
+                ran_at=datetime.utcnow(),
+                results_count=len(companies),
+                new_companies_added=new_from_query,
+            )
+            db.add(history_entry)
+            await db.flush()
+        except Exception as hist_err:
+            logger.warning(f"Failed to write sourcing history for query '{query[:40]}': {hist_err}")
 
         # Wait between searches to stay under rate limit
         if i < len(queries) - 1:

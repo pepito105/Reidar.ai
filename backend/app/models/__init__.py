@@ -5,3 +5,4 @@ from app.models.associate_memory import AssociateMemory
 from app.models.notification import Notification
 from app.models.scheduler_run import SchedulerRun
 from app.models.activity_event import ActivityEvent
+from app.models.sourcing_history import SourcingHistory

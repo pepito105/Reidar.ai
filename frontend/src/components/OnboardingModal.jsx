@@ -300,9 +300,13 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
       if (companies.length === 0) { setPortfolioError('No companies found. Check your format.'); setPortfolioImporting(false); return }
       console.log('about to call API')
       console.log('Full URL:', `${API}/startups/portfolio-import`)
+      const token = await getToken().catch(() => null)
       const res = await fetch(`${API}/startups/portfolio-import`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ companies })
       })
       console.log('fetch response status:', res.status)

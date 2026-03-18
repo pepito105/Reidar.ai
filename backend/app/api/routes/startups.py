@@ -96,6 +96,12 @@ class StartupUpdate(BaseModel):
     bull_case: Optional[str] = None
     meeting_notes: Optional[List[Any]] = None
     activity_log: Optional[List[Any]] = None
+    portfolio_status: Optional[str] = None
+    investment_date: Optional[str] = None
+    check_size_usd: Optional[float] = None
+    co_investors: Optional[List[Any]] = None
+    sector: Optional[str] = None
+    one_liner: Optional[str] = None
 
 def _startup_to_card(startup: Startup) -> Dict[str, Any]:
     return {
@@ -301,7 +307,6 @@ async def portfolio_import(payload: PortfolioImportRequest, request: Request, db
             funding_stage=item.get("stage") or "",
             source="portfolio_import",
             is_portfolio=True,
-            pipeline_status="invested",
             ai_score=None,
             fit_score=None,
             scraped_at=_dt.datetime.utcnow(),
@@ -315,6 +320,30 @@ async def portfolio_import(payload: PortfolioImportRequest, request: Request, db
         db.add(startup)
         imported += 1
     await db.commit()
+
+    # Kick off background enrichment for companies with websites
+    companies_with_websites = []
+    from sqlalchemy import select as sa_select
+    for item in payload.companies:
+        name = (item.get("name") or "").strip()
+        if not name:
+            continue
+        import re as _re
+        slug = _re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:80]
+        result = await db.execute(
+            sa_select(Startup).where(Startup.slug == slug)
+            .where(Startup.user_id == user_id)
+        )
+        startup = result.scalar_one_or_none()
+        if startup and startup.website:
+            companies_with_websites.append(startup.id)
+
+    if companies_with_websites:
+        import asyncio
+        from app.services.portfolio_enrichment import enrich_portfolio_batch
+        asyncio.create_task(enrich_portfolio_batch(companies_with_websites))
+        logger.info(f"Queued enrichment for {len(companies_with_websites)} portfolio companies")
+
     return {"imported": imported}
 
 
@@ -340,6 +369,7 @@ async def get_portfolio(request: Request, db: AsyncSession = Depends(get_db)):
             "investment_date": (s.investment_date.isoformat() + "Z") if s.investment_date else None,
             "check_size_usd": s.check_size_usd,
             "co_investors": s.co_investors or [],
+            "notes": s.notes,
         }
         for s in startups
     ]
@@ -770,6 +800,16 @@ async def update_startup(startup_id: int, data: StartupUpdate, request: Request,
     old_conviction_score = startup.conviction_score
     for key, value in data.model_dump(exclude_none=True).items():
         setattr(startup, key, value)
+
+    # Handle investment_date string → datetime conversion
+    if data.investment_date is not None:
+        try:
+            from datetime import datetime as dt
+            startup.investment_date = dt.fromisoformat(data.investment_date) \
+                if data.investment_date else None
+        except Exception:
+            pass
+
     await db.commit()
 
     # Write memory if pipeline status changed

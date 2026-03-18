@@ -44,6 +44,7 @@ async def get_pipeline(request: Request, db: AsyncSession = Depends(get_db)):
         select(Startup)
         .where(Startup.pipeline_status.in_(PIPELINE_STAGES))
         .where(Startup.user_id == user_id)
+        .where(or_(Startup.is_portfolio == False, Startup.is_portfolio.is_(None)))
     )
     result = await db.execute(query)
     startups = result.scalars().all()
