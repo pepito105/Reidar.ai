@@ -17,26 +17,9 @@ export default function ChatPanel({ API, onClose }) {
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [memoryCount, setMemoryCount] = useState(null)
   const bottomRef = useRef(null)
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
-
-  useEffect(() => {
-    let cancelled = false
-    const fn = async () => {
-      const token = await getToken().catch(() => null)
-      if (!token) return
-      try {
-        const res = await fetch(`${API}/associate/memories`, { headers: { Authorization: `Bearer ${token}` } })
-        if (!res.ok || cancelled) return
-        const data = await res.json()
-        if (Array.isArray(data) && !cancelled) setMemoryCount(data.length)
-      } catch (_) {}
-    }
-    fn()
-    return () => { cancelled = true }
-  }, [API, getToken])
 
   const send = async (optionalPreFill) => {
     const text = (optionalPreFill != null ? optionalPreFill : input).trim()
@@ -131,9 +114,6 @@ export default function ChatPanel({ API, onClose }) {
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 18, cursor: 'pointer', flexShrink: 0 }}>✕</button>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontWeight: 700, fontSize: 16, color: '#f0f0ff' }}>Radar Associate</div>
-          <div style={{ fontSize: 11, color: '#6c63ff', marginTop: 2 }}>
-            {memoryCount != null ? `${memoryCount} memory${memoryCount !== 1 ? 'ies' : ''}` : 'Loading…'}
-          </div>
         </div>
       </div>
 

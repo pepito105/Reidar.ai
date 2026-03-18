@@ -104,20 +104,8 @@ async def delete_file(
 
     return {"success": True}
 
-@router.post("/generate/{startup_id}")
-async def generate_memo(
-    startup_id: int,
-    db: AsyncSession = Depends(get_db)
-):
-    result = await db.execute(select(Startup).where(Startup.id == startup_id))
-    startup = result.scalar_one_or_none()
-    if not startup:
-        raise HTTPException(status_code=404, detail="Startup not found")
-
-    firm_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True).limit(1))
-    firm = firm_result.scalar_one_or_none()
-
-    # Extract text from uploaded files
+async def generate_memo_for_startup(startup: Startup, firm, db: AsyncSession):
+    """Generate memo text for a startup. Caller is responsible for saving startup.memo and committing."""
     file_context = ""
     for f in (startup.memo_files or []):
         text = await _extract_file_text(f["path"], f["name"])
@@ -199,21 +187,41 @@ One page maximum. Be direct."""
             max_tokens=2000,
             messages=[{"role": "user", "content": prompt}]
         )
-        memo_text = response.content[0].text.strip()
-        startup.memo = memo_text
-        startup.memo_generated_at = datetime.now()
-        await db.commit()
-        await db.refresh(startup)
-        return {
-            "success": True,
-            "memo": memo_text,
-            "generated_at": startup.memo_generated_at.isoformat() if startup.memo_generated_at else None,
-            "bull_case": startup.bull_case or None,
-            "key_risks": startup.key_risks or None,
-        }
+        return response.content[0].text.strip()
     except Exception as e:
         logger.error(f"Memo generation error: {e}")
-        raise HTTPException(status_code=500, detail=f"Memo generation failed: {str(e)}")
+        return None
+
+
+@router.post("/generate/{startup_id}")
+async def generate_memo(
+    startup_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(Startup).where(Startup.id == startup_id))
+    startup = result.scalar_one_or_none()
+    if not startup:
+        raise HTTPException(status_code=404, detail="Startup not found")
+
+    firm_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True).limit(1))
+    firm = firm_result.scalar_one_or_none()
+
+    memo_text = await generate_memo_for_startup(startup, firm, db)
+    if not memo_text:
+        raise HTTPException(status_code=500, detail="Memo generation failed")
+
+    startup.memo = memo_text
+    startup.memo_generated_at = datetime.now()
+    await db.commit()
+    await db.refresh(startup)
+    return {
+        "success": True,
+        "memo": memo_text,
+        "generated_at": startup.memo_generated_at.isoformat() if startup.memo_generated_at else None,
+        "bull_case": startup.bull_case or None,
+        "key_risks": startup.key_risks or None,
+    }
+
 
 @router.get("/{startup_id}")
 async def get_memo(startup_id: int, db: AsyncSession = Depends(get_db)):

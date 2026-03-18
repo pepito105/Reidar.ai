@@ -15,33 +15,6 @@ const FIT_BADGES = {
 
 const PIPELINE_STAGES = ['watching', 'outreach', 'diligence', 'passed', 'invested']
 
-const CONFIDENCE_COLORS = { High: '#10b981', Medium: '#f59e0b', Low: '#6b7280' }
-function FitReasoningBullets({ text }) {
-  if (!text || !text.trim()) return <p style={{ fontSize: 13, color: '#a0a0cc', lineHeight: 1.6, margin: 0 }}>No reasoning available.</p>
-  const parts = text.split(/\s*•\s*/).filter(Boolean)
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {parts.map((part, i) => {
-        const match = part.match(/\s*—\s*(High|Medium|Low)\s+confidence\s*$/i)
-        const confidence = match ? match[1] : null
-        const label = match ? part.replace(/\s*—\s*(High|Medium|Low)\s+confidence\s*$/i, '').trim() : part.trim()
-        const color = confidence ? CONFIDENCE_COLORS[confidence] : '#6b7280'
-        return (
-          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-            <span style={{ color: '#6366f1', flexShrink: 0 }}>•</span>
-            <span style={{ fontSize: 13, color: '#a0a0cc', lineHeight: 1.6, flex: 1 }}>{label}</span>
-            {confidence && (
-              <span style={{ fontSize: 10, fontWeight: 600, color, background: `${color}22`, padding: '2px 6px', borderRadius: 4, flexShrink: 0 }}>
-                {confidence}
-              </span>
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 const Section = ({ title, children, accent = '#3730a3' }) => (
   <div style={{ marginBottom: 20 }}>
     <div style={{ fontSize: 11, fontWeight: 700, color: accent, letterSpacing: '0.8px', marginBottom: 10 }}>{title.toUpperCase()}</div>
@@ -468,7 +441,48 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
             <div style={{ height: 6, background: '#1a1a2e', borderRadius: 3, marginBottom: 16, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${(startup.fit_score / 5) * 100}%`, background: badge.color, borderRadius: 3 }} />
             </div>
-            {startup.fit_reasoning && <FitReasoningBullets text={startup.fit_reasoning} />}
+            {startup.fit_reasoning && (() => {
+              let reasoning = startup.fit_reasoning
+              if (typeof reasoning === 'string') {
+                try { reasoning = JSON.parse(reasoning) } catch (e) {}
+              }
+              if (reasoning && typeof reasoning === 'object') {
+                const sections = [
+                  { key: 'team', label: 'TEAM', icon: '👤' },
+                  { key: 'traction', label: 'TRACTION', icon: '📈' },
+                  { key: 'market', label: 'MARKET', icon: '🌍' },
+                  { key: 'stage_and_check', label: 'STAGE & CHECK', icon: '💰' },
+                  { key: 'thesis_fit', label: 'THESIS FIT', icon: '🎯' },
+                ]
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {sections.map(({ key, label, icon }) => {
+                      const points = reasoning[key]
+                      if (!points || points.length === 0) return null
+                      return (
+                        <div key={key}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#888', letterSpacing: 1, marginBottom: 6 }}>
+                            {icon} {label}
+                          </div>
+                          {points.map((p, i) => (
+                            <div key={i} style={{ marginBottom: 6 }}>
+                              <div style={{ fontSize: 13, color: '#ccc', lineHeight: 1.5 }}>
+                                {p.point}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              }
+              return (
+                <div style={{ fontSize: 13, color: '#ccc', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
+                  {reasoning}
+                </div>
+              )
+            })()}
             {startup.recommended_next_step && (
               <div style={{ background: '#0d1a0d', border: '1px solid #1a3a1a', borderRadius: 10, padding: '16px 18px', marginTop: 16 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#34d399', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Recommended Next Step</div>
@@ -713,7 +727,48 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
                     <div style={{ height: '100%', width: `${startup.fit_score != null ? (startup.fit_score / 5) * 100 : 0}%`, background: badge.color, borderRadius: 2 }} />
                   </div>
                   {startup.fit_reasoning
-                    ? <FitReasoningBullets text={startup.fit_reasoning} />
+                    ? (() => {
+                        let reasoning = startup.fit_reasoning
+                        if (typeof reasoning === 'string') {
+                          try { reasoning = JSON.parse(reasoning) } catch (e) {}
+                        }
+                        if (reasoning && typeof reasoning === 'object') {
+                          const sections = [
+                            { key: 'team', label: 'TEAM', icon: '👤' },
+                            { key: 'traction', label: 'TRACTION', icon: '📈' },
+                            { key: 'market', label: 'MARKET', icon: '🌍' },
+                            { key: 'stage_and_check', label: 'STAGE & CHECK', icon: '💰' },
+                            { key: 'thesis_fit', label: 'THESIS FIT', icon: '🎯' },
+                          ]
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                              {sections.map(({ key, label, icon }) => {
+                                const points = reasoning[key]
+                                if (!points || points.length === 0) return null
+                                return (
+                                  <div key={key}>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#888', letterSpacing: 1, marginBottom: 6 }}>
+                                      {icon} {label}
+                                    </div>
+                                    {points.map((p, i) => (
+                                      <div key={i} style={{ marginBottom: 6 }}>
+                                        <div style={{ fontSize: 13, color: '#ccc', lineHeight: 1.5 }}>
+                                          {p.point}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )
+                        }
+                        return (
+                          <div style={{ fontSize: 13, color: '#ccc', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
+                            {reasoning}
+                          </div>
+                        )
+                      })()
                     : <div>
                         <div style={{ fontSize: 13, color: '#6b6b8a', marginBottom: 12, lineHeight: 1.6 }}>
                           Deploy research agents to unlock a full investment analysis of this company.
@@ -885,8 +940,8 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
               </div>
               {/* Right column */}
               <div style={{ flexBasis: '60%', maxWidth: '60%', padding: '18px 20px', overflow: 'auto' }}>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                  {['overview', 'memo', 'signals', 'outreach'].map(tab => (
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                  {['overview', 'memo', 'signals', ...(startup.research_status === 'complete' ? ['research'] : []), 'outreach'].map(tab => (
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
@@ -952,6 +1007,33 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
                           borderRadius: 8, padding: '14px 16px'
                         }}>
                           <div style={{ fontSize: 13, color: '#8888aa', lineHeight: 1.7 }}>{startup.red_flags}</div>
+                        </div>
+                      </div>
+                    )}
+                    {startup.sources_visited && startup.sources_visited.length > 0 && (
+                      <div style={{ marginBottom: 20 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#888', letterSpacing: 1, marginBottom: 8 }}>
+                          📎 SOURCES VISITED
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {startup.sources_visited.slice(0, 8).map((source, i) => (
+                            <a
+                              key={i}
+                              href={source.startsWith('http') ? source : `https://${source}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                fontSize: 12,
+                                color: '#6c63ff',
+                                textDecoration: 'none',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {source}
+                            </a>
+                          ))}
                         </div>
                       </div>
                     )}
@@ -1101,6 +1183,87 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
                         <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.5, paddingLeft: 24 }}>{signal.summary}</div>
                       </div>
                     ))}
+                  </div>
+                )}
+                {activeTab === 'research' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    {/* Research header */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#6c63ff', letterSpacing: '0.5px' }}>
+                        {startup.research_completed_at
+                          ? `Last researched ${new Date(startup.research_completed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                          : 'Research complete'}
+                      </div>
+                      <button
+                        onClick={runAnalysis}
+                        disabled={analyzing}
+                        style={{
+                          padding: '6px 14px', borderRadius: 6, border: '1px solid #6c63ff', background: 'transparent',
+                          color: '#6c63ff', fontSize: 11, fontWeight: 600, cursor: analyzing ? 'not-allowed' : 'pointer',
+                          opacity: analyzing ? 0.6 : 1
+                        }}
+                      >
+                        {analyzing ? 'Running...' : 'Re-run Research'}
+                      </button>
+                    </div>
+                    {/* Sources visited — grouped: company site, news/press, other */}
+                    {(() => {
+                      const raw = startup.sources_visited || []
+                      const urlSources = raw.filter(s => typeof s === 'string' && (s.startsWith('http://') || s.startsWith('https://')))
+                      const norm = u => (u || '').replace(/^https?:\/\//i, '').replace(/\/+$/, '').toLowerCase()
+                      const companyUrl = startup.website ? norm(startup.website) : null
+                      const newsDomains = ['techcrunch', 'reuters', 'bloomberg', 'venturebeat', 'prnewswire', 'businesswire', 'prnewswire', 'news.', 'press.', 'axios', 'forbes', 'inc.com', 'fastcompany']
+                      const company = companyUrl ? urlSources.filter(u => norm(u) === companyUrl) : []
+                      const news = urlSources.filter(u => newsDomains.some(d => norm(u).includes(d)))
+                      const other = urlSources.filter(u => !company.includes(u) && !news.includes(u))
+                      const grouped = [...company, ...news, ...other]
+                      if (grouped.length === 0) return null
+                      return (
+                        <div style={{ marginBottom: 4 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#888', letterSpacing: 1, marginBottom: 10 }}>SOURCES VISITED</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            {grouped.map((url, i) => {
+                              const href = url.startsWith('http') ? url : `https://${url}`
+                              const domain = url.replace(/^https?:\/\//i, '').split('/')[0] || url
+                              return (
+                                <a
+                                  key={i}
+                                  href={href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{
+                                    display: 'block',
+                                    padding: '10px 12px',
+                                    background: '#0a0a14',
+                                    border: '1px solid #1e1e2e',
+                                    borderRadius: 8,
+                                    textDecoration: 'none',
+                                    color: 'inherit'
+                                  }}
+                                >
+                                  <div style={{ fontSize: 13, fontWeight: 600, color: '#6c63ff', marginBottom: 2 }}>{domain}</div>
+                                  <div style={{ fontSize: 11, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{url}</div>
+                                </a>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })()}
+                    {/* Raw findings summary */}
+                    {startup.sources_visited && startup.sources_visited.length > 0 && (() => {
+                      const raw = startup.sources_visited
+                      const urlCount = raw.filter(s => typeof s === 'string' && (s.startsWith('http://') || s.startsWith('https://'))).length
+                      const searchCount = raw.filter(s => typeof s === 'string' && s.startsWith('search:')).length
+                      const line = searchCount > 0
+                        ? `Research was conducted using ${urlCount} sources across ${searchCount} searches.`
+                        : `Research was conducted using ${urlCount} source${urlCount !== 1 ? 's' : ''}.`
+                      return (
+                        <div style={{ fontSize: 12, color: '#8888aa', lineHeight: 1.5 }}>
+                          {line}
+                        </div>
+                      )
+                    })()}
                   </div>
                 )}
                 {activeTab === 'outreach' && (

@@ -1,201 +1,136 @@
-import asyncio
+"""
+Research service — Brave Search + Firecrawl + Claude pipeline.
+Replaces the Anthropic web_search tool in research_startup.
+"""
 import logging
 import httpx
-from bs4 import BeautifulSoup
-from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from anthropic import AsyncAnthropic
+from typing import Optional
 from app.core.config import settings
-from app.models.startup import Startup
-from app.models.firm_profile import FirmProfile
 
 logger = logging.getLogger(__name__)
 
-client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xhtml;q=0.9,*/*;q=0.8",
-}
-
-
-async def fetch_website_content(url: str) -> str | None:
-    """Fetch and extract clean content from a website using Firecrawl."""
-    if not url:
-        return None
+async def brave_search(query: str, count: int = 5) -> list[dict]:
+    """Search the web using Brave Search API. Returns list of {title, url, description}."""
+    if not settings.BRAVE_API_KEY:
+        logger.warning("No BRAVE_API_KEY configured")
+        return []
     try:
-        if not url.startswith("http"):
-            url = f"https://{url}"
-
-        if settings.FIRECRAWL_API_KEY:
-            from firecrawl import FirecrawlApp
-            app = FirecrawlApp(api_key=settings.FIRECRAWL_API_KEY)
-            # Run sync Firecrawl in thread pool to avoid blocking
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
-                None,
-                lambda: app.scrape(url, formats=['markdown'])
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://api.search.brave.com/res/v1/web/search",
+                params={"q": query, "count": count, "search_lang": "en"},
+                headers={
+                    "X-Subscription-Token": settings.BRAVE_API_KEY,
+                    "Accept": "application/json",
+                },
+                timeout=10,
             )
-            if result and result.markdown:
-                return result.markdown[:4000]
-            else:
-                logger.warning(f"Firecrawl returned no content for {url}, falling back to httpx")
-
-        # Fallback to httpx/BeautifulSoup if no Firecrawl key or Firecrawl failed
-        async with httpx.AsyncClient(timeout=15, follow_redirects=True, headers=HEADERS) as http:
-            response = await http.get(url)
-            if response.status_code != 200:
-                logger.warning(f"Website returned {response.status_code}: {url}")
-                return None
-            soup = BeautifulSoup(response.text, "html.parser")
-            for tag in soup(["script", "style", "nav", "footer", "header", "aside", "iframe"]):
-                tag.decompose()
-            content_parts = []
-            for selector in ["main", "article", "[class*='hero']", "[class*='about']", "[class*='product']", "body"]:
-                elements = soup.select(selector)
-                for el in elements[:2]:
-                    text = el.get_text(separator=" ", strip=True)
-                    if len(text) > 100:
-                        content_parts.append(text)
-                        break
-                if content_parts:
-                    break
-            if not content_parts:
-                content_parts = [soup.get_text(separator=" ", strip=True)]
-            content = " ".join(content_parts)
-            return content[:3000] if content else None
-
+            data = response.json()
+            results = data.get("web", {}).get("results", [])
+            return [
+                {
+                    "title": r.get("title", ""),
+                    "url": r.get("url", ""),
+                    "description": r.get("description", ""),
+                }
+                for r in results
+            ]
     except Exception as e:
-        logger.warning(f"Failed to fetch {url}: {e}")
+        logger.warning(f"Brave search failed for '{query}': {e}")
+        return []
+
+
+async def firecrawl_scrape(url: str, max_length: int = 3000) -> Optional[str]:
+    """Scrape a URL using Firecrawl and return clean markdown content."""
+    if not settings.FIRECRAWL_API_KEY:
+        return None
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.firecrawl.dev/v1/scrape",
+                headers={
+                    "Authorization": f"Bearer {settings.FIRECRAWL_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={"url": url, "formats": ["markdown"]},
+                timeout=15,
+            )
+            data = response.json()
+            content = data.get("data", {}).get("markdown", "")
+            return content[:max_length] if content else None
+    except Exception as e:
+        logger.warning(f"Firecrawl scrape failed for {url}: {e}")
         return None
 
 
-async def research_company(company: Startup, db: AsyncSession, firm_mandate: str = "") -> bool:
+async def research_with_brave_and_firecrawl(
+    name: str,
+    description: str,
+    website: Optional[str],
+    queries: list[str],
+    progress_callback=None,
+) -> tuple[str, list[str]]:
     """
-    Autonomously research a company by visiting their website and enriching
-    their profile with Claude.
-    Returns True if successful, False if failed.
+    Run research using Brave Search + Firecrawl.
+    Returns (research_findings, sources_visited).
     """
-    logger.info(f"Researching {company.name} ({company.website})")
+    all_results = []
+    sources_visited = []
 
-    # Step 1: Fetch website
-    website_content = await fetch_website_content(company.website)
-    if not website_content or len(website_content) < 100:
-        logger.warning(f"No useful content for {company.name} — marking as failed")
-        company.research_status = "failed"
-        company.research_completed_at = datetime.utcnow()
-        await db.commit()
-        return False
+    # Step 1 — Search with Brave
+    for query in queries:
+        if progress_callback:
+            await progress_callback(f"🔍 Searching: {query}")
+        results = await brave_search(query, count=5)
+        all_results.extend(results)
+        for r in results:
+            if r["url"] not in sources_visited:
+                sources_visited.append(r["url"])
 
-    # Step 2: Build Claude prompt
-    prompt = f"""You are an AI investment analyst. You have just visited the website of a startup and read its content. Your job is to enrich the company profile based on what you found.
+    # Step 2 — Scrape top URLs with Firecrawl
+    # Prioritize: company website first, then top search results
+    urls_to_scrape = []
+    if website:
+        urls_to_scrape.append(website)
 
-FIRM MANDATE:
-{firm_mandate or "Early-stage technology startups"}
+    # Add top unique URLs from search results (excluding already added)
+    seen = set(urls_to_scrape)
+    for r in all_results:
+        url = r["url"]
+        if url not in seen and len(urls_to_scrape) < 5:
+            # Skip social media and irrelevant domains
+            skip_domains = ["linkedin.com", "twitter.com", "facebook.com", "instagram.com"]
+            if not any(d in url for d in skip_domains):
+                urls_to_scrape.append(url)
+                seen.add(url)
 
-COMPANY NAME: {company.name}
-ORIGINAL ONE-LINER: {company.one_liner or "Unknown"}
-FUNDING STAGE: {company.funding_stage or "Unknown"}
-WEBSITE CONTENT:
-{website_content}
+    scraped_content = []
+    for url in urls_to_scrape:
+        if progress_callback:
+            domain = url.split("/")[2] if "/" in url else url
+            await progress_callback(f"📄 Reading {domain}...")
+        content = await firecrawl_scrape(url)
+        if content:
+            scraped_content.append(f"SOURCE: {url}\n{content}")
 
-Based on the website content, provide a structured analysis. Respond in this exact JSON format with no other text:
-{{
-  "enriched_one_liner": "A precise, sharp one-liner (max 15 words) describing what this company does and for whom",
-  "business_model": "How they make money — pricing model, revenue type (SaaS/usage/marketplace/etc), typical contract size if inferrable",
-  "target_customer": "Who buys this — company size, role, industry, pain point being solved",
-  "traction_signals": "Any evidence of traction — customers named, metrics mentioned, growth signals, notable partnerships or investors",
-  "red_flags": "Any concerns — vague value prop, crowded space, no clear monetization, early team, etc. Write 'None identified' if none",
-  "fit_reasoning": "1-2 sentences on why this does or does not fit the firm mandate"
-}}"""
+    # Step 3 — Combine search snippets + scraped content
+    findings_parts = []
 
-    try:
-        response = await client.messages.create(
-            model="claude-opus-4-5",
-            max_tokens=1000,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        raw = response.content[0].text.strip()
+    # Add search result snippets
+    if all_results:
+        findings_parts.append("SEARCH RESULTS:")
+        for r in all_results[:10]:
+            findings_parts.append(f"- [{r['title']}]({r['url']}): {r['description']}")
 
-        # Parse JSON response
-        import json
-        # Strip markdown code blocks if present
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-        data = json.loads(raw.strip())
+    # Add scraped content
+    if scraped_content:
+        findings_parts.append("\nFULL PAGE CONTENT:")
+        findings_parts.extend(scraped_content)
 
-        # Update company record
-        company.enriched_one_liner = data.get("enriched_one_liner")
-        company.business_model = data.get("business_model")
-        company.target_customer = data.get("target_customer")
-        company.traction_signals = data.get("traction_signals")
-        company.red_flags = data.get("red_flags")
-        if data.get("fit_reasoning"):
-            company.fit_reasoning = data["fit_reasoning"]
-        company.website_content = website_content[:1000]  # Store truncated version
-        company.research_status = "completed"
-        company.research_completed_at = datetime.utcnow()
-        await db.commit()
+    research_findings = "\n\n".join(findings_parts)
 
-        logger.info(f"Research complete for {company.name}")
-        return True
+    if progress_callback:
+        await progress_callback(f"📰 Found {len(sources_visited)} sources. Structuring investment brief...")
 
-    except Exception as e:
-        logger.error(f"Claude research failed for {company.name}: {e}", exc_info=True)
-        company.research_status = "failed"
-        company.research_completed_at = datetime.utcnow()
-        await db.commit()
-        return False
-
-
-async def run_research_batch(db: AsyncSession, limit: int = 50, user_id=None, min_fit_score: int = None) -> dict:
-    """
-    Run autonomous research on companies that haven't been researched yet.
-    Prioritizes by fit score. Called after nightly scrape.
-    """
-    # Get firm mandate (optionally scoped to user)
-    q = select(FirmProfile).where(FirmProfile.is_active == True)
-    if user_id is not None:
-        q = q.where(FirmProfile.user_id == user_id)
-    profile_result = await db.execute(q)
-    profile = profile_result.scalar_one_or_none()
-    firm_mandate = profile.investment_thesis if profile else ""
-
-    # Find unresearched companies, prioritized by fit score
-    result_q = (
-        select(Startup)
-        .where(Startup.research_status == None)
-        .where(Startup.website != None)
-    )
-    if user_id is not None:
-        result_q = result_q.where(Startup.user_id == user_id)
-    if min_fit_score is not None:
-        result_q = result_q.where(Startup.fit_score >= min_fit_score)
-    result = await db.execute(
-        result_q.order_by(Startup.fit_score.desc()).limit(limit)
-    )
-    companies = result.scalars().all()
-
-    if not companies:
-        logger.info("No companies to research")
-        return {"researched": 0, "failed": 0, "total": 0}
-
-    logger.info(f"Starting research batch: {len(companies)} companies")
-    researched = 0
-    failed = 0
-
-    for company in companies:
-        success = await research_company(company, db, firm_mandate)
-        if success:
-            researched += 1
-        else:
-            failed += 1
-        # Small delay to be polite to websites and avoid rate limits
-        import asyncio
-        await asyncio.sleep(2)
-
-    logger.info(f"Research batch complete: {researched} succeeded, {failed} failed")
-    return {"researched": researched, "failed": failed, "total": len(companies)}
+    return research_findings, sources_visited

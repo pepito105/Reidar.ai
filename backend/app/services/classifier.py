@@ -256,6 +256,7 @@ async def research_startup(
     firm,
     custom_focus: str = None,
     db=None,
+    progress_callback=None,
 ) -> dict:
     """
     Deep investment research using two-step approach:
@@ -301,71 +302,87 @@ async def research_startup(
 
     focus_line = f"\nANALYST FOCUS: {custom_focus}\nMake sure your research directly addresses this question.\n" if custom_focus else ""
 
-    # ── STEP 1: Research with web search ─────────────────────────────────────
-    research_prompt = f"""You are a senior investment analyst. Research this startup thoroughly for a VC firm.
+    # ── STEP 1: Research ─────────────────────────────────────────────────────────
+    research_findings = ""
+    sources_visited = []
 
+    if progress_callback:
+        await progress_callback(f"🌐 Visiting {website or name} and searching the web...")
+
+    if settings.BRAVE_API_KEY:
+        # Use Brave Search + Firecrawl pipeline (real URLs, full page content)
+        from app.services.research_service import research_with_brave_and_firecrawl
+
+        # Generate search queries with Claude
+        query_prompt = f"""Generate 5 search queries to research this startup for a VC investment decision.
+Company: {name}
+Description: {description}
+Website: {website or 'unknown'}
+
+Return ONLY a JSON array of 5 strings. Example: ["query1", "query2", "query3", "query4", "query5"]
+Cover: product/market fit, traction/revenue, team background, funding history, competition."""
+
+        query_response = await research_client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=500,
+            messages=[{"role": "user", "content": query_prompt}]
+        )
+        raw_queries = query_response.content[0].text.strip()
+        if raw_queries.startswith("```"):
+            raw_queries = raw_queries.split("```")[1]
+            if raw_queries.startswith("json"):
+                raw_queries = raw_queries[4:]
+        try:
+            queries = json.loads(raw_queries.strip())
+        except Exception:
+            queries = [f"{name} startup", f"{name} funding", f"{name} revenue customers"]
+
+        research_findings, sources_visited = await research_with_brave_and_firecrawl(
+            name=name,
+            description=description,
+            website=website,
+            queries=queries,
+            progress_callback=progress_callback,
+        )
+        logger.info(f"Brave+Firecrawl research complete for {name}. Sources: {len(sources_visited)}")
+
+    else:
+        # Fallback: use Anthropic web_search tool
+        research_prompt = f"""You are a senior investment analyst. Research this startup thoroughly for a VC firm.
 {firm_context}
 {portfolio_context}
 {pipeline_context}
 {focus_line}
-
 COMPANY: {name}
 Description: {description}
 Website: {website or "Unknown — search for it"}
+Write your findings as a detailed research report. End with all URLs visited."""
 
-Use web search to investigate:
-1. What the product actually does today (visit their website)
-2. Who the paying customers are — specific job titles or company types
-3. Traction evidence: revenue numbers, named customers, funding history with investors named
-4. Team backgrounds: founder LinkedIn histories, prior company outcomes
-5. Competitive landscape: top 3 direct competitors, recent funding in the space
-6. Market timing: what changed in the last 2-3 years that makes this possible now
-7. Any red flags: positioning confusion, no pricing page, stale funding, etc.
+        try:
+            step1_response = await research_client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=4000,
+                tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 6}],
+                messages=[{"role": "user", "content": research_prompt}]
+            )
+            text_parts = []
+            for block in step1_response.content:
+                if hasattr(block, "text") and block.text and block.text.strip():
+                    text_parts.append(block.text.strip())
+                if hasattr(block, "type") and block.type == "tool_use" and hasattr(block, "input"):
+                    query = block.input.get("query", "")
+                    if query:
+                        sources_visited.append(f"search: {query}")
+            research_findings = "\n\n".join(text_parts)
+            logger.info(f"Fallback web search complete for {name}. Found {len(text_parts)} text blocks")
+            if progress_callback:
+                await progress_callback(f"📰 Web research complete. Structuring investment brief...")
+        except Exception as e:
+            logger.error(f"Step 1 research error for {name}: {e}", exc_info=True)
+            research_findings = f"Web research failed. Known info: {description}"
 
-Write your findings as a detailed research report. Be specific — cite actual data points,
-company names, URLs visited, and investor names. Do not invent anything you cannot verify.
-Flag explicitly when you could not find information.
-
-End your report with a list of all URLs you visited."""
-
-    sources_visited = []
-    research_findings = ""
-
-    try:
-        step1_response = await research_client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=4000,
-            tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 6}],
-            messages=[{"role": "user", "content": research_prompt}]
-        )
-
-        # Extract all text from response (handles mixed tool_use/tool_result/text blocks)
-        text_parts = []
-        for block in step1_response.content:
-            if hasattr(block, "text") and block.text and block.text.strip():
-                text_parts.append(block.text.strip())
-            # Also capture URLs from tool_use blocks (web search queries)
-            if hasattr(block, "type") and block.type == "tool_use" and hasattr(block, "input"):
-                query = block.input.get("query", "")
-                if query:
-                    sources_visited.append(f"search: {query}")
-            # Capture URLs from tool_result blocks
-            if hasattr(block, "type") and block.type == "tool_result":
-                if hasattr(block, "content") and isinstance(block.content, list):
-                    for inner in block.content:
-                        if hasattr(inner, "text") and inner.text:
-                            text_parts.append(f"[Search result]: {inner.text[:500]}")
-
-        research_findings = "\n\n".join(text_parts)
-        logger.info(f"Step 1 complete for {name}. Found {len(text_parts)} text blocks, stop_reason: {step1_response.stop_reason}")
-
-        if not research_findings.strip():
-            logger.warning(f"Step 1 returned empty findings for {name}. Using description as fallback.")
-            research_findings = f"Could not retrieve additional research. Known info: {description}"
-
-    except Exception as e:
-        logger.error(f"Step 1 research error for {name}: {e}", exc_info=True)
-        research_findings = f"Web research failed. Known info: {description}"
+    if not research_findings.strip():
+        research_findings = f"Could not retrieve additional research. Known info: {description}"
 
     # ── STEP 2: Structure findings into JSON ──────────────────────────────────
     structure_prompt = f"""You are a senior investment analyst. Based on research findings below, produce a structured investment brief.
@@ -399,7 +416,7 @@ SECTOR: Must be exactly one from: {SECTOR_TAXONOMY_STR}
 
 MANDATE CATEGORY: {mandate_category_guide}
 
-FIT REASONING: Bullet points. Each: "• [dimension]: [finding] — High/Medium/Low confidence"
+FIT REASONING: Structure fit_reasoning as a JSON object with five keys: team, traction, market, stage_and_check, thesis_fit. Each key maps to an array of {{point, confidence}} objects. Each point should be one specific finding. Confidence is High, Medium, or Low.
 
 RECOMMENDED NEXT STEP:
 - fit 4-5: "Request intro via [path]. Conviction: [one sentence]."
@@ -418,7 +435,13 @@ Respond with ONLY a JSON object, no markdown, no backticks:
   "ai_summary": "3-4 sentence investment overview with specific findings",
   "ai_score": <integer 1-5>,
   "fit_score": <integer 1-5>,
-  "fit_reasoning": "bullet points with confidence levels",
+  "fit_reasoning": {{
+    "team": [{{"point": "finding about founders, team background, founder-market fit", "confidence": "High|Medium|Low"}}],
+    "traction": [{{"point": "finding about revenue, growth, customers, retention", "confidence": "High|Medium|Low"}}],
+    "market": [{{"point": "finding about market size, timing, vitamin vs painkiller", "confidence": "High|Medium|Low"}}],
+    "stage_and_check": [{{"point": "finding about funding stage, round size, entry window", "confidence": "High|Medium|Low"}}],
+    "thesis_fit": [{{"point": "finding about mandate alignment, sector, geography, excluded sectors", "confidence": "High|Medium|Low"}}]
+  }},
   "business_model": "how they make money — specific from research",
   "target_customer": "specific job title or company type",
   "sector": "exactly one from the fixed list",
@@ -445,7 +468,7 @@ Respond with ONLY a JSON object, no markdown, no backticks:
     try:
         step2_response = await research_client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=3000,
+            max_tokens=6000,
             messages=[{"role": "user", "content": structure_prompt}]
         )
 
@@ -461,6 +484,10 @@ Respond with ONLY a JSON object, no markdown, no backticks:
             raise ValueError(f"Step 2 returned empty response for {name}")
 
         result = json.loads(raw)
+        result["research_status"] = "complete"
+
+        if progress_callback:
+            await progress_callback(f"✅ Research complete — fit score: {result.get('fit_score')}/5")
 
         # Merge in sources from step 1 if Claude didn't include them
         if not result.get("sources_visited") and sources_visited:

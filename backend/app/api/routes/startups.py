@@ -1,9 +1,10 @@
+import json
 import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, or_, func
 from pydantic import BaseModel
-from datetime import timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Any, Dict
 
 logger = logging.getLogger(__name__)
@@ -388,14 +389,17 @@ async def analyze_startup(startup_id: int, request: Request, db: AsyncSession = 
         startup.ai_summary = (result.get("ai_summary") or "")[:2000]
         startup.ai_score = result.get("ai_score")
         startup.fit_score = result.get("fit_score")
-        startup.fit_reasoning = (result.get("fit_reasoning") or "")[:3000]
+        fit_reasoning = result.get("fit_reasoning")
+        if isinstance(fit_reasoning, dict):
+            startup.fit_reasoning = json.dumps(fit_reasoning)
+        elif isinstance(fit_reasoning, str):
+            startup.fit_reasoning = fit_reasoning[:3000]
         startup.business_model = (result.get("business_model") or "")[:499]
         startup.target_customer = (result.get("target_customer") or "")[:499]
         startup.sector = (result.get("sector") or startup.sector or "")[:99]
         startup.mandate_category = (result.get("mandate_category") or "")[:99]
         startup.thesis_tags = result.get("thesis_tags", [])
         startup.recommended_next_step = (result.get("recommended_next_step") or "")[:499]
-        import json
         key_risks = result.get("key_risks")
         startup.key_risks = json.dumps(key_risks) if isinstance(key_risks, list) else (key_risks or None)
         bull_case = result.get("bull_case")
@@ -403,6 +407,9 @@ async def analyze_startup(startup_id: int, request: Request, db: AsyncSession = 
         startup.comparable_companies = result.get("comparable_companies", [])
         if (startup.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):
             startup.funding_stage = result["funding_stage"][:49]
+        if result.get("research_status") == "complete":
+            startup.research_status = "complete"
+            startup.research_completed_at = datetime.utcnow()
         await db.commit()
         await db.refresh(startup)
     return _startup_to_card(startup)
@@ -412,7 +419,6 @@ async def analyze_startup(startup_id: int, request: Request, db: AsyncSession = 
 async def analyze_startup_stream(startup_id: int, request: Request, db: AsyncSession = Depends(get_db), token: Optional[str] = None, focus: Optional[str] = None):
     """SSE endpoint that streams research agent progress."""
     import asyncio
-    import json
     from fastapi.responses import StreamingResponse
 
     user_id = _user_id_from_request(request)
@@ -452,23 +458,13 @@ async def analyze_startup_stream(startup_id: int, request: Request, db: AsyncSes
                 yield chunk
             return
 
-        # Stage 1 — emit immediately
-        async for chunk in emit("stage", "Searching for company information...", {"stage": 1, "total": 4}):
-            yield chunk
-
-        # Stage 2 — emit after brief pause
-        await asyncio.sleep(2)
-        async for chunk in emit("stage", "Researching traction, team, and market...", {"stage": 2, "total": 4}):
-            yield chunk
-
-        # Stage 3 — emit before long Claude call
-        await asyncio.sleep(2)
-        async for chunk in emit("stage", "Evaluating mandate fit and risks...", {"stage": 3, "total": 4}):
-            yield chunk
-
-        # Run the research and send keepalive pings while waiting
+        # Run the research with progress callback; stream progress and keepalive while waiting
         from app.services.classifier import research_startup
-        result = None
+        progress_messages = []
+
+        async def on_progress(message: str):
+            progress_messages.append(message)
+
         research_task = asyncio.create_task(
             research_startup(
                 name=startup.name,
@@ -477,14 +473,23 @@ async def analyze_startup_stream(startup_id: int, request: Request, db: AsyncSes
                 firm=firm,
                 custom_focus=focus,
                 db=db,
+                progress_callback=on_progress,
             )
         )
 
-        # Send keepalive pings every 10 seconds while waiting
+        # Send keepalive pings and progress messages while waiting
+        last_sent = 0
         while not research_task.done():
-            await asyncio.sleep(10)
+            await asyncio.sleep(2)
             if not research_task.done():
-                yield f"data: {json.dumps({'type': 'ping', 'message': 'Analyzing...'})}\n\n"
+                # Send any new progress messages
+                while last_sent < len(progress_messages):
+                    msg = progress_messages[last_sent]
+                    yield f"data: {json.dumps({'type': 'stage', 'message': msg})}\n\n"
+                    last_sent += 1
+                # Send keepalive if no new progress
+                if last_sent == len(progress_messages):
+                    yield f"data: {json.dumps({'type': 'ping', 'message': 'Analyzing...'})}\n\n"
 
         result = await research_task
 
@@ -493,7 +498,11 @@ async def analyze_startup_stream(startup_id: int, request: Request, db: AsyncSes
             startup.ai_summary = (result.get("ai_summary") or "")[:2000]
             startup.ai_score = result.get("ai_score")
             startup.fit_score = result.get("fit_score")
-            startup.fit_reasoning = (result.get("fit_reasoning") or "")[:3000]
+            fit_reasoning = result.get("fit_reasoning")
+            if isinstance(fit_reasoning, dict):
+                startup.fit_reasoning = json.dumps(fit_reasoning)
+            elif isinstance(fit_reasoning, str):
+                startup.fit_reasoning = fit_reasoning[:3000]
             startup.business_model = (result.get("business_model") or "")[:499]
             startup.target_customer = (result.get("target_customer") or "")[:499]
             startup.sector = (result.get("sector") or startup.sector or "")[:99]
@@ -511,6 +520,9 @@ async def analyze_startup_stream(startup_id: int, request: Request, db: AsyncSes
             startup.red_flags = (result.get("red_flags") or "")
             startup.enriched_one_liner = (result.get("enriched_one_liner") or "")
             startup.sources_visited = result.get("sources_visited", [])
+            if result.get("research_status") == "complete":
+                startup.research_status = "complete"
+                startup.research_completed_at = datetime.utcnow()
             await db.commit()
 
             # Write research completion memory

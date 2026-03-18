@@ -103,6 +103,38 @@ ASSOCIATE_TOOLS = [
             "properties": {},
             "required": []
         }
+    },
+    {
+        "name": "run_research",
+        "description": "Run deep research on a specific company using web search. Use this when the user asks to research a company, get more details, or deploy research agents on a company. Requires the company name.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "company_name": {
+                    "type": "string",
+                    "description": "The exact name of the company to research"
+                },
+                "custom_focus": {
+                    "type": "string",
+                    "description": "Optional specific question or focus area for the research"
+                }
+            },
+            "required": ["company_name"]
+        }
+    },
+    {
+        "name": "draft_memo",
+        "description": "Draft an investment memo for a company that has already been researched. Use this when the user asks to draft or generate a memo for a company.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "company_name": {
+                    "type": "string",
+                    "description": "The exact name of the company to draft a memo for"
+                }
+            },
+            "required": ["company_name"]
+        }
     }
 ]
 
@@ -165,6 +197,118 @@ async def _execute_tool(tool_name: str, tool_input: dict, db: AsyncSession, user
             insights.append(f"TOP MATCHES STILL WATCHING: {', '.join(high_fit_new)}")
 
         return "\n".join(insights) if insights else "Pipeline looks healthy — no major issues detected."
+
+    elif tool_name == "run_research":
+        company_name = tool_input.get("company_name", "")
+        custom_focus = tool_input.get("custom_focus")
+
+        # Find the company in the database
+        result = await db.execute(
+            select(Startup)
+            .where(Startup.user_id == user_id)
+            .where(Startup.name.ilike(f"%{company_name}%"))
+            .limit(1)
+        )
+        startup = result.scalar_one_or_none()
+        if not startup:
+            return f"Could not find a company named '{company_name}' in your pipeline."
+
+        # Get firm profile
+        firm_result = await db.execute(
+            select(FirmProfile).where(FirmProfile.user_id == user_id).where(FirmProfile.is_active == True).limit(1)
+        )
+        firm = firm_result.scalars().first()
+
+        from app.services.classifier import research_startup
+        result_data = await research_startup(
+            name=startup.name,
+            description=startup.one_liner or startup.name,
+            website=startup.website,
+            firm=firm,
+            custom_focus=custom_focus,
+            db=db,
+        )
+
+        if not result_data:
+            return f"Research failed for {company_name}."
+
+        # Save results back to the startup
+        fit_reasoning = result_data.get("fit_reasoning")
+        if isinstance(fit_reasoning, dict):
+            startup.fit_reasoning = json.dumps(fit_reasoning)
+        elif isinstance(fit_reasoning, str):
+            startup.fit_reasoning = fit_reasoning[:3000]
+        if result_data.get("traction_signals"):
+            startup.traction_signals = result_data["traction_signals"]
+        if result_data.get("red_flags"):
+            startup.red_flags = result_data["red_flags"]
+        if result_data.get("enriched_one_liner"):
+            startup.enriched_one_liner = result_data["enriched_one_liner"]
+        if result_data.get("ai_summary"):
+            startup.ai_summary = result_data["ai_summary"]
+        if result_data.get("fit_score"):
+            startup.fit_score = result_data["fit_score"]
+        if result_data.get("research_status") == "complete":
+            startup.research_status = "complete"
+            startup.research_completed_at = datetime.utcnow()
+        await db.commit()
+
+        # Write memory
+        from app.services.associate_memory_service import write_memory
+        await write_memory(
+            db=db,
+            user_id=user_id,
+            memory_type="fact",
+            content=f"{startup.name}: research completed via associate. Fit: {result_data.get('fit_score')}/5. {(result_data.get('traction_signals') or '')[:150]}",
+            company_id=startup.id,
+            company_name=startup.name,
+        )
+
+        summary = f"Research complete for {startup.name}.\n"
+        summary += f"Fit score: {result_data.get('fit_score')}/5\n"
+        if result_data.get("traction_signals"):
+            summary += f"Traction: {result_data['traction_signals'][:300]}\n"
+        if result_data.get("red_flags"):
+            summary += f"Red flags: {result_data['red_flags'][:200]}\n"
+        if result_data.get("recommended_next_step"):
+            summary += f"Recommendation: {result_data['recommended_next_step']}"
+
+        sources = result_data.get("sources_visited", [])
+        if sources:
+            summary += f"\n\n📎 Sources visited:\n" + "\n".join(f"- {s}" for s in sources[:8])
+        return summary
+
+    elif tool_name == "draft_memo":
+        company_name = tool_input.get("company_name", "")
+
+        result = await db.execute(
+            select(Startup)
+            .where(Startup.user_id == user_id)
+            .where(Startup.name.ilike(f"%{company_name}%"))
+            .limit(1)
+        )
+        startup = result.scalar_one_or_none()
+        if not startup:
+            return f"Could not find '{company_name}' in your pipeline."
+        if not startup.fit_reasoning:
+            return f"{startup.name} hasn't been researched yet. Run research first before drafting a memo."
+
+        firm_result = await db.execute(
+            select(FirmProfile).where(FirmProfile.user_id == user_id).where(FirmProfile.is_active == True).limit(1)
+        )
+        firm = firm_result.scalars().first()
+
+        from app.api.routes.memo import generate_memo_for_startup
+        memo = await generate_memo_for_startup(startup, firm, db)
+
+        if not memo:
+            return f"Failed to generate memo for {company_name}."
+
+        startup.memo = memo
+        startup.memo_generated_at = datetime.utcnow()
+        await db.commit()
+
+        return f"Memo drafted for {startup.name}. It's now available in the Memo tab of the company detail panel. Here's the executive summary:\n\n{memo[:500]}..."
 
     return f"Unknown tool: {tool_name}"
 
