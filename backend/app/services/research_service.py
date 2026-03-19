@@ -71,6 +71,148 @@ async def firecrawl_scrape(url: str, max_length: int = 3000) -> Optional[str]:
         return None
 
 
+async def research_company(company, db, firm_mandate: str = "") -> bool:
+    """
+    Research a single Company object using research_startup.
+    Returns True on success, False on failure.
+    Called from signals.py test endpoint.
+    """
+    from datetime import datetime
+    from app.services.classifier import research_startup, GLOBAL_FIELDS
+
+    # Build a minimal mock firm object with just the fields research_startup needs
+    class _MinimalFirm:
+        investment_thesis = firm_mandate
+        user_id = None
+        mandate_buckets = []
+        is_ai_focused = False
+        fit_threshold = 3
+
+    try:
+        company.research_status = "pending"
+        await db.commit()
+
+        result = await research_startup(
+            name=company.name,
+            description=company.one_liner or company.name,
+            website=company.website,
+            firm=_MinimalFirm(),
+            db=db,
+        )
+        if not result:
+            company.research_status = None
+            await db.commit()
+            return False
+
+        for field in GLOBAL_FIELDS:
+            if result.get(field) is not None:
+                setattr(company, field, result[field])
+
+        company.research_status = "complete"
+        company.research_completed_at = datetime.utcnow()
+        await db.commit()
+        return True
+
+    except Exception as e:
+        logger.warning(f"research_company failed for {company.id}: {e}")
+        try:
+            company.research_status = None
+            await db.commit()
+        except Exception:
+            pass
+        return False
+
+
+async def run_research_batch(
+    db,
+    limit: int = 20,
+    user_id: str = None,
+    min_fit_score: int = 3,
+) -> dict:
+    """
+    Batch research job — called by the scheduler.
+    Finds companies with research_status != 'complete' and fit_score >= min_fit_score,
+    runs research_startup on each, and writes results back to Company + FirmCompanyScore.
+    Returns a stats dict.
+    """
+    from datetime import datetime
+    from sqlalchemy import select
+    from app.models.company import Company
+    from app.models.firm_company_score import FirmCompanyScore
+    from app.models.firm_profile import FirmProfile
+    from app.services.classifier import research_startup, GLOBAL_FIELDS, FIRM_FIELDS
+
+    query = (
+        select(Company, FirmCompanyScore)
+        .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+        .where(FirmCompanyScore.fit_score >= min_fit_score)
+        .where(Company.research_status != "complete")
+        .order_by(FirmCompanyScore.fit_score.desc())
+        .limit(limit)
+    )
+    if user_id:
+        query = query.where(FirmCompanyScore.user_id == user_id)
+
+    result = await db.execute(query)
+    rows = result.fetchall()
+
+    researched = 0
+    failed = 0
+
+    for row in rows:
+        company, score = row[0], row[1]
+        try:
+            profile_result = await db.execute(
+                select(FirmProfile)
+                .where(FirmProfile.user_id == score.user_id)
+                .where(FirmProfile.is_active == True)
+                .limit(1)
+            )
+            firm = profile_result.scalars().first()
+            if not firm:
+                continue
+
+            company.research_status = "pending"
+            await db.commit()
+
+            research_result = await research_startup(
+                name=company.name,
+                description=company.one_liner or company.name,
+                website=company.website,
+                firm=firm,
+                db=db,
+            )
+            if not research_result:
+                company.research_status = None
+                await db.commit()
+                failed += 1
+                continue
+
+            for field in GLOBAL_FIELDS:
+                if research_result.get(field) is not None:
+                    setattr(company, field, research_result[field])
+
+            for field in FIRM_FIELDS:
+                if research_result.get(field) is not None:
+                    setattr(score, field, research_result[field])
+
+            company.research_status = "complete"
+            company.research_completed_at = datetime.utcnow()
+            await db.commit()
+            researched += 1
+
+        except Exception as e:
+            logger.warning(f"run_research_batch: failed on company {company.id}: {e}")
+            try:
+                company.research_status = None
+                await db.commit()
+            except Exception:
+                pass
+            failed += 1
+
+    return {"researched": researched, "failed": failed, "total": len(rows)}
+
+
 async def research_with_brave_and_firecrawl(
     name: str,
     description: str,
