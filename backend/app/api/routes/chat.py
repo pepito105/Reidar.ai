@@ -1,13 +1,13 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel
+from anthropic import AsyncAnthropic
 from app.core.database import get_db
 from app.models.startup import Startup
 from app.models.firm_profile import FirmProfile
 from app.core.config import settings
-import anthropic
 
 router = APIRouter(prefix="/chat")
 
@@ -31,10 +31,13 @@ class ChatMessage(BaseModel):
 @router.post("/")
 async def chat(request: Request, data: ChatMessage, db: AsyncSession = Depends(get_db)):
     user_id = _user_id_from_request(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
     profile_result = await db.execute(select(FirmProfile).where(FirmProfile.user_id == user_id).where(FirmProfile.is_active == True).limit(1))
     profile = profile_result.scalars().first()
 
-    result = await db.execute(select(Startup).order_by(Startup.fit_score.desc().nulls_last()).limit(100))
+    result = await db.execute(select(Startup).where(Startup.user_id == user_id).order_by(Startup.fit_score.desc().nulls_last()).limit(100))
     startups = result.scalars().all()
 
     company_context = "\n".join([
@@ -56,9 +59,9 @@ You have access to the firm's deal database. Here are the top companies:
 
 Answer questions about the deal flow, specific companies, market trends, and investment thesis. Be direct, analytical, and specific. Reference actual companies from the database when relevant."""
 
-    client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-    message = client.messages.create(
-        model="claude-opus-4-5",
+    client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+    message = await client.messages.create(
+        model="claude-sonnet-4-6",
         max_tokens=1000,
         system=system_prompt,
         messages=[{"role": "user", "content": data.message}]

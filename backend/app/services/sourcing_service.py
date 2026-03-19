@@ -480,7 +480,7 @@ async def run_autonomous_sourcing(db: AsyncSession, custom_brief: str = None, li
         if not name:
             skipped += 1
             continue
-        if await is_duplicate(website, name, db):
+        if await is_duplicate(website, name, db, user_id=user_id):
             logger.debug(f"Skipping duplicate: {name}")
             skipped += 1
             continue

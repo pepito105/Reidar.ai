@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 import jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -21,10 +21,9 @@ async def get_market_map(request: Request, db: AsyncSession = Depends(get_db)):
             print(f"MARKET MAP: jwt decode failed: {e}")
     else:
         print(f"MARKET MAP: no auth header found")
-    if user_id:
-        result = await db.execute(select(Startup).where(Startup.user_id == user_id))
-    else:
-        result = await db.execute(select(Startup))
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    result = await db.execute(select(Startup).where(Startup.user_id == user_id))
     startups = result.scalars().all()
 
     stage_counts = {}
