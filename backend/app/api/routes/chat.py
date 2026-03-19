@@ -38,12 +38,18 @@ async def chat(request: Request, data: ChatMessage, db: AsyncSession = Depends(g
     profile_result = await db.execute(select(FirmProfile).where(FirmProfile.user_id == user_id).where(FirmProfile.is_active == True).limit(1))
     profile = profile_result.scalars().first()
 
-    result = await db.execute(select(Startup).where(Startup.user_id == user_id).order_by(Startup.fit_score.desc().nulls_last()).limit(100))
-    startups = result.scalars().all()
+    rows_result = await db.execute(
+        select(Company, FirmCompanyScore)
+        .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+        .where(FirmCompanyScore.user_id == user_id)
+        .order_by(FirmCompanyScore.fit_score.desc().nulls_last())
+        .limit(100)
+    )
+    rows = rows_result.fetchall()
 
     company_context = "\n".join([
-        f"- {s.name} | {s.one_liner or ''} | Stage: {s.funding_stage or '?'} | Sector: {s.sector or '?'} | Fit: {s.fit_score}/5 | AI: {s.ai_score}/5 | Pipeline: {s.pipeline_status or 'new'}"
-        for s in startups
+        f"- {row[0].name} | {row[0].one_liner or ''} | Stage: {row[0].funding_stage or '?'} | Sector: {row[0].sector or '?'} | Fit: {row[1].fit_score}/5 | Pipeline: {row[1].pipeline_status or 'new'}"
+        for row in rows
     ])
 
     thesis = profile.investment_thesis if profile else "Early-stage technology"

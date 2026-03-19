@@ -21,18 +21,18 @@ _scrape_running = False
 @router.get("/status")
 async def get_scrape_status(db: AsyncSession = Depends(get_db)):
     total_result = await db.execute(
-        select(func.count(Startup.id))
+        select(func.count(Company.id))
     )
     total_companies = total_result.scalar() or 0
 
     week_ago = datetime.utcnow() - timedelta(days=7)
     new_result = await db.execute(
-        select(func.count(Startup.id)).where(Startup.scraped_at >= week_ago)
+        select(func.count(Company.id)).where(Company.scraped_at >= week_ago)
     )
     new_this_week = new_result.scalar() or 0
 
     last_result = await db.execute(
-        text("SELECT MAX(scraped_at) FROM startups")
+        text("SELECT MAX(scraped_at) FROM companies")
     )
     last_scraped = last_result.scalar()
 

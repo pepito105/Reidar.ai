@@ -33,21 +33,7 @@ def _user_id_from_request(request: Request) -> Optional[str]:
 
 class SignalsRequest(BaseModel):
     days: int = 7
-    since: Optional[str] = None  # unused when brief is last-scrape-based
-
-
-def _last_activity_at(startup) -> Optional[datetime]:
-    log = startup.activity_log or []
-    if not log:
-        return None
-    dates = []
-    for entry in log:
-        if isinstance(entry, dict) and entry.get("created_at"):
-            try:
-                dates.append(datetime.fromisoformat(entry["created_at"].replace("Z", "+00:00")))
-            except Exception:
-                pass
-    return max(dates) if dates else None
+    since: Optional[str] = None
 
 
 @router.post("/hot-signals")
@@ -58,10 +44,10 @@ async def generate_hot_signals(request: Request, data: SignalsRequest, db: Async
     thesis = profile.investment_thesis if profile else "Early-stage technology companies"
     firm_name = profile.firm_name if profile else "the firm"
 
-    now = datetime.utcnow()  # naive UTC throughout
+    now = datetime.utcnow()
 
-    # Find last scrape timestamp
-    last_scrape_result = await db.execute(select(func.max(Startup.scraped_at)))
+    # Find last scrape timestamp from companies table
+    last_scrape_result = await db.execute(select(func.max(Company.scraped_at)))
     last_scraped = last_scrape_result.scalar()
     if last_scraped:
         if hasattr(last_scraped, 'tzinfo') and last_scraped.tzinfo is not None:
@@ -70,34 +56,38 @@ async def generate_hot_signals(request: Request, data: SignalsRequest, db: Async
     else:
         since = now - timedelta(days=data.days)
 
-    # 1) New companies from the last scrape
+    # 1) New companies from the last scrape (scoped to this user)
     new_result = await db.execute(
-        select(Startup)
-        .where(Startup.scraped_at >= since)
-        .order_by(Startup.fit_score.desc().nulls_last())
+        select(Company, FirmCompanyScore)
+        .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+        .where(FirmCompanyScore.user_id == user_id)
+        .where(Company.scraped_at >= since)
+        .order_by(FirmCompanyScore.fit_score.desc().nulls_last())
         .limit(25)
     )
-    new_companies = new_result.scalars().all()
+    new_rows = new_result.fetchall()
     new_list = "\n".join([
-        f"- {s.name} (Fit {s.fit_score or 0}/5): {s.one_liner or 'No description'} | {s.sector or 'Unknown'} | {s.funding_stage or 'Unknown'}"
-        for s in new_companies
-    ]) if new_companies else "None."
+        f"- {row[0].name} (Fit {row[1].fit_score or 0}/5): {row[0].one_liner or 'No description'} | {row[0].sector or 'Unknown'} | {row[0].funding_stage or 'Unknown'}"
+        for row in new_rows
+    ]) if new_rows else "None."
 
-    # 2) Existing companies with new signals
+    # 2) Existing companies with new signals (scoped to this user via FirmCompanyScore)
     signals_result = await db.execute(
-        select(CompanySignal, Startup.name, Startup.one_liner, Startup.fit_score)
-        .join(Startup, CompanySignal.startup_id == Startup.id)
+        select(CompanySignal, Company.name, Company.one_liner, FirmCompanyScore.fit_score)
+        .join(Company, CompanySignal.company_id == Company.id)
+        .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+        .where(FirmCompanyScore.user_id == user_id)
         .where(CompanySignal.detected_at >= since)
         .order_by(CompanySignal.detected_at.desc())
         .limit(50)
     )
     signal_rows = signals_result.fetchall()
-    seen_ids = set()
+    seen_company_ids = set()
     signals_by_company = []
     for sig, cname, one_liner, fit in signal_rows:
-        if sig.startup_id in seen_ids:
+        if sig.company_id in seen_company_ids:
             continue
-        seen_ids.add(sig.startup_id)
+        seen_company_ids.add(sig.company_id)
         signals_by_company.append({"name": cname, "fit_score": fit, "signals": []})
     for sig, cname, one_liner, fit in signal_rows:
         for rec in signals_by_company:
@@ -111,23 +101,25 @@ async def generate_hot_signals(request: Request, data: SignalsRequest, db: Async
 
     # 3) Pipeline deals needing attention
     pipeline_result = await db.execute(
-        select(Startup).where(
-            Startup.pipeline_status.in_(["watching", "outreach", "diligence"])
-        )
+        select(Company, FirmCompanyScore)
+        .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+        .where(FirmCompanyScore.user_id == user_id)
+        .where(FirmCompanyScore.pipeline_status.in_(["watching", "outreach", "diligence"]))
     )
-    pipeline_startups = pipeline_result.scalars().all()
+    pipeline_rows = pipeline_result.fetchall()
     stale_days = 7
     stale_cutoff = now - timedelta(days=stale_days)
     needs_attention = []
-    for s in pipeline_startups:
-        last = _last_activity_at(s)
+    for row in pipeline_rows:
+        company, score = row[0], row[1]
+        last = score.last_refreshed_at
         if last and hasattr(last, 'tzinfo') and last.tzinfo is not None:
             last = last.replace(tzinfo=None)
         if last is None or last < stale_cutoff:
             needs_attention.append({
-                "name": s.name,
-                "pipeline_status": s.pipeline_status,
-                "one_liner": s.one_liner or "",
+                "name": company.name,
+                "pipeline_status": score.pipeline_status,
+                "one_liner": company.one_liner or "",
             })
     pipeline_list = "\n".join([
         f"- {p['name']} ({p['pipeline_status']}): {p['one_liner'][:80]}"
@@ -198,7 +190,7 @@ Be specific, use company names and numbers, stay under 700 words total. Write li
     return {
         "brief": brief_text,
         "days": data.days,
-        "new_count": len(new_companies),
+        "new_count": len(new_rows),
         "signals_count": len(signals_by_company),
         "pipeline_attention_count": len(needs_attention),
         "generated_at": datetime.utcnow().isoformat() + "Z",
@@ -215,13 +207,13 @@ async def get_activity_feed(
     db: AsyncSession = Depends(get_db),
 ):
     user_id = _user_id_from_request(request)
-    from datetime import datetime, timedelta
     since = datetime.utcnow() - timedelta(days=days)
     query = (
-        select(CompanySignal, Startup.name, Startup.one_liner, Startup.fit_score)
-        .join(Startup, CompanySignal.startup_id == Startup.id)
+        select(CompanySignal, Company.name, Company.one_liner, FirmCompanyScore.fit_score)
+        .join(Company, CompanySignal.company_id == Company.id)
+        .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+        .where(FirmCompanyScore.user_id == user_id)
         .where(CompanySignal.detected_at >= since)
-        .where(Startup.user_id == user_id)
     )
     if signal_type:
         query = query.where(CompanySignal.signal_type == signal_type)
@@ -233,9 +225,10 @@ async def get_activity_feed(
 
     unseen_result = await db.execute(
         select(CompanySignal)
-        .join(Startup, CompanySignal.startup_id == Startup.id)
+        .join(Company, CompanySignal.company_id == Company.id)
+        .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+        .where(FirmCompanyScore.user_id == user_id)
         .where(CompanySignal.is_seen == False)
-        .where(Startup.user_id == user_id)
     )
     unseen_count = len(unseen_result.scalars().all())
 
@@ -249,7 +242,7 @@ async def get_activity_feed(
     for signal, company_name, one_liner, fit_score in rows:
         feed.append({
             "id": signal.id,
-            "startup_id": signal.startup_id,
+            "startup_id": str(signal.company_id),
             "company_name": company_name,
             "company_one_liner": one_liner,
             "company_fit_score": fit_score,
@@ -269,65 +262,86 @@ async def mark_all_seen(request: Request, db: AsyncSession = Depends(get_db)):
     user_id = _user_id_from_request(request)
     result = await db.execute(
         select(CompanySignal)
-        .join(Startup, CompanySignal.startup_id == Startup.id)
+        .join(Company, CompanySignal.company_id == Company.id)
+        .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+        .where(FirmCompanyScore.user_id == user_id)
         .where(CompanySignal.is_seen == False)
-        .where(Startup.user_id == user_id)
     )
     signals = result.scalars().all()
     for s in signals:
         s.is_seen = True
-    startup_result = await db.execute(
-        select(Startup)
-        .where(Startup.user_id == user_id)
-        .where(Startup.has_unseen_signals == True)
+    # Clear has_unseen_signals on all user's scores
+    scores_result = await db.execute(
+        select(FirmCompanyScore)
+        .where(FirmCompanyScore.user_id == user_id)
+        .where(FirmCompanyScore.has_unseen_signals == True)
     )
-    startups = startup_result.scalars().all()
-    for startup in startups:
-        startup.has_unseen_signals = False
+    for score in scores_result.scalars().all():
+        score.has_unseen_signals = False
     await db.commit()
     return {"success": True, "marked_seen": len(signals)}
 
 
 @router.post("/mark-seen/{startup_id}")
-async def mark_company_seen(startup_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+async def mark_company_seen(startup_id: str, request: Request, db: AsyncSession = Depends(get_db)):
+    """Mark signals seen for a company. startup_id is FirmCompanyScore.id (UUID string)."""
     user_id = _user_id_from_request(request)
-    result = await db.execute(
+    import uuid as _uuid
+    try:
+        score_uuid = _uuid.UUID(startup_id)
+    except (ValueError, AttributeError):
+        raise HTTPException(status_code=422, detail=f"Invalid ID: {startup_id}")
+
+    # Get the score to find company_id
+    score_result = await db.execute(
+        select(FirmCompanyScore)
+        .where(FirmCompanyScore.id == score_uuid)
+        .where(FirmCompanyScore.user_id == user_id)
+    )
+    score = score_result.scalar_one_or_none()
+    if not score:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    # Mark all signals for this company as seen
+    sigs_result = await db.execute(
         select(CompanySignal).where(
-            CompanySignal.startup_id == startup_id,
+            CompanySignal.company_id == score.company_id,
             CompanySignal.is_seen == False
         )
     )
-    signals = result.scalars().all()
-    for s in signals:
+    for s in sigs_result.scalars().all():
         s.is_seen = True
-    startup_result = await db.execute(
-        select(Startup)
-        .where(Startup.id == startup_id)
-        .where(Startup.user_id == user_id)
-    )
-    startup = startup_result.scalar_one_or_none()
-    if startup:
-        startup.has_unseen_signals = False
+    score.has_unseen_signals = False
     await db.commit()
     return {"success": True}
 
 
 @router.get("/company/{startup_id}")
 async def get_company_signals(
-    startup_id: int,
+    startup_id: str,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    """Get signals for a company. startup_id is FirmCompanyScore.id (UUID string)."""
     user_id = _user_id_from_request(request)
-    from sqlalchemy import desc
-    owner_check = await db.execute(
-        select(Startup).where(Startup.id == startup_id).where(Startup.user_id == user_id)
+    import uuid as _uuid
+    try:
+        score_uuid = _uuid.UUID(startup_id)
+    except (ValueError, AttributeError):
+        raise HTTPException(status_code=422, detail=f"Invalid ID: {startup_id}")
+
+    score_result = await db.execute(
+        select(FirmCompanyScore)
+        .where(FirmCompanyScore.id == score_uuid)
+        .where(FirmCompanyScore.user_id == user_id)
     )
-    if not owner_check.scalar_one_or_none():
+    score = score_result.scalar_one_or_none()
+    if not score:
         raise HTTPException(status_code=404, detail="Startup not found")
+
     result = await db.execute(
         select(CompanySignal)
-        .where(CompanySignal.startup_id == startup_id)
+        .where(CompanySignal.company_id == score.company_id)
         .order_by(desc(CompanySignal.detected_at))
         .limit(10)
     )
@@ -367,9 +381,7 @@ async def test_notification(
         send_diligence_batch_alert,
         send_weekly_summary,
     )
-    from app.models.firm_profile import FirmProfile
 
-    # Get firm name
     profile_result = await db.execute(select(FirmProfile).where(FirmProfile.user_id == user_id).where(FirmProfile.is_active == True).limit(1))
     profile = profile_result.scalars().first()
     firm_name = profile.firm_name if profile else "Failup Ventures"
@@ -377,48 +389,58 @@ async def test_notification(
     thesis = profile.investment_thesis if profile else ""
 
     if notification_type == "top_match":
-        # Pull real top companies from DB
         result = await db.execute(
-            select(Startup).where(Startup.fit_score >= 4).order_by(Startup.fit_score.desc()).limit(5)
+            select(Company, FirmCompanyScore)
+            .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+            .where(FirmCompanyScore.user_id == user_id)
+            .where(FirmCompanyScore.fit_score >= 4)
+            .order_by(FirmCompanyScore.fit_score.desc())
+            .limit(5)
         )
         companies = [
             {
-                "name": s.name,
-                "fit_score": s.fit_score,
-                "one_liner": s.one_liner,
-                "funding_stage": s.funding_stage,
-                "sector": s.sector,
+                "name": row[0].name,
+                "fit_score": row[1].fit_score,
+                "one_liner": row[0].one_liner,
+                "funding_stage": row[0].funding_stage,
+                "sector": row[0].sector,
             }
-            for s in result.scalars().all()
+            for row in result.fetchall()
         ]
         success = await send_sourcing_alert(companies, firm_name, thesis=thesis, notification_emails=notify_emails)
         return {"sent": success, "type": "top_match", "companies": len(companies)}
 
     elif notification_type == "diligence":
-        # Pull a real diligence company or fall back to best fit
         result = await db.execute(
-            select(Startup)
-            .where(Startup.pipeline_status == "diligence")
-            .order_by(Startup.fit_score.desc())
+            select(Company, FirmCompanyScore)
+            .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+            .where(FirmCompanyScore.user_id == user_id)
+            .where(FirmCompanyScore.pipeline_status == "diligence")
+            .order_by(FirmCompanyScore.fit_score.desc())
             .limit(1)
         )
-        company = result.scalar_one_or_none()
-        if not company:
-            result = await db.execute(
-                select(Startup).order_by(Startup.fit_score.desc()).limit(1)
+        row = result.first()
+        if not row:
+            result2 = await db.execute(
+                select(Company, FirmCompanyScore)
+                .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+                .where(FirmCompanyScore.user_id == user_id)
+                .order_by(FirmCompanyScore.fit_score.desc())
+                .limit(1)
             )
-            company = result.scalar_one_or_none()
-        if not company:
+            row = result2.first()
+        if not row:
             return {"sent": False, "error": "No companies in database"}
+        company, score = row[0], row[1]
         mock_signals = [
-            {"signal_type": "funding_round", "title": "Raised $4M seed round", "summary": "Led by Benchmark with participation from YC. Will use funds to expand enterprise sales team."},
-            {"signal_type": "product_launch", "title": "Launched v2 with new AI features", "summary": "Major product update including automated workflow builder and native CRM integrations."},
+            {"signal_type": "funding_round", "title": "Raised $4M seed round", "summary": "Led by Benchmark with participation from YC."},
+            {"signal_type": "product_launch", "title": "Launched v2 with new AI features", "summary": "Major product update including automated workflow builder."},
         ]
         success = await send_diligence_batch_alert(
             alerts=[{
                 "company_name": company.name,
                 "signals": mock_signals,
-                "fit_score": company.fit_score or 4,
+                "fit_score": score.fit_score or 4,
             }],
             firm_name=firm_name,
             thesis=thesis,
@@ -427,34 +449,44 @@ async def test_notification(
         return {"sent": success, "type": "diligence", "company": company.name}
 
     elif notification_type == "weekly":
-        # Pull real data for weekly summary
-        from datetime import timedelta
         week_cutoff = datetime.utcnow() - timedelta(days=7)
         new_result = await db.execute(
-            select(Startup).where(Startup.fit_score >= 4).order_by(Startup.fit_score.desc()).limit(10)
+            select(Company, FirmCompanyScore)
+            .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+            .where(FirmCompanyScore.user_id == user_id)
+            .where(FirmCompanyScore.fit_score >= 4)
+            .order_by(FirmCompanyScore.fit_score.desc())
+            .limit(10)
         )
         new_companies = [
-            {"name": s.name, "fit_score": s.fit_score, "one_liner": s.one_liner,
-             "funding_stage": s.funding_stage, "sector": s.sector}
-            for s in new_result.scalars().all()
+            {"name": row[0].name, "fit_score": row[1].fit_score, "one_liner": row[0].one_liner,
+             "funding_stage": row[0].funding_stage, "sector": row[0].sector}
+            for row in new_result.fetchall()
         ]
         pipeline_result = await db.execute(
-            select(Startup).where(Startup.pipeline_status.in_(
+            select(Company, FirmCompanyScore)
+            .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+            .where(FirmCompanyScore.user_id == user_id)
+            .where(FirmCompanyScore.pipeline_status.in_(
                 ["watching", "outreach", "diligence", "passed", "invested"]
             ))
         )
         pipeline_summary = {}
-        for s in pipeline_result.scalars().all():
-            stage = s.pipeline_status
+        for row in pipeline_result.fetchall():
+            stage = row[1].pipeline_status
             if stage not in pipeline_summary:
                 pipeline_summary[stage] = []
-            pipeline_summary[stage].append({"name": s.name})
+            pipeline_summary[stage].append({"name": row[0].name})
         stale_result = await db.execute(
-            select(Startup).where(Startup.pipeline_status.in_(["watching", "outreach", "diligence"])).limit(3)
+            select(Company, FirmCompanyScore)
+            .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+            .where(FirmCompanyScore.user_id == user_id)
+            .where(FirmCompanyScore.pipeline_status.in_(["watching", "outreach", "diligence"]))
+            .limit(3)
         )
         stale_deals = [
-            {"name": s.name, "pipeline_status": s.pipeline_status, "one_liner": s.one_liner}
-            for s in stale_result.scalars().all()
+            {"name": row[0].name, "pipeline_status": row[1].pipeline_status, "one_liner": row[0].one_liner}
+            for row in stale_result.fetchall()
         ]
         success = await send_weekly_summary(new_companies, pipeline_summary, stale_deals, firm_name, notification_emails=notify_emails)
         return {"sent": success, "type": "weekly"}
@@ -465,20 +497,24 @@ async def test_notification(
 @router.post("/research/test")
 async def test_research(
     request: Request,
-    company_id: int = None,
+    company_id: str = None,
     db: AsyncSession = Depends(get_db)
 ):
     """Test autonomous research on a single company or run a small batch."""
     user_id = _user_id_from_request(request)
     from app.services.research_service import research_company, run_research_batch
-    from app.models.firm_profile import FirmProfile
 
     profile_result = await db.execute(select(FirmProfile).where(FirmProfile.user_id == user_id).where(FirmProfile.is_active == True).limit(1))
     profile = profile_result.scalars().first()
     firm_mandate = profile.investment_thesis if profile else ""
 
     if company_id:
-        result = await db.execute(select(Startup).where(Startup.id == company_id))
+        import uuid as _uuid
+        try:
+            cid = _uuid.UUID(company_id)
+        except Exception:
+            return {"error": f"Invalid company_id: {company_id}"}
+        result = await db.execute(select(Company).where(Company.id == cid))
         company = result.scalar_one_or_none()
         if not company:
             return {"error": f"Company {company_id} not found"}
@@ -491,10 +527,9 @@ async def test_research(
             "business_model": company.business_model,
             "target_customer": company.target_customer,
             "traction_signals": company.traction_signals,
-            "red_flags": company.red_flags,
+            "red_flags": company.key_risks,
         }
     else:
-        # Run a small batch of 3 to test
         stats = await run_research_batch(db, limit=3)
         return {"stats": stats}
 
@@ -521,51 +556,62 @@ def _normalize_key_risks_or_bull_case(value):
 
 @router.post("/rescore-all")
 async def rescore_all(request: Request, db: AsyncSession = Depends(get_db)):
-    """Rescore all startups in batches of 20 using classify_batch."""
+    """Rescore all companies in batches of 20 using classify_batch."""
     user_id = _user_id_from_request(request)
     profile_result = await db.execute(select(FirmProfile).where(FirmProfile.user_id == user_id).where(FirmProfile.is_active == True).limit(1))
     profile = profile_result.scalars().first()
     if not profile:
         raise HTTPException(status_code=400, detail="No active firm profile")
-    result = await db.execute(select(Startup))
-    startups = result.scalars().all()
-    total = len(startups)
+
+    rows_result = await db.execute(
+        select(Company, FirmCompanyScore)
+        .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+        .where(FirmCompanyScore.user_id == user_id)
+    )
+    rows = rows_result.fetchall()
+    total = len(rows)
     if total == 0:
         return {"status": "complete", "total": 0, "batches": 0, "updated": 0}
+
     batch_size = 20
     batches = (total + batch_size - 1) // batch_size
     updated = 0
     for i in range(0, total, batch_size):
-        chunk = startups[i : i + batch_size]
-        companies = [
+        chunk = rows[i: i + batch_size]
+        companies_input = [
             {
-                "id": s.id,
-                "name": s.name,
-                "description": (s.one_liner or "") + " " + (s.ai_summary or ""),
-                "website": s.website,
-                "source": s.source or "",
+                "id": i + j,  # sequential int for classify_batch
+                "name": row[0].name,
+                "description": (row[0].one_liner or "") + " " + (row[0].ai_summary or ""),
+                "website": row[0].website,
+                "source": row[0].source or "",
             }
-            for s in chunk
+            for j, row in enumerate(chunk)
         ]
-        classifications = await classify_batch(companies, profile)
-        id_to_startup = {s.id: s for s in chunk}
-        for row in classifications:
-            sid = row.get("id")
-            startup = id_to_startup.get(sid) if sid is not None else None
-            if not startup:
+        classifications = await classify_batch(companies_input, profile)
+        idx_to_row = {i + j: row for j, row in enumerate(chunk)}
+        for res in classifications:
+            rid = res.get("id")
+            row = idx_to_row.get(rid) if rid is not None else None
+            if not row:
                 continue
-            cleaned_name = row.get("name")
-            if cleaned_name is not None and str(cleaned_name).strip():
-                startup.name = str(cleaned_name).strip()[:255]
-            startup.one_liner = (row.get("one_liner") or "")[:499]
-            startup.ai_score = row.get("ai_score")
-            startup.fit_score = row.get("fit_score")
-            startup.business_model = (row.get("business_model") or "")[:499]
-            startup.target_customer = (row.get("target_customer") or "")[:499]
-            startup.sector = (row.get("sector") or "")[:99]
-            startup.mandate_category = (row.get("mandate_category") or "")[:99]
-            startup.thesis_tags = row.get("thesis_tags") if isinstance(row.get("thesis_tags"), list) else []
-            startup.funding_stage = (row.get("funding_stage") or "unknown")[:49]
+            company, score = row[0], row[1]
+            if res.get("one_liner"):
+                company.one_liner = (res["one_liner"] or "")[:499]
+            if res.get("fit_score") is not None:
+                score.fit_score = res["fit_score"]
+            if res.get("business_model"):
+                company.business_model = (res["business_model"] or "")[:499]
+            if res.get("target_customer"):
+                company.target_customer = (res["target_customer"] or "")[:499]
+            if res.get("sector"):
+                company.sector = (res["sector"] or "")[:99]
+            if res.get("mandate_category"):
+                score.mandate_category = (res["mandate_category"] or "")[:99]
+            if res.get("thesis_tags") is not None:
+                score.thesis_tags = res["thesis_tags"] if isinstance(res["thesis_tags"], list) else []
+            if res.get("funding_stage"):
+                company.funding_stage = (res["funding_stage"] or "unknown")[:49]
             updated += 1
         await db.commit()
         if i + batch_size < total:
@@ -575,64 +621,71 @@ async def rescore_all(request: Request, db: AsyncSession = Depends(get_db)):
 
 @router.post("/rescore-unscored")
 async def rescore_unscored(request: Request, db: AsyncSession = Depends(get_db)):
-    """Rescore only startups where fit_score IS NULL, in batches of 20."""
+    """Rescore only companies where fit_score IS NULL, in batches of 20."""
     user_id = _user_id_from_request(request)
-    if user_id:
-        profile_result = await db.execute(
-            select(FirmProfile).where(FirmProfile.is_active == True).where(FirmProfile.user_id == user_id)
-        )
-    else:
-        profile_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True).limit(1))
+    profile_result = await db.execute(
+        select(FirmProfile).where(FirmProfile.is_active == True).where(FirmProfile.user_id == user_id)
+    )
     profile = profile_result.scalar_one_or_none()
     if not profile:
         raise HTTPException(status_code=400, detail="No active firm profile")
-    if user_id:
-        result = await db.execute(select(Startup).where(Startup.fit_score == None).where(Startup.user_id == user_id))
-    else:
-        result = await db.execute(select(Startup).where(Startup.fit_score == None))
-    startups = result.scalars().all()
-    total = len(startups)
+
+    rows_result = await db.execute(
+        select(Company, FirmCompanyScore)
+        .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+        .where(FirmCompanyScore.user_id == user_id)
+        .where(FirmCompanyScore.fit_score == None)
+    )
+    rows = rows_result.fetchall()
+    total = len(rows)
     if total == 0:
         return {"status": "complete", "total": 0, "batches": 0, "updated": 0}
+
     batch_size = 20
     batches = (total + batch_size - 1) // batch_size
     updated = 0
     for i in range(0, total, batch_size):
-        chunk = startups[i : i + batch_size]
-        companies = [
+        chunk = rows[i: i + batch_size]
+        companies_input = [
             {
-                "id": s.id,
-                "name": s.name,
-                "description": (s.one_liner or "") + " " + (s.ai_summary or ""),
-                "website": s.website,
-                "source": s.source or "",
+                "id": i + j,
+                "name": row[0].name,
+                "description": (row[0].one_liner or "") + " " + (row[0].ai_summary or ""),
+                "website": row[0].website,
+                "source": row[0].source or "",
             }
-            for s in chunk
+            for j, row in enumerate(chunk)
         ]
-        classifications = await classify_batch(companies, profile)
-        id_to_startup = {s.id: s for s in chunk}
-        for row in classifications:
-            sid = row.get("id")
-            startup = id_to_startup.get(sid) if sid is not None else None
-            if not startup:
+        classifications = await classify_batch(companies_input, profile)
+        idx_to_row = {i + j: row for j, row in enumerate(chunk)}
+        for res in classifications:
+            rid = res.get("id")
+            row = idx_to_row.get(rid) if rid is not None else None
+            if not row:
                 continue
-            cleaned_name = row.get("name")
-            if cleaned_name is not None and str(cleaned_name).strip():
-                startup.name = str(cleaned_name).strip()[:255]
-            startup.one_liner = (row.get("one_liner") or "")[:499]
-            startup.ai_score = row.get("ai_score")
-            startup.fit_score = row.get("fit_score")
-            startup.business_model = (row.get("business_model") or "")[:499]
-            startup.target_customer = (row.get("target_customer") or "")[:499]
-            startup.sector = (row.get("sector") or "")[:99]
-            startup.mandate_category = (row.get("mandate_category") or "")[:99]
-            startup.thesis_tags = row.get("thesis_tags") if isinstance(row.get("thesis_tags"), list) else []
-            startup.funding_stage = (row.get("funding_stage") or "unknown")[:49]
+            company, score = row[0], row[1]
+            if res.get("one_liner"):
+                company.one_liner = (res["one_liner"] or "")[:499]
+            if res.get("fit_score") is not None:
+                score.fit_score = res["fit_score"]
+            if res.get("business_model"):
+                company.business_model = (res["business_model"] or "")[:499]
+            if res.get("target_customer"):
+                company.target_customer = (res["target_customer"] or "")[:499]
+            if res.get("sector"):
+                company.sector = (res["sector"] or "")[:99]
+            if res.get("mandate_category"):
+                score.mandate_category = (res["mandate_category"] or "")[:99]
+            if res.get("thesis_tags") is not None:
+                score.thesis_tags = res["thesis_tags"] if isinstance(res["thesis_tags"], list) else []
+            if res.get("funding_stage"):
+                company.funding_stage = (res["funding_stage"] or "unknown")[:49]
             updated += 1
         await db.commit()
         if i + batch_size < total:
             await asyncio.sleep(2)
     return {"status": "complete", "total": total, "batches": batches, "updated": updated}
+
 
 import json
 import asyncio
@@ -674,8 +727,8 @@ async def sourcing_stream(request: Request, db: AsyncSession = Depends(get_db), 
                 await asyncio.sleep(0.5)
 
                 from app.services.sourcing_service import generate_search_queries, search_and_extract_companies, is_duplicate
-                from app.models.firm_company_score import FirmCompanyScore
-                from datetime import datetime
+                from app.services.classifier import GLOBAL_FIELDS, FIRM_FIELDS
+                from datetime import datetime as _dt
 
                 queries = await generate_search_queries(profile.investment_thesis, profile.firm_name, firm_website=profile.firm_website, firm_context=profile.firm_context)
                 await emit("queries", f"Generated {len(queries)} search queries", {"queries": queries})
@@ -714,64 +767,70 @@ async def sourcing_stream(request: Request, db: AsyncSession = Depends(get_db), 
                     await queue.put(None)
                     return
 
-                # Save all companies first
-                saved_startups = []
-                for company in new_companies:
-                    name = company.get("name")
-                    website = company.get("website")
+                # Save companies using two-layer pattern
+                from app.services.sourcing_service import _find_global_company
+                saved_pairs = []
+                for company_data in new_companies:
+                    name = company_data.get("name")
+                    website = company_data.get("website")
                     try:
-                        startup = Startup(
-                            name=name, website=website,
-                            one_liner=company.get("one_liner"),
-                            funding_stage=company.get("funding_stage", "unknown"),
-                            sector=company.get("sector"),
-                            source="autonomous_sourcing",
-                            source_url=website,
-                            scraped_at=datetime.utcnow(),
+                        global_company = await _find_global_company(website, name, db)
+                        if not global_company:
+                            global_company = Company(
+                                name=name,
+                                website=website,
+                                one_liner=company_data.get("one_liner"),
+                                funding_stage=company_data.get("funding_stage", "unknown"),
+                                sector=company_data.get("sector"),
+                                source="autonomous_sourcing",
+                                source_url=website,
+                            )
+                            db.add(global_company)
+                            await db.flush()
+                        score = FirmCompanyScore(
+                            company_id=global_company.id,
                             user_id=user_id,
+                            pipeline_status="new",
                         )
-                        db.add(startup)
+                        db.add(score)
                         await db.flush()
-                        saved_startups.append((startup, company.get("one_liner") or name))
+                        saved_pairs.append((global_company, score, company_data.get("one_liner") or name))
                     except Exception as e:
                         print(f"Failed to save {name}: {e}")
                         await db.rollback()
 
                 await db.commit()
-                await emit("scoring", f"Scoring {len(saved_startups)} companies against your mandate...")
+                await emit("scoring", f"Scoring {len(saved_pairs)} companies against your mandate...")
 
-                # Fast batch scoring with Haiku — fit_score only, no deep analysis
-                from app.services.classifier import classify_batch
+                # Fast batch scoring
                 companies_input = [
-                    {"id": s.id, "name": s.name, "description": desc, "website": s.website, "source": s.source}
-                    for s, desc in saved_startups
+                    {"id": j, "name": c.name, "description": desc, "website": c.website, "source": c.source}
+                    for j, (c, s, desc) in enumerate(saved_pairs)
                 ]
                 try:
                     results = await classify_batch(companies_input, profile)
-                    result_map = {r.get("id"): r for r in results if r.get("id")}
+                    result_map = {r.get("id"): r for r in results if r.get("id") is not None}
                     added = 0
-                    for startup, _ in saved_startups:
-                        result = result_map.get(startup.id)
-                        if result:
-                            startup.one_liner = (result.get("one_liner") or startup.one_liner or "")[:499]
-                            startup.fit_score = result.get("fit_score")
-                            startup.ai_score = result.get("ai_score")
-                            startup.sector = (result.get("sector") or startup.sector or "")[:99]
-                            startup.mandate_category = (result.get("mandate_category") or "")[:99]
-                            startup.thesis_tags = result.get("thesis_tags", [])
-                            startup.business_model = (result.get("business_model") or "")[:499]
-                            startup.target_customer = (result.get("target_customer") or "")[:499]
-                            if (startup.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):
-                                startup.funding_stage = result["funding_stage"][:49]
-                            fit = result.get("fit_score", 0) or 0
+                    for j, (global_company, score, _) in enumerate(saved_pairs):
+                        res = result_map.get(j)
+                        if res:
+                            for field in GLOBAL_FIELDS:
+                                val = res.get(field)
+                                if val is not None:
+                                    setattr(global_company, field, val)
+                            for field in FIRM_FIELDS:
+                                val = res.get(field)
+                                if val is not None:
+                                    setattr(score, field, val)
+                            fit = score.fit_score or 0
                             if fit >= (profile.fit_threshold or 3):
                                 fit_label = "Top Match" if fit >= 5 else "Strong Fit" if fit >= 4 else "Possible Fit"
-                                await emit("added", f"✓ {startup.name} — {fit_label} ({fit}/5)", {"name": startup.name, "fit_score": fit, "fit_label": fit_label})
+                                await emit("added", f"✓ {global_company.name} — {fit_label} ({fit}/5)", {"name": global_company.name, "fit_score": fit, "fit_label": fit_label})
                                 added += 1
                     await db.commit()
                 except Exception as e:
                     print(f"Batch classification error: {e}")
-                    added = len(saved_startups)
+                    added = len(saved_pairs)
 
                 await emit("complete", f"Done — {added} companies matched your mandate", {"added": added, "skipped": len(all_companies) - len(new_companies)})
                 await queue.put(None)

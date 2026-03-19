@@ -279,28 +279,31 @@ async def research_startup(
     if db and firm:
         try:
             from sqlalchemy import select
-            from app.models.firm_company_score import FirmCompanyScore as Startup
+            from app.models.company import Company
+            from app.models.firm_company_score import FirmCompanyScore
             port_result = await db.execute(
-                select(Startup.name, Startup.sector, Startup.one_liner)
-                .where(Startup.user_id == firm.user_id)
-                .where(Startup.is_portfolio == True)
+                select(Company.name, Company.sector, Company.one_liner)
+                .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+                .where(FirmCompanyScore.user_id == firm.user_id)
+                .where(FirmCompanyScore.is_portfolio == True)
                 .limit(20)
             )
             portfolio_cos = port_result.fetchall()
             if portfolio_cos:
                 portfolio_context = "PORTFOLIO COMPANIES (check for conflicts):\n" + \
-                    "\n".join([f"- {c.name}: {c.one_liner or c.sector}" for c in portfolio_cos])
+                    "\n".join([f"- {c[0]}: {c[2] or c[1]}" for c in portfolio_cos])
 
             pipe_result = await db.execute(
-                select(Startup.name, Startup.pipeline_status, Startup.fit_score)
-                .where(Startup.user_id == firm.user_id)
-                .where(Startup.pipeline_status.in_(["watching", "outreach", "diligence"]))
+                select(Company.name, FirmCompanyScore.pipeline_status, FirmCompanyScore.fit_score)
+                .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+                .where(FirmCompanyScore.user_id == firm.user_id)
+                .where(FirmCompanyScore.pipeline_status.in_(["watching", "outreach", "diligence"]))
                 .limit(15)
             )
             pipe_cos = pipe_result.fetchall()
             if pipe_cos:
                 pipeline_context = "PIPELINE (currently tracking):\n" + \
-                    "\n".join([f"- {c.name} ({c.pipeline_status}, fit {c.fit_score}/5)" for c in pipe_cos])
+                    "\n".join([f"- {c[0]} ({c[1]}, fit {c[2]}/5)" for c in pipe_cos])
         except Exception as e:
             logger.warning(f"Could not load portfolio/pipeline context: {e}")
 
@@ -621,10 +624,11 @@ Respond with ONLY a JSON array. If no real signals are found, return [].
                 from app.models.firm_company_score import FirmCompanyScore as Startup
                 from app.models.signal import CompanySignal
 
+                from app.models.company import Company
                 existing_result = await db.execute(
                     select(CompanySignal.title)
-                    .join(Startup, CompanySignal.startup_id == Startup.id)
-                    .where(Startup.name == company_name)
+                    .join(Company, CompanySignal.company_id == Company.id)
+                    .where(Company.name == company_name)
                 )
                 existing_titles = {row[0].lower() for row in existing_result.fetchall()}
 

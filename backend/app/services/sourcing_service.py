@@ -665,8 +665,7 @@ async def run_autonomous_sourcing(
                 if (score.fit_score or 0) >= 4:
                     try:
                         from app.services.notification_writer import write_new_company_notification
-                        # Pass a duck-typed object the notification writer expects
-                        await write_new_company_notification(db, score, user_id=user_id)
+                        await write_new_company_notification(db, score, user_id=user_id, company_name=company.name)
                     except Exception as notify_err:
                         logger.warning(f"Failed to write notification for {company.name}: {notify_err}")
 

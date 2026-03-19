@@ -23,11 +23,11 @@ def _user_id_from_request(request: Request) -> Optional[str]:
     return None
 
 class PipelineMove(BaseModel):
-    startup_id: int
+    startup_id: str
     new_status: str
 
 class PipelineCard(BaseModel):
-    id: int
+    id: str
     name: str
     one_liner: Optional[str]
     fit_score: Optional[int]
@@ -42,78 +42,80 @@ class PipelineCard(BaseModel):
 async def get_pipeline(request: Request, db: AsyncSession = Depends(get_db)):
     user_id = _user_id_from_request(request)
     query = (
-        select(Startup)
-        .where(Startup.pipeline_status.in_(PIPELINE_STAGES))
-        .where(Startup.user_id == user_id)
-        .where(or_(Startup.is_portfolio == False, Startup.is_portfolio.is_(None)))
+        select(Company, FirmCompanyScore)
+        .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+        .where(FirmCompanyScore.user_id == user_id)
+        .where(FirmCompanyScore.pipeline_status.in_(PIPELINE_STAGES))
+        .where(or_(FirmCompanyScore.is_portfolio == False, FirmCompanyScore.is_portfolio.is_(None)))
     )
     result = await db.execute(query)
-    startups = result.scalars().all()
+    rows = result.fetchall()
 
     # Fetch last activity timestamps for all pipeline companies
-    from app.services.activity_writer import get_last_activity_at
     from sqlalchemy import func
     from app.models.activity_event import ActivityEvent
 
-    startup_ids = [s.id for s in startups]
+    company_ids = [row[0].id for row in rows]
     last_activity_map = {}
-    if startup_ids:
+    if company_ids:
         activity_result = await db.execute(
             select(
-                ActivityEvent.startup_id,
+                ActivityEvent.company_id,
                 func.max(ActivityEvent.created_at).label('last_at')
             )
-            .where(ActivityEvent.startup_id.in_(startup_ids))
+            .where(ActivityEvent.company_id.in_(company_ids))
             .where(ActivityEvent.user_id == user_id)
-            .group_by(ActivityEvent.startup_id)
+            .group_by(ActivityEvent.company_id)
         )
-        for row in activity_result.fetchall():
-            last_activity_map[row.startup_id] = row.last_at
+        for ar in activity_result.fetchall():
+            last_activity_map[ar.company_id] = ar.last_at
 
     board = {stage: [] for stage in PIPELINE_STAGES}
-    for s in startups:
-        if s.pipeline_status in board:
-            board[s.pipeline_status].append({
-                "id": s.id,
-                "name": s.name,
-                "slug": s.slug,
-                "one_liner": s.one_liner,
-                "enriched_one_liner": s.enriched_one_liner,
-                "ai_summary": s.ai_summary,
-                "website": s.website,
-                "fit_score": s.fit_score,
-                "ai_score": s.ai_score,
-                "fit_reasoning": s.fit_reasoning,
-                "funding_stage": s.funding_stage,
-                "funding_amount_usd": s.funding_amount_usd,
-                "top_investors": s.top_investors,
-                "sector": s.sector,
-                "mandate_category": s.mandate_category,
-                "thesis_tags": s.thesis_tags,
-                "business_model": s.business_model,
-                "target_customer": s.target_customer,
-                "pipeline_status": s.pipeline_status,
-                "notes": s.notes,
-                "conviction_score": s.conviction_score,
-                "next_action": s.next_action,
-                "next_action_due": (s.next_action_due.isoformat() + "Z") if s.next_action_due else None,
-                "activity_log": s.activity_log or [],
-                "meeting_notes": s.meeting_notes or [],
-                "founder_contacts": s.founder_contacts or [],
-                "comparable_companies": s.comparable_companies or [],
-                "recommended_next_step": s.recommended_next_step,
-                "key_risks": s.key_risks,
-                "bull_case": s.bull_case,
-                "traction_signals": s.traction_signals,
-                "red_flags": s.red_flags,
-                "sources_visited": s.sources_visited,
-                "research_status": s.research_status,
-                "research_completed_at": (s.research_completed_at.isoformat() + "Z") if s.research_completed_at else None,
-                "has_unseen_signals": bool(s.has_unseen_signals) if s.has_unseen_signals is not None else False,
-                "is_portfolio": s.is_portfolio or False,
-                "scraped_at": (s.scraped_at.isoformat() + "Z") if s.scraped_at else None,
-                "updated_at": (s.scraped_at.isoformat() + "Z") if s.scraped_at else None,
-                "last_activity_at": last_activity_map.get(s.id).isoformat() if last_activity_map.get(s.id) else None,
+    for row in rows:
+        company, score = row[0], row[1]
+        if score.pipeline_status in board:
+            board[score.pipeline_status].append({
+                "id": str(score.id),
+                "company_id": str(company.id),
+                "name": company.name,
+                "slug": company.slug,
+                "one_liner": company.one_liner,
+                "enriched_one_liner": company.enriched_one_liner,
+                "ai_summary": company.ai_summary,
+                "website": company.website,
+                "fit_score": score.fit_score,
+                "ai_score": None,
+                "fit_reasoning": score.fit_reasoning,
+                "funding_stage": company.funding_stage,
+                "funding_amount_usd": company.funding_amount_usd,
+                "top_investors": company.top_investors,
+                "sector": company.sector,
+                "mandate_category": score.mandate_category,
+                "thesis_tags": score.thesis_tags,
+                "business_model": company.business_model,
+                "target_customer": company.target_customer,
+                "pipeline_status": score.pipeline_status,
+                "notes": score.notes,
+                "conviction_score": score.conviction_score,
+                "next_action": score.next_action,
+                "next_action_due": (score.next_action_due.isoformat() + "Z") if score.next_action_due else None,
+                "activity_log": score.activity_log or [],
+                "meeting_notes": score.meeting_notes or [],
+                "founder_contacts": score.founder_contacts or [],
+                "comparable_companies": score.comparable_companies or [],
+                "recommended_next_step": score.recommended_next_step,
+                "key_risks": score.key_risks,
+                "bull_case": score.bull_case,
+                "traction_signals": company.traction_signals,
+                "red_flags": score.red_flags,
+                "sources_visited": company.sources_visited,
+                "research_status": score.research_status,
+                "research_completed_at": (score.research_completed_at.isoformat() + "Z") if score.research_completed_at else None,
+                "has_unseen_signals": bool(score.has_unseen_signals) if score.has_unseen_signals is not None else False,
+                "is_portfolio": score.is_portfolio or False,
+                "scraped_at": (company.scraped_at.isoformat() + "Z") if company.scraped_at else None,
+                "updated_at": (company.scraped_at.isoformat() + "Z") if company.scraped_at else None,
+                "last_activity_at": last_activity_map.get(company.id).isoformat() if last_activity_map.get(company.id) else None,
             })
     return board
 
@@ -122,16 +124,26 @@ async def move_in_pipeline(data: PipelineMove, request: Request, db: AsyncSessio
     if data.new_status not in PIPELINE_STAGES:
         raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {PIPELINE_STAGES}")
     user_id = _user_id_from_request(request)
-    result = await db.execute(
-        select(Startup)
-        .where(Startup.id == data.startup_id)
-        .where(Startup.user_id == user_id)
+
+    import uuid as _uuid
+    try:
+        score_uuid = _uuid.UUID(data.startup_id)
+    except (ValueError, AttributeError):
+        raise HTTPException(status_code=422, detail=f"Invalid ID format: {data.startup_id}")
+
+    row = await db.execute(
+        select(Company, FirmCompanyScore)
+        .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+        .where(FirmCompanyScore.id == score_uuid)
+        .where(FirmCompanyScore.user_id == user_id)
     )
-    startup = result.scalar_one_or_none()
-    if not startup:
+    row = row.first()
+    if not row:
         raise HTTPException(status_code=404, detail="Startup not found")
-    old_status = startup.pipeline_status
-    startup.pipeline_status = data.new_status
+    company, score = row[0], row[1]
+
+    old_status = score.pipeline_status
+    score.pipeline_status = data.new_status
     await db.commit()
 
     # Write memory for pipeline status change
@@ -146,16 +158,16 @@ async def move_in_pipeline(data: PipelineMove, request: Request, db: AsyncSessio
                 "invested": "invested in",
             }
             action = status_labels.get(data.new_status, f"updated status to {data.new_status}")
-            content = f"{startup.name}: {action}. Sector: {startup.sector or 'unknown'}. Fit score: {startup.fit_score}/5."
-            if startup.one_liner:
-                content += f" Description: {startup.one_liner}"
+            content = f"{company.name}: {action}. Sector: {company.sector or 'unknown'}. Fit score: {score.fit_score}/5."
+            if company.one_liner:
+                content += f" Description: {company.one_liner}"
             await write_memory(
                 db=db,
                 user_id=user_id,
                 memory_type="decision",
                 content=content,
-                company_id=startup.id,
-                company_name=startup.name,
+                company_id=str(company.id),
+                company_name=company.name,
             )
         except Exception as e:
             import logging
@@ -167,8 +179,8 @@ async def move_in_pipeline(data: PipelineMove, request: Request, db: AsyncSessio
             from app.services.activity_writer import write_pipeline_moved
             await write_pipeline_moved(
                 db=db,
-                startup_id=startup.id,
-                startup_name=startup.name,
+                company_id=company.id,
+                startup_name=company.name,
                 new_status=data.new_status,
                 old_status=old_status,
                 user_id=user_id,
@@ -176,7 +188,7 @@ async def move_in_pipeline(data: PipelineMove, request: Request, db: AsyncSessio
         except Exception as e:
             import logging
             logging.getLogger(__name__).warning(
-                f"Failed to write pipeline activity for {startup.name}: {e}"
+                f"Failed to write pipeline activity for {company.name}: {e}"
             )
 
     # Trigger immediate signal check when company enters pipeline
@@ -186,35 +198,33 @@ async def move_in_pipeline(data: PipelineMove, request: Request, db: AsyncSessio
             from app.core.database import AsyncSessionLocal
             from app.services.refresh_service import refresh_company
 
-            startup_id = startup.id
+            score_id = score.id
 
             async def _background_signal_check():
                 try:
                     async with AsyncSessionLocal() as bg_db:
-                        from sqlalchemy import select
-                        from app.models.firm_company_score import FirmCompanyScore as StartupModel
-                        result = await bg_db.execute(
-                            select(StartupModel).where(StartupModel.id == startup_id)
+                        bg_result = await bg_db.execute(
+                            select(FirmCompanyScore).where(FirmCompanyScore.id == score_id)
                         )
-                        s = result.scalar_one_or_none()
+                        s = bg_result.scalar_one_or_none()
                         if s:
                             await refresh_company(s, bg_db)
                 except Exception as e:
                     import logging
                     logging.getLogger(__name__).warning(
-                        f"Background signal check failed for startup {startup_id}: {e}"
+                        f"Background signal check failed for score {score_id}: {e}"
                     )
 
             asyncio.create_task(_background_signal_check())
             import logging
             logging.getLogger(__name__).info(
-                f"Background signal check triggered for {startup.name} "
+                f"Background signal check triggered for {company.name} "
                 f"(moved to {data.new_status})"
             )
         except Exception as e:
             import logging
             logging.getLogger(__name__).warning(
-                f"Failed to trigger signal check for {startup.name}: {e}"
+                f"Failed to trigger signal check for {company.name}: {e}"
             )
 
     return {"success": True, "startup_id": data.startup_id}

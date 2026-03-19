@@ -1,14 +1,15 @@
 import logging
+import uuid as _uuid
 from app.core.database import AsyncSessionLocal
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 
-async def enrich_portfolio_company(startup_id: int) -> None:
+async def enrich_portfolio_company(score_id: str) -> None:
     """
     Background task — scrapes a portfolio company's website and
-    enriches its data using Claude.
+    enriches its data using Claude. score_id is FirmCompanyScore.id (UUID string).
     Runs in its own DB session. Never raises — logs errors silently.
     """
     if not settings.FIRECRAWL_API_KEY:
@@ -18,30 +19,41 @@ async def enrich_portfolio_company(startup_id: int) -> None:
     async with AsyncSessionLocal() as db:
         try:
             from sqlalchemy import select
-            from app.models.firm_company_score import FirmCompanyScore as Startup
-            result = await db.execute(
-                select(Startup).where(Startup.id == startup_id)
-            )
-            startup = result.scalar_one_or_none()
-            if not startup or not startup.website:
+            from app.models.company import Company
+            from app.models.firm_company_score import FirmCompanyScore
+
+            try:
+                score_uuid = _uuid.UUID(str(score_id))
+            except (ValueError, AttributeError):
+                logger.warning(f"Invalid score_id: {score_id}")
                 return
+
+            row = await db.execute(
+                select(Company, FirmCompanyScore)
+                .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+                .where(FirmCompanyScore.id == score_uuid)
+            )
+            pair = row.first()
+            if not pair or not pair[0].website:
+                return
+            company, score = pair[0], pair[1]
 
             # Scrape the company website
             from app.services.research_service import firecrawl_scrape
-            content = await firecrawl_scrape(startup.website, max_length=4000)
+            content = await firecrawl_scrape(company.website, max_length=4000)
             if not content or len(content.strip()) < 100:
-                logger.info(f"No useful content scraped for {startup.name}")
+                logger.info(f"No useful content scraped for {company.name}")
                 return
 
             # Ask Claude to extract structured data
             import anthropic
-            client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
             import json
+            client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
             prompt = f"""You are extracting structured data about a startup from their website content.
 
-COMPANY NAME: {startup.name}
-WEBSITE: {startup.website}
+COMPANY NAME: {company.name}
+WEBSITE: {company.website}
 
 WEBSITE CONTENT:
 {content}
@@ -70,34 +82,34 @@ Respond with ONLY a JSON object, no markdown:
                     raw = raw[4:]
             data = json.loads(raw.strip())
 
-            # Update only fields that are currently empty/null
+            # Update Company (global factual fields) — only if currently empty
             updated = False
-            if data.get("one_liner") and not startup.one_liner:
-                startup.one_liner = data["one_liner"][:499]
+            if data.get("one_liner") and not company.one_liner:
+                company.one_liner = data["one_liner"][:499]
                 updated = True
-            if data.get("sector") and not startup.sector:
-                startup.sector = data["sector"][:99]
+            if data.get("sector") and not company.sector:
+                company.sector = data["sector"][:99]
                 updated = True
-            if data.get("funding_stage") and (not startup.funding_stage or startup.funding_stage == "unknown"):
-                startup.funding_stage = data["funding_stage"][:49]
+            if data.get("funding_stage") and (not company.funding_stage or company.funding_stage == "unknown"):
+                company.funding_stage = data["funding_stage"][:49]
                 updated = True
-            if data.get("ai_summary") and not startup.ai_summary:
-                startup.ai_summary = data["ai_summary"][:2000]
+            if data.get("ai_summary") and not company.ai_summary:
+                company.ai_summary = data["ai_summary"][:2000]
                 updated = True
 
             if updated:
                 await db.commit()
-                logger.info(f"Portfolio enrichment complete for {startup.name}")
+                logger.info(f"Portfolio enrichment complete for {company.name}")
             else:
-                logger.info(f"No new data found for {startup.name} — nothing updated")
+                logger.info(f"No new data found for {company.name} — nothing updated")
 
         except Exception as e:
-            logger.error(f"Portfolio enrichment failed for startup {startup_id}: {e}")
+            logger.error(f"Portfolio enrichment failed for score {score_id}: {e}")
 
 
-async def enrich_portfolio_batch(startup_ids: list[int]) -> None:
+async def enrich_portfolio_batch(score_ids: list) -> None:
     """Enrich multiple portfolio companies sequentially with a small delay."""
     import asyncio
-    for startup_id in startup_ids:
-        await enrich_portfolio_company(startup_id)
-        await asyncio.sleep(1)  # Small delay to avoid hammering Firecrawl
+    for score_id in score_ids:
+        await enrich_portfolio_company(score_id)
+        await asyncio.sleep(1)

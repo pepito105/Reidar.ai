@@ -46,8 +46,12 @@ async def get_market_map(request: Request, db: AsyncSession = Depends(get_db)):
     )
     profile = profile_result.scalars().first()
     top_match_threshold = (profile.notify_min_fit_score or 4) if profile else 4
-    result = await db.execute(select(Startup).where(Startup.user_id == user_id))
-    startups = result.scalars().all()
+    rows_result = await db.execute(
+        select(Company, FirmCompanyScore)
+        .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+        .where(FirmCompanyScore.user_id == user_id)
+    )
+    rows = rows_result.fetchall()
 
     stage_counts = {}
     sector_counts = {}
@@ -64,38 +68,39 @@ async def get_market_map(request: Request, db: AsyncSession = Depends(get_db)):
     fit_score_sum = 0
     fit_score_count = 0
 
-    for s in startups:
+    for row in rows:
+        company, score = row[0], row[1]
         # Stage
-        if s.funding_stage:
-            stage = _normalize_stage(s.funding_stage)
+        if company.funding_stage:
+            stage = _normalize_stage(company.funding_stage)
             stage_counts[stage] = stage_counts.get(stage, 0) + 1
 
         # Sector
-        if s.sector:
-            sector_counts[s.sector] = sector_counts.get(s.sector, 0) + 1
-            if s.fit_score is not None:
-                sector_fit_sum[s.sector] = sector_fit_sum.get(s.sector, 0) + s.fit_score
-                sector_fit_count[s.sector] = sector_fit_count.get(s.sector, 0) + 1
+        if company.sector:
+            sector_counts[company.sector] = sector_counts.get(company.sector, 0) + 1
+            if score.fit_score is not None:
+                sector_fit_sum[company.sector] = sector_fit_sum.get(company.sector, 0) + score.fit_score
+                sector_fit_count[company.sector] = sector_fit_count.get(company.sector, 0) + 1
 
         # Fit distribution
-        if s.fit_score and s.fit_score in fit_distribution:
-            fit_distribution[s.fit_score] += 1
+        if score.fit_score and score.fit_score in fit_distribution:
+            fit_distribution[score.fit_score] += 1
 
         # Mandate category (firm-specific thesis buckets)
-        if s.mandate_category:
-            mandate_counts[s.mandate_category] = mandate_counts.get(s.mandate_category, 0) + 1
-            if s.fit_score is not None:
-                mandate_fit_sum[s.mandate_category] = mandate_fit_sum.get(s.mandate_category, 0) + s.fit_score
-                mandate_fit_count[s.mandate_category] = mandate_fit_count.get(s.mandate_category, 0) + 1
+        if score.mandate_category:
+            mandate_counts[score.mandate_category] = mandate_counts.get(score.mandate_category, 0) + 1
+            if score.fit_score is not None:
+                mandate_fit_sum[score.mandate_category] = mandate_fit_sum.get(score.mandate_category, 0) + score.fit_score
+                mandate_fit_count[score.mandate_category] = mandate_fit_count.get(score.mandate_category, 0) + 1
 
         # Stats
-        scraped = s.scraped_at.replace(tzinfo=None) if s.scraped_at else None
+        scraped = company.scraped_at.replace(tzinfo=None) if company.scraped_at else None
         if scraped and scraped >= one_week_ago:
             this_week_count += 1
-        if s.fit_score and s.fit_score >= top_match_threshold:
+        if score.fit_score and score.fit_score >= top_match_threshold:
             top_match_count += 1
-        if s.fit_score is not None:
-            fit_score_sum += s.fit_score
+        if score.fit_score is not None:
+            fit_score_sum += score.fit_score
             fit_score_count += 1
 
     # Build sector data
@@ -121,7 +126,7 @@ async def get_market_map(request: Request, db: AsyncSession = Depends(get_db)):
     fit_data = [{"name": f"Score {k}", "value": v} for k, v in fit_distribution.items() if v > 0]
 
     # Summary stats
-    total = len(startups)
+    total = len(rows)
     top_match_rate = round((top_match_count / total) * 100) if total else 0
 
     return {

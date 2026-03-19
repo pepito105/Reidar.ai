@@ -60,6 +60,10 @@ class FirmCompanyScore(Base):
     last_refreshed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     has_unseen_signals: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # Sourcing provenance (per-tenant — how this firm found the company)
+    source = Column(String(200), nullable=True)
+    source_url = Column(String(500), nullable=True)
+
     # Portfolio tracking
     is_portfolio = Column(Boolean, default=False, nullable=True)
     portfolio_status = Column(String(50), nullable=True)  # active, acquired, exited, dead

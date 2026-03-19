@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.company import Company
@@ -10,13 +11,25 @@ from app.services.classifier import detect_signals
 logger = logging.getLogger(__name__)
 
 
-async def refresh_company(startup, db: AsyncSession) -> list:
+async def refresh_company(score, db: AsyncSession) -> list:
+    """
+    Run signal detection for a single FirmCompanyScore (pipeline company).
+    Loads the associated Company to get factual fields needed for the search.
+    """
     try:
+        company_result = await db.execute(
+            select(Company).where(Company.id == score.company_id)
+        )
+        company = company_result.scalar_one_or_none()
+        if not company:
+            logger.warning(f"refresh_company: no Company found for score {score.id}")
+            return []
+
         raw_signals = await detect_signals(
-            company_name=startup.name,
-            one_liner=startup.one_liner or startup.ai_summary or "",
-            website=startup.website,
-            funding_stage=startup.funding_stage,
+            company_name=company.name,
+            one_liner=company.one_liner or company.ai_summary or "",
+            website=company.website,
+            funding_stage=company.funding_stage,
             db=db,
         )
         added = []
@@ -27,7 +40,7 @@ async def refresh_company(startup, db: AsyncSession) -> list:
             if not title or not summary:
                 continue
             signal = CompanySignal(
-                startup_id=startup.id,
+                company_id=company.id,
                 signal_type=signal_type,
                 title=title,
                 summary=summary,
@@ -38,28 +51,28 @@ async def refresh_company(startup, db: AsyncSession) -> list:
             db.add(signal)
             try:
                 from app.services.notification_writer import write_company_signal_notification
-                await write_company_signal_notification(db, startup, signal)
+                await write_company_signal_notification(db, score, signal, user_id=score.user_id, company_name=company.name)
             except Exception as notify_err:
                 logger.warning(f"Failed to write signal notification: {notify_err}")
             try:
                 from app.services.activity_writer import write_signal_detected
                 await write_signal_detected(
                     db=db,
-                    startup_id=startup.id,
-                    startup_name=startup.name,
+                    company_id=company.id,
+                    startup_name=company.name,
                     signal_title=title,
                     signal_type=signal_type,
-                    user_id=getattr(startup, 'user_id', None),
+                    user_id=score.user_id,
                 )
             except Exception as e:
-                logger.warning(f"Failed to write signal activity for {startup.name}: {e}")
+                logger.warning(f"Failed to write signal activity for {company.name}: {e}")
             added.append(signal)
         if added:
-            startup.has_unseen_signals = True
-        startup.last_refreshed_at = datetime.utcnow()
+            score.has_unseen_signals = True
+        score.last_refreshed_at = datetime.utcnow()
         await db.commit()
-        logger.info(f"Refreshed {startup.name}: {len(added)} new signals")
+        logger.info(f"Refreshed {company.name}: {len(added)} new signals")
         return added
     except Exception as e:
-        logger.error(f"Refresh failed for {startup.name}: {e}")
+        logger.error(f"Refresh failed for score {getattr(score, 'id', '?')}: {e}")
         return []

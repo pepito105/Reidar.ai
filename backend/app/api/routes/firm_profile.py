@@ -231,41 +231,43 @@ async def rescore_companies(
     if not profile:
         raise HTTPException(status_code=404, detail="No active firm profile found")
 
-    if user_id:
-        result = await db.execute(select(Startup).where(Startup.user_id == user_id))
-    else:
+    if not user_id:
         raise HTTPException(status_code=401, detail="Authentication required")
-    startups = result.scalars().all()
+    rows_result = await db.execute(
+        select(Company, FirmCompanyScore)
+        .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+        .where(FirmCompanyScore.user_id == user_id)
+    )
+    rows = rows_result.fetchall()
     scored = 0
 
     def clamp(v):
         try:
             return max(1, min(5, int(v)))
-        except:
+        except Exception:
             return None
 
-    for startup in startups:
+    for row in rows:
+        company, score = row[0], row[1]
         try:
-            description = startup.ai_summary or startup.one_liner or startup.name
+            description = company.ai_summary or company.one_liner or company.name
             data = await classify_startup(
-                name=startup.name,
+                name=company.name,
                 description=description,
-                website=startup.website,
-                source=startup.source or "scraped",
+                website=company.website,
+                source=company.source or "scraped",
                 firm=profile
             )
             if data.get("fit_score") is not None:
-                startup.fit_score = clamp(data["fit_score"])
-            if data.get("ai_score") is not None:
-                startup.ai_score = clamp(data["ai_score"])
+                score.fit_score = clamp(data["fit_score"])
             if data.get("mandate_category"):
-                startup.mandate_category = data["mandate_category"][:99]
+                score.mandate_category = data["mandate_category"][:99]
             if data.get("fit_reasoning"):
-                startup.fit_reasoning = str(data["fit_reasoning"])[:999]
+                score.fit_reasoning = str(data["fit_reasoning"])[:999]
             if data.get("recommended_next_step"):
-                startup.recommended_next_step = str(data["recommended_next_step"])[:499]
+                score.recommended_next_step = str(data["recommended_next_step"])[:499]
             scored += 1
-        except:
+        except Exception:
             continue
 
     await db.commit()

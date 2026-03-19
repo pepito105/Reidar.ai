@@ -5,7 +5,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from anthropic import AsyncAnthropic
 from app.core.database import get_db
 from app.core.config import settings
@@ -35,21 +35,23 @@ def _user_id_from_request(request: Request):
 async def _build_pipeline_context(db: AsyncSession, user_id: str) -> str:
     """Build a summary of the current pipeline state."""
     result = await db.execute(
-        select(Startup)
-        .where(Startup.user_id == user_id)
-        .where(Startup.pipeline_status.in_(["watching", "outreach", "diligence", "passed"]))
-        .order_by(Startup.fit_score.desc())
+        select(Company, FirmCompanyScore)
+        .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+        .where(FirmCompanyScore.user_id == user_id)
+        .where(FirmCompanyScore.pipeline_status.in_(["watching", "outreach", "diligence", "passed"]))
+        .order_by(FirmCompanyScore.fit_score.desc())
         .limit(30)
     )
-    startups = result.scalars().all()
-    if not startups:
+    rows = result.fetchall()
+    if not rows:
         return "No companies in pipeline yet."
 
     lines = ["CURRENT PIPELINE:"]
-    for s in startups:
-        line = f"- {s.name} ({s.pipeline_status}, fit {s.fit_score}/5, {s.sector or 'unknown sector'})"
-        if s.one_liner:
-            line += f": {s.one_liner[:100]}"
+    for row in rows:
+        company, score = row[0], row[1]
+        line = f"- {company.name} ({score.pipeline_status}, fit {score.fit_score}/5, {company.sector or 'unknown sector'})"
+        if company.one_liner:
+            line += f": {company.one_liner[:100]}"
         lines.append(line)
     return "\n".join(lines)
 
@@ -81,12 +83,13 @@ async def _build_activity_context(db: AsyncSession, user_id: str) -> str:
 
         result = await db.execute(
             select(ActivityEvent)
-            .join(Startup, ActivityEvent.startup_id == Startup.id)
+            .join(FirmCompanyScore, ActivityEvent.company_id == FirmCompanyScore.company_id)
             .where(ActivityEvent.user_id == user_id)
             .where(ActivityEvent.created_at >= cutoff)
-            .where(Startup.pipeline_status.in_(
+            .where(FirmCompanyScore.pipeline_status.in_(
                 ['watching', 'outreach', 'diligence', 'passed', 'invested']
             ))
+            .where(FirmCompanyScore.user_id == user_id)
             .order_by(ActivityEvent.created_at.desc())
             .limit(30)
         )
@@ -117,28 +120,37 @@ async def _build_coverage_context(db: AsyncSession, user_id: str) -> str:
     Lets the associate answer "what should we look at next?"
     """
     try:
-        from sqlalchemy import select, or_
-        from app.models.firm_company_score import FirmCompanyScore as Startup
         result = await db.execute(
-            select(Startup)
-            .where(Startup.user_id == user_id)
-            .where(Startup.fit_score >= 4)
+            select(FirmCompanyScore)
+            .where(FirmCompanyScore.user_id == user_id)
+            .where(FirmCompanyScore.fit_score >= 4)
             .where(
                 or_(
-                    Startup.pipeline_status.is_(None),
-                    Startup.pipeline_status == 'new'
+                    FirmCompanyScore.pipeline_status.is_(None),
+                    FirmCompanyScore.pipeline_status == 'new'
                 )
             )
-            .where(or_(Startup.is_portfolio == False, Startup.is_portfolio.is_(None)))
-            .order_by(Startup.fit_score.desc())
+            .where(or_(FirmCompanyScore.is_portfolio == False, FirmCompanyScore.is_portfolio.is_(None)))
+            .order_by(FirmCompanyScore.fit_score.desc())
             .limit(20)
         )
-        companies = result.scalars().all()
-        if not companies:
+        scores = result.scalars().all()
+        if not scores:
             return ""
+
+        # Load company names for these scores
+        company_ids = [s.company_id for s in scores]
+        companies_result = await db.execute(
+            select(Company).where(Company.id.in_(company_ids))
+        )
+        companies_map = {c.id: c for c in companies_result.scalars().all()}
+
         lines = []
-        for c in companies:
-            score_label = "Top Match" if c.fit_score == 5 else "Strong Fit"
+        for s in scores:
+            c = companies_map.get(s.company_id)
+            if not c:
+                continue
+            score_label = "Top Match" if s.fit_score == 5 else "Strong Fit"
             lines.append(
                 f"- {c.name} ({score_label}, {c.sector or 'unknown sector'}): "
                 f"{(c.one_liner or '')[:100]}"
@@ -155,17 +167,16 @@ async def _build_signals_context(db: AsyncSession, user_id: str) -> str:
     Lets the associate reason about real news and events.
     """
     try:
-        from sqlalchemy import select, or_
         from app.models.signal import CompanySignal
-        from app.models.firm_company_score import FirmCompanyScore as Startup
         from datetime import timedelta
         cutoff = datetime.utcnow() - timedelta(days=30)
         result = await db.execute(
-            select(CompanySignal, Startup.name)
-            .join(Startup, CompanySignal.startup_id == Startup.id)
-            .where(Startup.user_id == user_id)
+            select(CompanySignal, Company.name)
+            .join(Company, CompanySignal.company_id == Company.id)
+            .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+            .where(FirmCompanyScore.user_id == user_id)
             .where(CompanySignal.detected_at >= cutoff)
-            .where(Startup.pipeline_status.in_(
+            .where(FirmCompanyScore.pipeline_status.in_(
                 ['watching', 'outreach', 'diligence']
             ))
             .order_by(CompanySignal.detected_at.desc())
@@ -197,41 +208,40 @@ async def _build_research_context(db: AsyncSession, user_id: str) -> str:
     scoring decisions and surface red flags.
     """
     try:
-        from sqlalchemy import select, or_
-        from app.models.firm_company_score import FirmCompanyScore as Startup
         import json as _json
         from datetime import timedelta
         research_cutoff = datetime.utcnow() - timedelta(days=14)
         result = await db.execute(
-            select(Startup)
-            .where(Startup.user_id == user_id)
-            .where(Startup.research_status == 'complete')
-            .where(Startup.research_completed_at >= research_cutoff)
-            .where(Startup.fit_reasoning.isnot(None))
-            .order_by(Startup.fit_score.desc())
+            select(FirmCompanyScore, Company.name)
+            .join(Company, Company.id == FirmCompanyScore.company_id)
+            .where(FirmCompanyScore.user_id == user_id)
+            .where(FirmCompanyScore.research_status == 'complete')
+            .where(FirmCompanyScore.research_completed_at >= research_cutoff)
+            .where(FirmCompanyScore.fit_reasoning.isnot(None))
+            .order_by(FirmCompanyScore.fit_score.desc())
             .limit(15)
         )
-        companies = result.scalars().all()
-        if not companies:
+        rows = result.fetchall()
+        if not rows:
             return ""
         lines = []
-        for c in companies:
-            lines.append(f"\n{c.name} (fit {c.fit_score}/5):")
-            if c.fit_reasoning:
+        for score, company_name in rows:
+            lines.append(f"\n{company_name} (fit {score.fit_score}/5):")
+            if score.fit_reasoning:
                 try:
-                    reasoning = _json.loads(c.fit_reasoning)
+                    reasoning = _json.loads(score.fit_reasoning)
                     if isinstance(reasoning, dict):
                         summary = reasoning.get('summary') or reasoning.get('overall') or str(reasoning)[:200]
                     else:
                         summary = str(reasoning)[:200]
                 except Exception:
-                    summary = str(c.fit_reasoning)[:200]
+                    summary = str(score.fit_reasoning)[:200]
                 lines.append(f"  Fit reasoning: {summary}")
-            if c.recommended_next_step:
-                lines.append(f"  Next step: {str(c.recommended_next_step)[:150]}")
-            if c.red_flags:
+            if score.recommended_next_step:
+                lines.append(f"  Next step: {str(score.recommended_next_step)[:150]}")
+            if score.red_flags:
                 try:
-                    flags = _json.loads(c.red_flags) if isinstance(c.red_flags, str) else c.red_flags
+                    flags = _json.loads(score.red_flags) if isinstance(score.red_flags, str) else score.red_flags
                     if isinstance(flags, list) and flags:
                         lines.append(f"  Red flags: {str(flags[0])[:120]}")
                 except Exception:
@@ -316,57 +326,64 @@ ASSOCIATE_TOOLS = [
 async def _execute_tool(tool_name: str, tool_input: dict, db: AsyncSession, user_id: str) -> str:
     """Execute a tool call and return the result as a string."""
     if tool_name == "search_pipeline":
-        query = select(Startup).where(Startup.user_id == user_id)
+        query = (
+            select(Company, FirmCompanyScore)
+            .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+            .where(FirmCompanyScore.user_id == user_id)
+        )
         if tool_input.get("status"):
-            query = query.where(Startup.pipeline_status == tool_input["status"])
+            query = query.where(FirmCompanyScore.pipeline_status == tool_input["status"])
         if tool_input.get("min_fit_score"):
-            query = query.where(Startup.fit_score >= tool_input["min_fit_score"])
+            query = query.where(FirmCompanyScore.fit_score >= tool_input["min_fit_score"])
         if tool_input.get("sector"):
-            query = query.where(Startup.sector.ilike(f"%{tool_input['sector']}%"))
-        query = query.order_by(Startup.fit_score.desc()).limit(tool_input.get("limit", 10))
+            query = query.where(Company.sector.ilike(f"%{tool_input['sector']}%"))
+        query = query.order_by(FirmCompanyScore.fit_score.desc()).limit(tool_input.get("limit", 10))
         result = await db.execute(query)
-        startups = result.scalars().all()
-        if not startups:
+        rows = result.fetchall()
+        if not rows:
             return "No companies found matching those criteria."
         lines = []
-        for s in startups:
-            line = f"- {s.name} (fit {s.fit_score}/5, {s.pipeline_status or 'new'}, {s.sector or 'unknown'})"
-            if s.one_liner:
-                line += f": {s.one_liner[:100]}"
-            if s.scraped_at:
-                days_ago = (datetime.utcnow() - s.scraped_at.replace(tzinfo=None)).days
+        for row in rows:
+            company, score = row[0], row[1]
+            line = f"- {company.name} (fit {score.fit_score}/5, {score.pipeline_status or 'new'}, {company.sector or 'unknown'})"
+            if company.one_liner:
+                line += f": {company.one_liner[:100]}"
+            if company.scraped_at:
+                days_ago = (datetime.utcnow() - company.scraped_at.replace(tzinfo=None)).days
                 line += f" [added {days_ago}d ago]"
             lines.append(line)
         return "\n".join(lines)
 
     elif tool_name == "get_pipeline_insights":
         result = await db.execute(
-            select(Startup)
-            .where(Startup.user_id == user_id)
-            .where(Startup.pipeline_status.in_(["watching", "outreach", "diligence"]))
+            select(Company, FirmCompanyScore)
+            .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+            .where(FirmCompanyScore.user_id == user_id)
+            .where(FirmCompanyScore.pipeline_status.in_(["watching", "outreach", "diligence"]))
         )
-        startups = result.scalars().all()
+        rows = result.fetchall()
         insights = []
         now = datetime.utcnow()
 
         # Stale deals
         stale = []
-        for s in startups:
-            if s.scraped_at:
-                days = (now - s.scraped_at.replace(tzinfo=None)).days
+        for row in rows:
+            company, score = row[0], row[1]
+            if company.scraped_at:
+                days = (now - company.scraped_at.replace(tzinfo=None)).days
                 if days > 14:
-                    stale.append(f"{s.name} ({s.pipeline_status}, {days}d)")
+                    stale.append(f"{company.name} ({score.pipeline_status}, {days}d)")
         if stale:
             insights.append(f"STALE DEALS (>14 days): {', '.join(stale)}")
 
         # Sector clustering
-        sectors = Counter(s.sector for s in startups if s.sector)
+        sectors = Counter(row[0].sector for row in rows if row[0].sector)
         dominant = [(s, c) for s, c in sectors.most_common(3) if c >= 3]
         if dominant:
             insights.append(f"SECTOR CLUSTERING: {', '.join(f'{s} ({c} companies)' for s, c in dominant)}")
 
         # High fit scores not acted on
-        high_fit_new = [s.name for s in startups if (s.fit_score or 0) >= 5 and s.pipeline_status == "watching"]
+        high_fit_new = [row[0].name for row in rows if (row[1].fit_score or 0) >= 5 and row[1].pipeline_status == "watching"]
         if high_fit_new:
             insights.append(f"TOP MATCHES STILL WATCHING: {', '.join(high_fit_new)}")
 
@@ -378,14 +395,16 @@ async def _execute_tool(tool_name: str, tool_input: dict, db: AsyncSession, user
 
         # Find the company in the database
         result = await db.execute(
-            select(Startup)
-            .where(Startup.user_id == user_id)
-            .where(Startup.name.ilike(f"%{company_name}%"))
+            select(Company, FirmCompanyScore)
+            .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+            .where(FirmCompanyScore.user_id == user_id)
+            .where(Company.name.ilike(f"%{company_name}%"))
             .limit(1)
         )
-        startup = result.scalar_one_or_none()
-        if not startup:
+        row = result.first()
+        if not row:
             return f"Could not find a company named '{company_name}' in your pipeline."
+        company, score = row[0], row[1]
 
         # Get firm profile
         firm_result = await db.execute(
@@ -393,11 +412,11 @@ async def _execute_tool(tool_name: str, tool_input: dict, db: AsyncSession, user
         )
         firm = firm_result.scalars().first()
 
-        from app.services.classifier import research_startup
+        from app.services.classifier import research_startup, GLOBAL_FIELDS, FIRM_FIELDS
         result_data = await research_startup(
-            name=startup.name,
-            description=startup.one_liner or startup.name,
-            website=startup.website,
+            name=company.name,
+            description=company.one_liner or company.name,
+            website=company.website,
             firm=firm,
             custom_focus=custom_focus,
             db=db,
@@ -406,25 +425,21 @@ async def _execute_tool(tool_name: str, tool_input: dict, db: AsyncSession, user
         if not result_data:
             return f"Research failed for {company_name}."
 
-        # Save results back to the startup
-        fit_reasoning = result_data.get("fit_reasoning")
-        if isinstance(fit_reasoning, dict):
-            startup.fit_reasoning = json.dumps(fit_reasoning)
-        elif isinstance(fit_reasoning, str):
-            startup.fit_reasoning = fit_reasoning[:3000]
-        if result_data.get("traction_signals"):
-            startup.traction_signals = result_data["traction_signals"]
-        if result_data.get("red_flags"):
-            startup.red_flags = result_data["red_flags"]
-        if result_data.get("enriched_one_liner"):
-            startup.enriched_one_liner = result_data["enriched_one_liner"]
-        if result_data.get("ai_summary"):
-            startup.ai_summary = result_data["ai_summary"]
-        if result_data.get("fit_score"):
-            startup.fit_score = result_data["fit_score"]
+        # Route results to correct table
+        for field in GLOBAL_FIELDS:
+            value = result_data.get(field)
+            if value is not None:
+                setattr(company, field, value)
+        for field in FIRM_FIELDS:
+            value = result_data.get(field)
+            if value is not None:
+                if field == "fit_reasoning" and isinstance(value, dict):
+                    setattr(score, field, json.dumps(value))
+                else:
+                    setattr(score, field, value)
         if result_data.get("research_status") == "complete":
-            startup.research_status = "complete"
-            startup.research_completed_at = datetime.utcnow()
+            score.research_status = "complete"
+            score.research_completed_at = datetime.utcnow()
         await db.commit()
 
         # Write memory
@@ -433,21 +448,21 @@ async def _execute_tool(tool_name: str, tool_input: dict, db: AsyncSession, user
             db=db,
             user_id=user_id,
             memory_type="fact",
-            content=f"{startup.name}: research completed via associate. Fit: {result_data.get('fit_score')}/5. {(result_data.get('traction_signals') or '')[:150]}",
-            company_id=startup.id,
-            company_name=startup.name,
+            content=f"{company.name}: research completed via associate. Fit: {result_data.get('fit_score')}/5. {(company.traction_signals or '')[:150]}",
+            company_id=str(company.id),
+            company_name=company.name,
         )
 
-        summary = f"Research complete for {startup.name}.\n"
+        summary = f"Research complete for {company.name}.\n"
         summary += f"Fit score: {result_data.get('fit_score')}/5\n"
-        if result_data.get("traction_signals"):
-            summary += f"Traction: {result_data['traction_signals'][:300]}\n"
-        if result_data.get("red_flags"):
-            summary += f"Red flags: {result_data['red_flags'][:200]}\n"
-        if result_data.get("recommended_next_step"):
-            summary += f"Recommendation: {result_data['recommended_next_step']}"
+        if company.traction_signals:
+            summary += f"Traction: {company.traction_signals[:300]}\n"
+        if score.red_flags:
+            summary += f"Red flags: {score.red_flags[:200]}\n"
+        if score.recommended_next_step:
+            summary += f"Recommendation: {score.recommended_next_step}"
 
-        sources = result_data.get("sources_visited", [])
+        sources = company.sources_visited or []
         if sources:
             summary += f"\n\n📎 Sources visited:\n" + "\n".join(f"- {s}" for s in sources[:8])
         return summary
@@ -456,16 +471,18 @@ async def _execute_tool(tool_name: str, tool_input: dict, db: AsyncSession, user
         company_name = tool_input.get("company_name", "")
 
         result = await db.execute(
-            select(Startup)
-            .where(Startup.user_id == user_id)
-            .where(Startup.name.ilike(f"%{company_name}%"))
+            select(Company, FirmCompanyScore)
+            .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+            .where(FirmCompanyScore.user_id == user_id)
+            .where(Company.name.ilike(f"%{company_name}%"))
             .limit(1)
         )
-        startup = result.scalar_one_or_none()
-        if not startup:
+        row = result.first()
+        if not row:
             return f"Could not find '{company_name}' in your pipeline."
-        if not startup.fit_reasoning:
-            return f"{startup.name} hasn't been researched yet. Run research first before drafting a memo."
+        company, score = row[0], row[1]
+        if not score.fit_reasoning:
+            return f"{company.name} hasn't been researched yet. Run research first before drafting a memo."
 
         firm_result = await db.execute(
             select(FirmProfile).where(FirmProfile.user_id == user_id).where(FirmProfile.is_active == True).limit(1)
@@ -473,16 +490,16 @@ async def _execute_tool(tool_name: str, tool_input: dict, db: AsyncSession, user
         firm = firm_result.scalars().first()
 
         from app.api.routes.memo import generate_memo_for_startup
-        memo = await generate_memo_for_startup(startup, firm, db)
+        memo = await generate_memo_for_startup(score, firm, db, company=company)
 
         if not memo:
             return f"Failed to generate memo for {company_name}."
 
-        startup.memo = memo
-        startup.memo_generated_at = datetime.utcnow()
+        score.memo = memo
+        score.memo_generated_at = datetime.utcnow()
         await db.commit()
 
-        return f"Memo drafted for {startup.name}. It's now available in the Memo tab of the company detail panel. Here's the executive summary:\n\n{memo[:500]}..."
+        return f"Memo drafted for {company.name}. It's now available in the Memo tab of the company detail panel. Here's the executive summary:\n\n{memo[:500]}..."
 
     return f"Unknown tool: {tool_name}"
 

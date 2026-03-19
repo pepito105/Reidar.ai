@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler(timezone='America/New_York')
 
 
-
 async def job_refresh_signals():
     logger.info('Scheduler: Starting nightly signal refresh')
     from app.services.refresh_service import refresh_company
@@ -41,26 +40,26 @@ async def job_refresh_signals():
                 should_notify_diligence = profile.notify_diligence_signal
 
                 result = await db.execute(
-                    select(Startup)
-                    .where(Startup.user_id == user_id)
-                    .where(Startup.pipeline_status.in_(["watching", "outreach", "diligence"]))
+                    select(FirmCompanyScore)
+                    .where(FirmCompanyScore.user_id == user_id)
+                    .where(FirmCompanyScore.pipeline_status.in_(["watching", "outreach", "diligence"]))
                     .where(
-                        (Startup.last_refreshed_at == None) |
-                        (Startup.last_refreshed_at < cutoff)
+                        (FirmCompanyScore.last_refreshed_at == None) |
+                        (FirmCompanyScore.last_refreshed_at < cutoff)
                     )
-                    .order_by(Startup.fit_score.desc())
+                    .order_by(FirmCompanyScore.fit_score.desc())
                 )
-                companies = result.scalars().all()
+                scores = result.scalars().all()
                 refreshed = 0
                 new_signals = 0
                 diligence_alerts = []
-                for company in companies:
+                for score in scores:
                     try:
-                        sigs = await refresh_company(company, db)
+                        sigs = await refresh_company(score, db)
                         new_signals += len(sigs)
                         refreshed += 1
 
-                        if sigs and company.pipeline_status == 'diligence' and should_notify_diligence:
+                        if sigs and score.pipeline_status == 'diligence' and should_notify_diligence:
                             signals_data = [
                                 {
                                     "signal_type": s.signal_type,
@@ -69,14 +68,19 @@ async def job_refresh_signals():
                                 }
                                 for s in sigs
                             ]
+                            # Get company name for the alert
+                            company_result = await db.execute(
+                                select(Company.name).where(Company.id == score.company_id)
+                            )
+                            company_name = company_result.scalar() or "Unknown"
                             diligence_alerts.append({
-                                "company_name": company.name,
+                                "company_name": company_name,
                                 "signals": signals_data,
-                                "fit_score": company.fit_score or 3,
+                                "fit_score": score.fit_score or 3,
                             })
 
                     except Exception as e:
-                        logger.error(f'Refresh failed for {company.name}: {e}')
+                        logger.error(f'Refresh failed for score {score.id}: {e}')
 
                 if diligence_alerts and should_notify_diligence:
                     await send_diligence_batch_alert(
@@ -100,24 +104,9 @@ async def job_refresh_signals():
                 pass
 
 
-def _last_activity_at(startup) -> Optional[datetime]:
-    log = startup.activity_log or []
-    if not log:
-        return None
-    dates = []
-    for entry in log:
-        if isinstance(entry, dict) and entry.get("created_at"):
-            try:
-                dates.append(datetime.fromisoformat(entry["created_at"].replace("Z", "+00:00")))
-            except Exception:
-                pass
-    return max(dates) if dates else None
-
-
 async def job_weekly_summary():
     logger.info('Scheduler: Sending weekly summary')
     from app.services.notification_service import send_weekly_summary
-    from app.models.signal import CompanySignal
     async with AsyncSessionLocal() as db:
         try:
             from app.services.job_health import start_job_run, complete_job_run, fail_job_run
@@ -141,56 +130,61 @@ async def job_weekly_summary():
                     continue
 
                 new_result = await db.execute(
-                    select(Startup)
-                    .where(Startup.user_id == user_id)
-                    .where(Startup.scraped_at >= week_cutoff)
-                    .where(Startup.fit_score >= 4)
-                    .order_by(Startup.fit_score.desc())
+                    select(Company, FirmCompanyScore)
+                    .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+                    .where(FirmCompanyScore.user_id == user_id)
+                    .where(Company.scraped_at >= week_cutoff)
+                    .where(FirmCompanyScore.fit_score >= 4)
+                    .order_by(FirmCompanyScore.fit_score.desc())
                     .limit(20)
                 )
                 new_companies = [
                     {
-                        "name": s.name,
-                        "fit_score": s.fit_score,
-                        "one_liner": s.one_liner,
-                        "funding_stage": s.funding_stage,
-                        "sector": s.sector,
+                        "name": row[0].name,
+                        "fit_score": row[1].fit_score,
+                        "one_liner": row[0].one_liner,
+                        "funding_stage": row[0].funding_stage,
+                        "sector": row[0].sector,
                     }
-                    for s in new_result.scalars().all()
+                    for row in new_result.fetchall()
                 ]
 
                 pipeline_result = await db.execute(
-                    select(Startup)
-                    .where(Startup.user_id == user_id)
-                    .where(Startup.pipeline_status.in_(["watching", "outreach", "diligence", "passed", "invested"]))
+                    select(Company, FirmCompanyScore)
+                    .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+                    .where(FirmCompanyScore.user_id == user_id)
+                    .where(FirmCompanyScore.pipeline_status.in_(["watching", "outreach", "diligence", "passed", "invested"]))
                 )
-                pipeline_companies = pipeline_result.scalars().all()
+                pipeline_rows = pipeline_result.fetchall()
                 pipeline_summary = {}
-                for s in pipeline_companies:
-                    stage = s.pipeline_status
+                for row in pipeline_rows:
+                    company, score = row[0], row[1]
+                    stage = score.pipeline_status
                     if stage not in pipeline_summary:
                         pipeline_summary[stage] = []
-                    pipeline_summary[stage].append({"name": s.name})
+                    pipeline_summary[stage].append({"name": company.name})
 
                 stale_deals = []
-                for s in pipeline_companies:
-                    if s.pipeline_status in ("passed", "invested"):
+                for row in pipeline_rows:
+                    company, score = row[0], row[1]
+                    if score.pipeline_status in ("passed", "invested"):
                         continue
-                    threshold_days = STALE_THRESHOLDS.get(s.pipeline_status)
+                    threshold_days = STALE_THRESHOLDS.get(score.pipeline_status)
                     if not threshold_days:
                         continue
-                    last = _last_activity_at(s)
-                    if last and last.tzinfo:
-                        last = last.replace(tzinfo=None)
                     cutoff = datetime.utcnow() - timedelta(days=threshold_days)
+                    # Use last_refreshed_at as a proxy for activity (activity_events would be more accurate)
+                    last = score.last_refreshed_at
+                    if last and hasattr(last, 'tzinfo') and last.tzinfo:
+                        last = last.replace(tzinfo=None)
                     is_stale = (last is None) or (last < cutoff)
                     if not is_stale:
                         continue
                     days_stale = (datetime.utcnow() - last).days if last else threshold_days + 1
                     stale_deals.append({
-                        "name": s.name,
-                        "pipeline_status": s.pipeline_status,
-                        "one_liner": s.one_liner,
+                        "name": company.name,
+                        "pipeline_status": score.pipeline_status,
+                        "one_liner": company.one_liner,
                         "days_stale": days_stale,
                     })
 
@@ -237,7 +231,6 @@ async def job_run_sourcing():
     logger.info('Scheduler: Starting nightly autonomous sourcing (deep mode)')
     from app.services.sourcing_service import run_autonomous_sourcing
     from app.services.research_service import run_research_batch
-    from sqlalchemy import select
     async with AsyncSessionLocal() as db:
         run = None
         try:
@@ -260,14 +253,14 @@ async def job_run_sourcing():
 
                 run_started_at = datetime.utcnow()
 
-                # Step 2: Deep autonomous sourcing — 8 queries instead of 3
+                # Step 2: Deep autonomous sourcing
                 try:
                     stats = await run_autonomous_sourcing(db, user_id=user_id, nightly=True)
                     logger.info(f'Nightly sourcing complete for {firm_name}: {stats}')
                 except Exception as e:
                     logger.error(f'Nightly sourcing failed for {firm_name}: {e}', exc_info=True)
 
-                # Step 3: Auto-research top new matches (fit >= 4, no research yet)
+                # Step 3: Auto-research top new matches
                 try:
                     research_stats = await run_research_batch(db, limit=20, user_id=user_id, min_fit_score=4)
                     logger.info(f'Auto-research complete for {firm_name}: {research_stats}')
@@ -288,27 +281,28 @@ async def job_run_sourcing():
                     if profile.notify_top_match and profile.notification_emails:
                         min_score = profile.notify_min_fit_score or 4
                         new_matches_result = await db.execute(
-                            select(Startup)
-                            .where(Startup.user_id == user_id)
-                            .where(Startup.scraped_at >= run_started_at)
-                            .where(Startup.fit_score >= min_score)
-                            .order_by(Startup.fit_score.desc())
+                            select(Company, FirmCompanyScore)
+                            .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+                            .where(FirmCompanyScore.user_id == user_id)
+                            .where(Company.scraped_at >= run_started_at)
+                            .where(FirmCompanyScore.fit_score >= min_score)
+                            .order_by(FirmCompanyScore.fit_score.desc())
                         )
-                        new_matches = new_matches_result.scalars().all()
-                        if new_matches:
+                        new_match_rows = new_matches_result.fetchall()
+                        if new_match_rows:
                             await send_sourcing_alert(
                                 companies=[{
-                                    "name": s.name,
-                                    "one_liner": s.one_liner,
-                                    "fit_score": s.fit_score,
-                                    "sector": s.sector,
-                                    "funding_stage": s.funding_stage,
-                                } for s in new_matches],
+                                    "name": row[0].name,
+                                    "one_liner": row[0].one_liner,
+                                    "fit_score": row[1].fit_score,
+                                    "sector": row[0].sector,
+                                    "funding_stage": row[0].funding_stage,
+                                } for row in new_match_rows],
                                 firm_name=firm_name,
                                 thesis=thesis,
                                 notification_emails=profile.notification_emails,
                             )
-                            logger.info(f'Sourcing alert sent for {len(new_matches)} companies ({firm_name})')
+                            logger.info(f'Sourcing alert sent for {len(new_match_rows)} companies ({firm_name})')
                         else:
                             logger.info(f'No new top matches from sourcing for {firm_name} — skipping alert')
                 except Exception as e:
@@ -327,7 +321,7 @@ async def job_run_sourcing():
 async def run_startup_check():
     """Startup check — logging only, no automatic scrapes."""
     async with AsyncSessionLocal() as db:
-        result = await db.execute(text('SELECT COUNT(*), MAX(scraped_at) FROM startups'))
+        result = await db.execute(text('SELECT COUNT(*) FROM companies'))
         row = result.fetchone()
         count = row[0] or 0
         logger.info(f'Database: {count} companies at startup')
