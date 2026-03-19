@@ -48,17 +48,8 @@ Example output: ["Health & Wellness", "Consumer Marketplaces", "Digital Commerce
                 buckets.append("Other")
             return buckets
     except Exception as e:
-        import logging
         logging.getLogger(__name__).error(f"Bucket generation failed: {e}")
     return []
-
-
-def _detect_ai_focus(thesis: str) -> bool:
-    if not thesis:
-        return False
-    keywords = ["ai", "artificial intelligence", "machine learning", "llm", "large language model", "ml", "deep learning", "neural", "generative ai", "ai-native", "ai native"]
-    thesis_lower = thesis.lower()
-    return any(kw in thesis_lower for kw in keywords)
 
 
 router = APIRouter(prefix="/firm-profile")
@@ -96,7 +87,6 @@ class FirmProfileResponse(BaseModel):
     notify_min_fit_score: Optional[int] = 4
     notification_emails: Optional[str] = None
     mandate_buckets: Optional[List[str]] = []
-    is_ai_focused: Optional[bool] = False
     firm_website: Optional[str] = None
 
     class Config:
@@ -123,10 +113,10 @@ async def get_firm_profile(
             select(FirmProfile).where(FirmProfile.user_id == user_id, FirmProfile.is_active == True)
         )
         existing = result.scalar_one_or_none()
-        print(f"GET firm-profile: user_id={user_id}, found={existing is not None}")
+        logger.info(f"GET firm-profile: user_id={user_id}, found={existing is not None}")
         return existing
     else:
-        print(f"GET firm-profile: user_id={user_id}, found=False")
+        logger.info(f"GET firm-profile: unauthenticated")
         return None
 
 @router.post("/", response_model=FirmProfileResponse)
@@ -152,27 +142,41 @@ async def create_firm_profile(
             setattr(profile, key, value)
         if data.investment_thesis:
             profile.mandate_buckets = await _generate_mandate_buckets(data.investment_thesis)
-            profile.is_ai_focused = _detect_ai_focus(data.investment_thesis)
         await db.commit()
         await db.refresh(profile)
+        if data.firm_website:
+            try:
+                context = await enrich_firm_from_website(
+                    data.firm_website, data.firm_name, db=db, user_id=user_id
+                )
+                if context:
+                    profile.firm_context = context
+                    await db.commit()
+                    await db.refresh(profile)
+                    logger.info(f"Enriched firm profile for {data.firm_name} from {data.firm_website}")
+            except Exception as e:
+                logger.error(f"Failed to enrich firm profile: {e}", exc_info=True)
         return profile
+
     buckets = await _generate_mandate_buckets(data.investment_thesis or "")
-    ai_focused = _detect_ai_focus(data.investment_thesis or "")
-    profile = FirmProfile(**data.model_dump(), user_id=user_id, mandate_buckets=buckets, is_ai_focused=ai_focused)
+    profile = FirmProfile(**data.model_dump(), user_id=user_id, mandate_buckets=buckets)
     db.add(profile)
     await db.commit()
     await db.refresh(profile)
+
     # Enrich firm profile from website if provided
     if data.firm_website:
         try:
-            context = await enrich_firm_from_website(data.firm_website, data.firm_name)
+            context = await enrich_firm_from_website(
+                data.firm_website, data.firm_name, db=db, user_id=user_id
+            )
             if context:
                 profile.firm_context = context
                 await db.commit()
                 await db.refresh(profile)
                 logger.info(f"Enriched firm profile for {data.firm_name} from {data.firm_website}")
         except Exception as e:
-            logger.error(f"Failed to enrich firm profile: {e}")
+            logger.error(f"Failed to enrich firm profile: {e}", exc_info=True)
     return profile
 
 @router.put("/", response_model=FirmProfileResponse)
@@ -183,12 +187,11 @@ async def update_firm_profile(
     credentials: HTTPAuthorizationCredentials = Security(HTTPBearer(auto_error=False))
 ):
     user_id = await get_current_user_id(request, credentials)
-    if user_id:
-        result = await db.execute(
-            select(FirmProfile).where(FirmProfile.user_id == user_id, FirmProfile.is_active == True)
-        )
-    else:
+    if not user_id:
         return None
+    result = await db.execute(
+        select(FirmProfile).where(FirmProfile.user_id == user_id, FirmProfile.is_active == True)
+    )
     profile = result.scalar_one_or_none()
     if not profile:
         raise HTTPException(status_code=404, detail="No active firm profile found")
@@ -196,20 +199,22 @@ async def update_firm_profile(
         setattr(profile, key, value)
     if data.investment_thesis:
         profile.mandate_buckets = await _generate_mandate_buckets(data.investment_thesis)
-        profile.is_ai_focused = _detect_ai_focus(data.investment_thesis)
     await db.commit()
     await db.refresh(profile)
+
     # Enrich firm profile from website if provided
     if data.firm_website:
         try:
-            context = await enrich_firm_from_website(data.firm_website, data.firm_name)
+            context = await enrich_firm_from_website(
+                data.firm_website, data.firm_name, db=db, user_id=user_id
+            )
             if context:
                 profile.firm_context = context
                 await db.commit()
                 await db.refresh(profile)
                 logger.info(f"Enriched firm profile for {data.firm_name} from {data.firm_website}")
         except Exception as e:
-            logger.error(f"Failed to enrich firm profile: {e}")
+            logger.error(f"Failed to enrich firm profile: {e}", exc_info=True)
     return profile
 
 @router.post("/rescore")
@@ -221,18 +226,15 @@ async def rescore_companies(
     from app.services.classifier import classify_startup
     user_id = await get_current_user_id(request, credentials)
 
-    if user_id:
-        profile_result = await db.execute(
-            select(FirmProfile).where(FirmProfile.user_id == user_id, FirmProfile.is_active == True)
-        )
-    else:
+    if not user_id:
         raise HTTPException(status_code=401, detail="Authentication required")
-    profile = profile_result.scalar_one_or_none()
+    profile_result = await db.execute(
+        select(FirmProfile).where(FirmProfile.user_id == user_id, FirmProfile.is_active == True)
+    )
+    profile = profile_result.scalars().first()
     if not profile:
         raise HTTPException(status_code=404, detail="No active firm profile found")
 
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Authentication required")
     rows_result = await db.execute(
         select(Company, FirmCompanyScore)
         .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
@@ -271,4 +273,4 @@ async def rescore_companies(
             continue
 
     await db.commit()
-    return {"success": True, "scored": scored, "total": len(startups)}
+    return {"success": True, "scored": scored, "total": len(rows)}

@@ -62,15 +62,20 @@ async def _find_global_company(website: str, name: str, db: AsyncSession) -> Opt
             )
             existing = result.scalar_one_or_none()
             if existing:
+                logger.debug(f"_find_global_company: domain match for '{name}' → {existing.id}")
                 return existing
 
     if name:
         norm = _normalize_name(name)
         if len(norm) < 3:
             return None
-        result = await db.execute(select(Company))
+        # Scoped name search instead of full table scan
+        result = await db.execute(
+            select(Company).where(Company.name.ilike(f"%{norm}%")).limit(20)
+        )
         for company in result.scalars().all():
             if company.name and _normalize_name(company.name) == norm:
+                logger.debug(f"_find_global_company: name match for '{name}' → {company.id}")
                 return company
 
     return None
@@ -530,9 +535,11 @@ async def run_autonomous_sourcing(
                 new_companies_added=new_from_query,
             )
             db.add(history_entry)
+            logger.info(f"[sourcing] db.add(SourcingHistory) query='{query[:50]}' results={len(companies)}")
             await db.flush()
+            logger.info(f"[sourcing] db.flush(SourcingHistory) OK")
         except Exception as hist_err:
-            logger.warning(f"Failed to write sourcing history for query '{query[:40]}': {hist_err}")
+            logger.error(f"Failed to write sourcing history for query '{query[:40]}': {hist_err}", exc_info=True)
 
         if i < len(queries) - 1:
             logger.info("Waiting 30s between searches to respect rate limits...")
@@ -552,69 +559,79 @@ async def run_autonomous_sourcing(
             skipped += 1
             continue
 
-        # ── STEP 1: Find or create global Company record ─────────────────────
-        existing_company = await _find_global_company(website, name, db)
+        logger.info(f"[sourcing] Processing company: '{name}' website={website!r}")
 
-        if existing_company is not None:
-            company = existing_company
-            # ── STEP 4: Research cache — if research is complete, no re-scrape needed
-            if company.research_status == "complete":
-                logger.debug(f"Research cache hit for {name} — will score from cached data")
-        else:
-            # New company — create global record with factual fields only
-            slug = _make_global_slug(name)
-            # Ensure slug uniqueness within this session
-            slug_result = await db.execute(
-                select(Company).where(Company.slug == slug).limit(1)
-            )
-            if slug_result.scalar_one_or_none():
-                slug = f"{slug}-{str(_uuid_mod.uuid4())[:4]}"
-            try:
-                company = Company(
-                    name=name,
-                    website=website,
-                    slug=slug,
-                    one_liner=company_data.get("one_liner"),
-                    funding_stage=company_data.get("funding_stage", "unknown"),
-                    sector=company_data.get("sector"),
-                    source="autonomous_sourcing",
-                    source_url=website,
-                    research_status="pending",
-                    scraped_at=datetime.utcnow(),
-                )
-                db.add(company)
-                await db.flush()  # populate company.id
-            except Exception as e:
-                logger.error(f"Failed to create Company for {name}: {e}")
-                await db.rollback()
-                skipped += 1
-                continue
-
-        # ── STEP 2: Check if this firm has already scored this company ────────
-        if await _firm_already_scored(company.id, user_id, db):
-            logger.debug(f"Skipping {name} — firm {user_id} already has a score")
-            skipped += 1
-            continue
-
-        # ── STEP 3: Create FirmCompanyScore (mandate scoring done in batch below)
+        # Each company is wrapped in a savepoint so a failure for one company
+        # does NOT roll back all the others already flushed in this transaction.
         try:
-            score = FirmCompanyScore(
-                company_id=company.id,
-                user_id=user_id,
-                pipeline_status="none",
-                has_unseen_signals=False,
-            )
-            db.add(score)
-            await db.flush()
-            newly_created.append((company, score))
-            added += 1
+            async with db.begin_nested() as savepoint:
+
+                # ── STEP 1: Find or create global Company record ──────────────
+                existing_company = await _find_global_company(website, name, db)
+
+                if existing_company is not None:
+                    company = existing_company
+                    logger.info(f"[sourcing] '{name}' already in companies table id={company.id}")
+                    if company.research_status == "complete":
+                        logger.info(f"[sourcing] Research cache hit for '{name}'")
+                else:
+                    # New company — assign UUID explicitly so it's available before flush
+                    slug = _make_global_slug(name)
+                    slug_result = await db.execute(
+                        select(Company).where(Company.slug == slug).limit(1)
+                    )
+                    if slug_result.scalar_one_or_none():
+                        slug = f"{slug}-{str(_uuid_mod.uuid4())[:4]}"
+
+                    new_company_id = _uuid_mod.uuid4()
+                    company = Company(
+                        id=new_company_id,
+                        name=name,
+                        website=website,
+                        slug=slug,
+                        one_liner=company_data.get("one_liner"),
+                        funding_stage=company_data.get("funding_stage", "unknown"),
+                        sector=company_data.get("sector"),
+                        source="autonomous_sourcing",
+                        source_url=website,
+                        research_status="pending",
+                        scraped_at=datetime.utcnow(),
+                    )
+                    db.add(company)
+                    logger.info(f"[sourcing] db.add(Company) '{name}' id={new_company_id} slug={slug!r}")
+                    await db.flush()
+                    logger.info(f"[sourcing] db.flush(Company) OK → id={company.id}")
+
+                # ── STEP 2: Check if this firm has already scored this company ─
+                if await _firm_already_scored(company.id, user_id, db):
+                    logger.info(f"[sourcing] Skipping '{name}' — firm already has a score")
+                    skipped += 1
+                    continue
+
+                # ── STEP 3: Create FirmCompanyScore ───────────────────────────
+                score = FirmCompanyScore(
+                    company_id=company.id,
+                    user_id=user_id,
+                    pipeline_status="none",
+                    has_unseen_signals=False,
+                )
+                db.add(score)
+                logger.info(f"[sourcing] db.add(FirmCompanyScore) '{name}' company_id={company.id} user_id={user_id!r}")
+                await db.flush()
+                logger.info(f"[sourcing] db.flush(FirmCompanyScore) OK → id={score.id}")
+
+                newly_created.append((company, score))
+                added += 1
+                logger.info(f"[sourcing] '{name}' staged OK — running total added={added}")
+
         except Exception as e:
-            logger.error(f"Failed to create FirmCompanyScore for {name}: {e}")
-            await db.rollback()
+            logger.error(f"[sourcing] Failed to stage '{name}': {e}", exc_info=True)
             skipped += 1
             continue
 
+    logger.info(f"[sourcing] Loop complete — calling db.commit() with {added} new companies")
     await db.commit()
+    logger.info(f"[sourcing] db.commit() OK — {added} companies+scores committed")
 
     # ── Batch scoring: fit_score + mandate fields → FirmCompanyScore only ────
     if newly_created:
@@ -666,12 +683,15 @@ async def run_autonomous_sourcing(
                     try:
                         from app.services.notification_writer import write_new_company_notification
                         await write_new_company_notification(db, score, user_id=user_id, company_name=company.name)
+                        logger.info(f"[sourcing] Notification written for '{company.name}' fit_score={score.fit_score}")
                     except Exception as notify_err:
-                        logger.warning(f"Failed to write notification for {company.name}: {notify_err}")
+                        logger.warning(f"Failed to write notification for {company.name}: {notify_err}", exc_info=True)
 
+            logger.info(f"[sourcing] Batch scoring complete — calling db.commit()")
             await db.commit()
+            logger.info(f"[sourcing] db.commit() after batch scoring OK")
         except Exception as e:
-            logger.error(f"Batch classification failed in nightly sourcing: {e}")
+            logger.error(f"Batch classification failed in nightly sourcing: {e}", exc_info=True)
 
     logger.info(f"Sourcing complete: {added} added, {skipped} skipped")
 

@@ -52,7 +52,6 @@ def upgrade():
             notify_min_fit_score    INTEGER DEFAULT 4,
             notification_emails     TEXT DEFAULT 'remi@balassanian.com',
             mandate_buckets         JSON,
-            is_ai_focused           BOOLEAN DEFAULT FALSE,
             firm_website            VARCHAR(500),
             firm_context            JSON
         );

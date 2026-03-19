@@ -85,7 +85,6 @@ async def research_company(company, db, firm_mandate: str = "") -> bool:
         investment_thesis = firm_mandate
         user_id = None
         mandate_buckets = []
-        is_ai_focused = False
         fit_threshold = 3
 
     try:
