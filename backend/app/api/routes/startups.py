@@ -500,12 +500,13 @@ async def analyze_startup_background(
                                     'traction_signals', 'red_flags', 'recommended_next_step'}
 
                 fields = [
-                    'one_liner', 'ai_summary', 'ai_score', 'fit_score',
+                    'one_liner', 'ai_summary', 'fit_score',
                     'fit_reasoning', 'business_model', 'target_customer',
                     'sector', 'mandate_category', 'thesis_tags',
                     'recommended_next_step', 'key_risks', 'bull_case',
                     'comparable_companies', 'traction_signals', 'red_flags',
                     'enriched_one_liner', 'sources_visited',
+                    'founding_year', 'funding_amount_usd', 'top_investors',
                 ]
                 for field in fields:
                     value = result.get(field)
@@ -513,6 +514,9 @@ async def analyze_startup_background(
                         if field in stringify_fields and not isinstance(value, str):
                             value = _json.dumps(value)
                         setattr(bg_startup, field, value)
+
+                if result.get("team_size") is not None:
+                    bg_startup.team_size = str(result["team_size"])
 
                 if (bg_startup.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):
                     bg_startup.funding_stage = result["funding_stage"]
@@ -682,7 +686,6 @@ async def analyze_startup_stream(startup_id: int, request: Request, db: AsyncSes
         if result:
             startup.one_liner = (result.get("one_liner") or startup.one_liner or "")[:499]
             startup.ai_summary = (result.get("ai_summary") or "")[:2000]
-            startup.ai_score = result.get("ai_score")
             startup.fit_score = result.get("fit_score")
             fit_reasoning = result.get("fit_reasoning")
             if isinstance(fit_reasoning, dict):
@@ -706,6 +709,15 @@ async def analyze_startup_stream(startup_id: int, request: Request, db: AsyncSes
             startup.red_flags = (result.get("red_flags") or "")
             startup.enriched_one_liner = (result.get("enriched_one_liner") or "")
             startup.sources_visited = result.get("sources_visited", [])
+            if result.get("founding_year") is not None:
+                startup.founding_year = result.get("founding_year")
+            if result.get("funding_amount_usd") is not None:
+                startup.funding_amount_usd = result.get("funding_amount_usd")
+            if result.get("top_investors"):
+                startup.top_investors = result.get("top_investors")
+            if result.get("team_size") is not None:
+                team_size = result.get("team_size")
+                startup.team_size = str(team_size) if team_size is not None else None
             if result.get("research_status") == "complete":
                 startup.research_status = "complete"
                 startup.research_completed_at = datetime.utcnow()

@@ -405,13 +405,6 @@ fit_score (1-5) — thesis fit + quality:
   2 = Weak fit — tangentially related
   1 = No fit — clearly outside thesis or excluded sector
 
-ai_score (1-5):
-  5 = AI is the core product
-  4 = AI is central and differentiating
-  3 = AI used meaningfully
-  2 = Some AI elements
-  1 = No meaningful AI
-
 SECTOR: Must be exactly one from: {SECTOR_TAXONOMY_STR}
 
 MANDATE CATEGORY: {mandate_category_guide}
@@ -433,7 +426,6 @@ Respond with ONLY a JSON object, no markdown, no backticks:
   "one_liner": "We help [customer] [solve problem] by [mechanism] — max 15 words",
   "enriched_one_liner": "2-sentence description from actual research",
   "ai_summary": "3-4 sentence investment overview with specific findings",
-  "ai_score": <integer 1-5>,
   "fit_score": <integer 1-5>,
   "fit_reasoning": {{
     "team": [{{"point": "finding about founders, team background, founder-market fit", "confidence": "High|Medium|Low"}}],
@@ -451,6 +443,10 @@ Respond with ONLY a JSON object, no markdown, no backticks:
   "red_flags": "specific concerns found, or null if none",
   "recommended_next_step": "single clear action",
   "funding_stage": "pre-seed or seed or series-a or series-b or unknown",
+  "founding_year": <integer e.g. 2021, or null — extract from About page, Crunchbase snippets, press mentions, or copyright dates>,
+  "funding_amount_usd": <total funding raised in USD as integer e.g. 5000000, or null — extract from funding announcements, Crunchbase, or press; convert M/K shorthand to full integer>,
+  "top_investors": ["investor or fund name", ...] — extract named investors and funds from funding announcements, press, or About page; empty array if none found,
+  "team_size": <approximate employee count as integer e.g. 12, or null — extract from LinkedIn mentions, About page headcount statements, or press; null if not found>,
   "key_risks": "up to 4 risks with likelihood and impact",
   "bull_case": "up to 2 if/then statements",
   "comparable_companies": [
@@ -493,7 +489,7 @@ Respond with ONLY a JSON object, no markdown, no backticks:
         if not result.get("sources_visited") and sources_visited:
             result["sources_visited"] = sources_visited
 
-        logger.info(f"Research complete for {name}. fit_score={result.get('fit_score')}, ai_score={result.get('ai_score')}")
+        logger.info(f"Research complete for {name}. fit_score={result.get('fit_score')}")
         return result
 
     except Exception as e:
