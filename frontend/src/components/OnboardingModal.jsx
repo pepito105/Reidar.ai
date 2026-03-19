@@ -2,9 +2,21 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@clerk/clerk-react'
 import axios from 'axios'
 
-const STAGES = ['pre-seed', 'seed', 'Series A', 'Series B']
+const STAGES = ['Pre-Seed', 'Seed', 'Series A', 'Series B', 'Series C', 'Series C+']
 const GEOS = ['North America', 'Europe', 'Asia', 'Latin America', 'Global']
-const EXCLUDE_OPTIONS = ['crypto', 'gambling', 'defense', 'hardware', 'consumer', 'social media']
+const EXCLUDE_OPTIONS = [
+  'crypto', 'gambling', 'defense', 'hardware', 'consumer', 'social media',
+  'biotech', 'real estate', 'retail', 'media & entertainment', 'energy', 'government',
+]
+
+const formatCurrency = (val) => {
+  if (!val && val !== 0) return ''
+  return '$' + Number(val).toLocaleString('en-US')
+}
+const parseCurrency = (str) => {
+  const num = parseInt(str.replace(/[^0-9]/g, ''))
+  return isNaN(num) ? '' : num
+}
 
 const inputBase = {
   width: '100%',
@@ -138,7 +150,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({
     firm_name: '',
-    investment_stages: ['pre-seed', 'seed'],
+    investment_stages: ['Pre-Seed', 'Seed'],
     geography_focus: ['North America'],
     check_size_min: 250000,
     check_size_max: 2000000,
@@ -189,7 +201,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
           setForm(f => ({
             ...f,
             firm_name: res.data.firm_name || '',
-            investment_stages: res.data.investment_stages || ['pre-seed', 'seed'],
+            investment_stages: res.data.investment_stages || ['Pre-Seed', 'Seed'],
             geography_focus: res.data.geography_focus || ['North America'],
             check_size_min: res.data.check_size_min ?? 250000,
             check_size_max: res.data.check_size_max ?? 2000000,
@@ -392,12 +404,10 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
       console.log('token:', token)
       console.log('headers:', headers)
       await axios.post(`${API}/firm-profile/`, { ...form, fit_threshold: fitThreshold, firm_website: firmWebsite.trim() || null }, { headers })
-    } catch (e) {
-      console.error('firm profile save failed:', e.response?.status, e.response?.data)
-      setSaving(false)
+    } catch (err) {
+      console.error('Failed to save firm profile:', err)
       return
     }
-    setSaving(false)
     runSourcing()
   }
 
@@ -619,9 +629,9 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
               <div style={{ marginBottom: 32 }}>
                 <label style={{ fontSize: 12, fontWeight: 600, color: '#8888aa', display: 'block', marginBottom: 8, letterSpacing: '0.5px' }}>CHECK SIZE</label>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <input type="number" value={form.check_size_min || ''} onChange={e => setForm(f => ({ ...f, check_size_min: Number(e.target.value) || 0 }))} placeholder="Min ($)" style={{ ...inputBase, flex: 1 }} />
+                  <input value={formatCurrency(form.check_size_min)} onChange={e => setForm(f => ({ ...f, check_size_min: parseCurrency(e.target.value) }))} placeholder="$500,000" style={{ ...inputBase, flex: 1 }} />
                   <span style={{ color: '#555577', fontSize: 13 }}>to</span>
-                  <input type="number" value={form.check_size_max || ''} onChange={e => setForm(f => ({ ...f, check_size_max: Number(e.target.value) || 0 }))} placeholder="Max ($)" style={{ ...inputBase, flex: 1 }} />
+                  <input value={formatCurrency(form.check_size_max)} onChange={e => setForm(f => ({ ...f, check_size_max: parseCurrency(e.target.value) }))} placeholder="$5,000,000" style={{ ...inputBase, flex: 1 }} />
                 </div>
               </div>
 

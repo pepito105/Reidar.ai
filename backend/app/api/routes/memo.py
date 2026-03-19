@@ -29,7 +29,8 @@ def _user_id_from_request(request: Request) -> Optional[str]:
     return None
 client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
-UPLOAD_DIR = "/Users/remibalassanian/radar/uploads"
+UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "/tmp/radar_uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 async def _extract_pdf_text(file_path: str) -> str:
     """Extract text from PDF using pypdf."""
@@ -196,7 +197,7 @@ One page maximum. Be direct."""
 
     try:
         response = await client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-sonnet-4-6",
             max_tokens=2000,
             messages=[{"role": "user", "content": prompt}]
         )

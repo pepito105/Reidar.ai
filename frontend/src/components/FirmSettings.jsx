@@ -2,15 +2,18 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@clerk/clerk-react'
 import axios from 'axios'
 
-const STAGES = ['pre-seed', 'seed', 'Series A', 'Series B']
+const STAGES = ['Pre-Seed', 'Seed', 'Series A', 'Series B', 'Series C', 'Series C+']
 const GEOS = ['North America', 'Europe', 'Asia', 'Latin America', 'Global']
-const EXCLUDE_OPTIONS = ['crypto', 'gambling', 'defense', 'hardware', 'consumer', 'social media']
+const EXCLUDE_OPTIONS = [
+  'crypto', 'gambling', 'defense', 'hardware', 'consumer', 'social media',
+  'biotech', 'real estate', 'retail', 'media & entertainment', 'energy', 'government',
+]
 
 export default function FirmSettings({ API, onSaved, onClose, onToast }) {
   const { getToken } = useAuth()
   const [firmName, setFirmName] = useState('')
   const [investmentThesis, setInvestmentThesis] = useState('')
-  const [investmentStages, setInvestmentStages] = useState(['pre-seed', 'seed'])
+  const [investmentStages, setInvestmentStages] = useState(['Pre-Seed', 'Seed'])
   const [geographyFocus, setGeographyFocus] = useState(['North America'])
   const [checkSizeMin, setCheckSizeMin] = useState(250000)
   const [checkSizeMax, setCheckSizeMax] = useState(2000000)
@@ -33,7 +36,7 @@ export default function FirmSettings({ API, onSaved, onClose, onToast }) {
         if (data) {
         setFirmName(data.firm_name || '')
         setInvestmentThesis(data.investment_thesis || '')
-        setInvestmentStages(data.investment_stages || ['pre-seed', 'seed'])
+        setInvestmentStages(data.investment_stages || ['Pre-Seed', 'Seed'])
         setGeographyFocus(data.geography_focus || ['North America'])
         setCheckSizeMin(data.check_size_min ?? 250000)
         setCheckSizeMax(data.check_size_max ?? 2000000)
@@ -118,6 +121,15 @@ export default function FirmSettings({ API, onSaved, onClose, onToast }) {
     setSaving(false)
   }
 
+  const formatCurrency = (val) => {
+    if (!val && val !== 0) return ''
+    return '$' + Number(val).toLocaleString('en-US')
+  }
+  const parseCurrency = (str) => {
+    const num = parseInt(str.replace(/[^0-9]/g, ''))
+    return isNaN(num) ? '' : num
+  }
+
   const inputStyle = {
     width: '100%', background: '#0f0f1a', border: '1px solid #2a2a4a', borderRadius: 7,
     color: '#c0c0e0', fontSize: 13, padding: '9px 12px', outline: 'none',
@@ -180,9 +192,9 @@ export default function FirmSettings({ API, onSaved, onClose, onToast }) {
         <div style={{ marginBottom: 18 }}>
           <label style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', display: 'block', marginBottom: 7 }}>CHECK SIZE RANGE</label>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <input type="number" value={checkSizeMin} onChange={e => setCheckSizeMin(Number(e.target.value))} placeholder="Min $" style={{ ...inputStyle, flex: 1 }} />
+            <input value={formatCurrency(checkSizeMin)} onChange={e => setCheckSizeMin(parseCurrency(e.target.value))} placeholder="$500,000" style={{ ...inputStyle, flex: 1 }} />
             <span style={{ color: '#555577' }}>to</span>
-            <input type="number" value={checkSizeMax} onChange={e => setCheckSizeMax(Number(e.target.value))} placeholder="Max $" style={{ ...inputStyle, flex: 1 }} />
+            <input value={formatCurrency(checkSizeMax)} onChange={e => setCheckSizeMax(parseCurrency(e.target.value))} placeholder="$5,000,000" style={{ ...inputStyle, flex: 1 }} />
           </div>
         </div>
 

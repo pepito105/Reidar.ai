@@ -161,6 +161,37 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
     } catch (e) {}
   }
 
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    try {
+      const token = await getToken().catch(() => null)
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await axios.post(
+        `${API}/memo/upload/${startup.id}`,
+        formData,
+        { headers: { ...headers, 'Content-Type': 'multipart/form-data' } }
+      )
+      if (res.data.success) {
+        setMemoFiles(prev => [...prev, res.data.file])
+      }
+    } catch (e) { console.error('Upload failed:', e) }
+  }
+
+  const handleDeleteFile = async (filename) => {
+    try {
+      const token = await getToken().catch(() => null)
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      await axios.delete(
+        `${API}/memo/file/${startup.id}/${encodeURIComponent(filename)}`,
+        { headers }
+      )
+      setMemoFiles(prev => prev.filter(f => f.name !== filename))
+    } catch (e) { console.error('Delete failed:', e) }
+  }
+
   useEffect(() => {
     if (!s?.id) return
     setStartup(s)
@@ -613,17 +644,6 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
               {startup.thesis_tags.map((tag, i) => (
                 <span key={i} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, background: '#1a0a2e', color: '#c4b5fd', border: '1px solid #4c1d95' }}>{tag}</span>
               ))}
-            </div>
-            </Section>
-          </>
-        )}
-
-        {startup.recommended_next_step && (
-        <>
-          <Divider />
-            <Section title="Recommended Next Step" accent="#10b981">
-            <div style={{ padding: '12px 14px', background: '#061a10', borderRadius: 8, border: '1px solid #065f46' }}>
-              <p style={{ fontSize: 13, color: '#6ee7b7', margin: 0, lineHeight: 1.5 }}>→ {startup.recommended_next_step}</p>
             </div>
             </Section>
           </>
@@ -1206,14 +1226,34 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
                     )}
 
                     {!memoLoading && !memo && (
-                      <div style={{
-                        textAlign: 'center', padding: '40px 20px', color: '#555577',
-                        border: '1px dashed #1e1e2e', borderRadius: 10, background: '#0a0a14'
-                      }}>
-                        <div style={{ fontSize: 28, marginBottom: 10 }}>✦</div>
-                        <div style={{ fontSize: 13, marginBottom: 6 }}>No memo generated yet</div>
-                        <div style={{ fontSize: 11, color: '#3a3a5a' }}>Upload documents and click Generate Memo to create an AI investment memo</div>
-                      </div>
+                      <>
+                        <div style={{ marginBottom: 20 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#3a3a5a', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 10 }}>DOCUMENTS (optional)</div>
+                          <label style={{ display: 'block', border: '1px dashed #2a2a4a', borderRadius: 8, padding: '16px', textAlign: 'center', cursor: 'pointer', background: '#0a0a0f', marginBottom: 10 }}>
+                            <input type="file" accept=".pdf,.txt,.md" style={{ display: 'none' }} onChange={handleFileUpload} />
+                            <div style={{ fontSize: 13, color: '#555577', marginBottom: 4 }}>📎 Upload pitch deck, data room, or notes</div>
+                            <div style={{ fontSize: 11, color: '#3a3a5a' }}>PDF, TXT, or MD · Max 10MB</div>
+                          </label>
+                          {memoFiles.length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {memoFiles.map((f, i) => (
+                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0f0f1a', border: '1px solid #1e1e2e', borderRadius: 6, padding: '8px 12px' }}>
+                                  <span style={{ fontSize: 12, color: '#8888aa' }}>📄 {f.name}</span>
+                                  <button onClick={() => handleDeleteFile(f.name)} style={{ background: 'none', border: 'none', color: '#555577', cursor: 'pointer', fontSize: 12 }}>✕</button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{
+                          textAlign: 'center', padding: '40px 20px', color: '#555577',
+                          border: '1px dashed #1e1e2e', borderRadius: 10, background: '#0a0a14'
+                        }}>
+                          <div style={{ fontSize: 28, marginBottom: 10 }}>✦</div>
+                          <div style={{ fontSize: 13, marginBottom: 6 }}>No memo generated yet</div>
+                          <div style={{ fontSize: 11, color: '#3a3a5a' }}>Upload documents and click Generate Memo to create an AI investment memo</div>
+                        </div>
+                      </>
                     )}
 
                   </div>
