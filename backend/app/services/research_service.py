@@ -77,7 +77,7 @@ async def research_with_brave_and_firecrawl(
     website: Optional[str],
     queries: list[str],
     progress_callback=None,
-) -> tuple[str, list[str]]:
+) -> tuple[str, list[str], Optional[str]]:
     """
     Run research using Brave Search + Firecrawl.
     Returns (research_findings, sources_visited).
@@ -113,13 +113,16 @@ async def research_with_brave_and_firecrawl(
                 seen.add(url)
 
     scraped_content = []
-    for url in urls_to_scrape:
+    homepage_content = None
+    for i, url in enumerate(urls_to_scrape):
         if progress_callback:
             domain = url.split("/")[2] if "/" in url else url
             await progress_callback(f"📄 Reading {domain}...")
         content = await firecrawl_scrape(url)
         if content:
             scraped_content.append(f"SOURCE: {url}\n{content}")
+            if i == 0 and website and url == website:
+                homepage_content = content
 
     # Step 3 — Combine search snippets + scraped content
     findings_parts = []
@@ -140,4 +143,4 @@ async def research_with_brave_and_firecrawl(
     if progress_callback:
         await progress_callback(f"📰 Found {len(sources_visited)} sources. Structuring investment brief...")
 
-    return research_findings, sources_visited
+    return research_findings, sources_visited, homepage_content

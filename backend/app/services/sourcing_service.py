@@ -65,10 +65,17 @@ Example: ["query one", "query two", "query three"]"""
         return queries[:count]
     except Exception as e:
         logger.error(f"Failed to generate search queries: {e}")
+        if thesis and len(thesis.strip().split()) >= 4:
+            snippet = thesis.strip()[:60]
+            return [
+                f"{snippet} startup 2025",
+                f"{snippet} seed stage founders",
+                f"{snippet} startup funding 2026",
+            ]
         return [
-            f"AI startup seed stage 2025",
-            f"new AI B2B SaaS startup founders 2025",
-            f"YC startup AI automation 2025",
+            "early stage startup seed 2025",
+            "new startup founder pre-seed 2025",
+            "startup funding announcement 2026",
         ]
 
 

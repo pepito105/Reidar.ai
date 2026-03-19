@@ -293,6 +293,7 @@ async def research_startup(
     # ── STEP 1: Research ─────────────────────────────────────────────────────────
     research_findings = ""
     sources_visited = []
+    homepage_content = None
 
     if progress_callback:
         await progress_callback(f"🌐 Visiting {website or name} and searching the web...")
@@ -325,7 +326,7 @@ Cover: product/market fit, traction/revenue, team background, funding history, c
         except Exception:
             queries = [f"{name} startup", f"{name} funding", f"{name} revenue customers"]
 
-        research_findings, sources_visited = await research_with_brave_and_firecrawl(
+        research_findings, sources_visited, homepage_content = await research_with_brave_and_firecrawl(
             name=name,
             description=description,
             website=website,
@@ -428,6 +429,7 @@ Respond with ONLY a JSON object, no markdown, no backticks:
   "mandate_category": "firm thesis bucket or null",
   "thesis_tags": ["tag1", "tag2", "tag3"],
   "traction_signals": "specific traction evidence with sources",
+  "notable_traction": "single most concrete traction signal found: a revenue number, ARR, user count, named customer, LOI, or waitlist size with source. One sentence max. Null if nothing concrete found.",
   "red_flags": "specific concerns found, or null if none",
   "recommended_next_step": "single clear action",
   "funding_stage": "pre-seed or seed or series-a or series-b or unknown",
@@ -476,6 +478,9 @@ Respond with ONLY a JSON object, no markdown, no backticks:
         # Merge in sources from step 1 if Claude didn't include them
         if not result.get("sources_visited") and sources_visited:
             result["sources_visited"] = sources_visited
+
+        if homepage_content and not result.get("website_content"):
+            result["website_content"] = homepage_content[:10000]
 
         logger.info(f"Research complete for {name}. fit_score={result.get('fit_score')}")
         return result

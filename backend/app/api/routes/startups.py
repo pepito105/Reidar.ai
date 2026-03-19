@@ -507,6 +507,7 @@ async def analyze_startup_background(
                     'comparable_companies', 'traction_signals', 'red_flags',
                     'enriched_one_liner', 'sources_visited',
                     'founding_year', 'funding_amount_usd', 'top_investors',
+                    'notable_traction',
                 ]
                 for field in fields:
                     value = result.get(field)
@@ -517,6 +518,9 @@ async def analyze_startup_background(
 
                 if result.get("team_size") is not None:
                     bg_startup.team_size = str(result["team_size"])
+
+                if result.get("website_content") and not bg_startup.website_content:
+                    bg_startup.website_content = result["website_content"][:10000]
 
                 if (bg_startup.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):
                     bg_startup.funding_stage = result["funding_stage"]
@@ -718,6 +722,10 @@ async def analyze_startup_stream(startup_id: int, request: Request, db: AsyncSes
             if result.get("team_size") is not None:
                 team_size = result.get("team_size")
                 startup.team_size = str(team_size) if team_size is not None else None
+            if result.get("notable_traction"):
+                startup.notable_traction = result.get("notable_traction")
+            if result.get("website_content") and not startup.website_content:
+                startup.website_content = result["website_content"][:10000]
             if result.get("research_status") == "complete":
                 startup.research_status = "complete"
                 startup.research_completed_at = datetime.utcnow()

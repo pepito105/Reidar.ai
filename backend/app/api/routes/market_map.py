@@ -5,8 +5,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import get_db
 from app.models.startup import Startup
+from app.models.firm_profile import FirmProfile
 
 router = APIRouter(prefix="/market-map")
+
+_STAGE_DISPLAY = {
+    "pre-seed": "Pre-Seed",
+    "seed": "Seed",
+    "series-a": "Series A",
+    "series-b": "Series B",
+    "series-c": "Series C",
+    "unknown": "Unknown",
+}
+
+def _normalize_stage(stage: str) -> str:
+    key = stage.lower().strip().replace(" ", "-")
+    return _STAGE_DISPLAY.get(key, stage.title())
 
 @router.get("/")
 async def get_market_map(request: Request, db: AsyncSession = Depends(get_db)):
@@ -23,6 +37,14 @@ async def get_market_map(request: Request, db: AsyncSession = Depends(get_db)):
         print(f"MARKET MAP: no auth header found")
     if not user_id:
         raise HTTPException(status_code=401, detail="Authentication required")
+    profile_result = await db.execute(
+        select(FirmProfile)
+        .where(FirmProfile.user_id == user_id)
+        .where(FirmProfile.is_active == True)
+        .limit(1)
+    )
+    profile = profile_result.scalars().first()
+    top_match_threshold = (profile.notify_min_fit_score or 4) if profile else 4
     result = await db.execute(select(Startup).where(Startup.user_id == user_id))
     startups = result.scalars().all()
 
@@ -35,18 +57,17 @@ async def get_market_map(request: Request, db: AsyncSession = Depends(get_db)):
     mandate_fit_sum = {}
     mandate_fit_count = {}
 
-    one_week_ago = datetime.now() - timedelta(days=7)
+    one_week_ago = datetime.utcnow() - timedelta(days=7)
     this_week_count = 0
     top_match_count = 0
-    ai_score_sum = 0
-    ai_score_count = 0
     fit_score_sum = 0
     fit_score_count = 0
 
     for s in startups:
         # Stage
         if s.funding_stage:
-            stage_counts[s.funding_stage] = stage_counts.get(s.funding_stage, 0) + 1
+            stage = _normalize_stage(s.funding_stage)
+            stage_counts[stage] = stage_counts.get(stage, 0) + 1
 
         # Sector
         if s.sector:
@@ -70,11 +91,8 @@ async def get_market_map(request: Request, db: AsyncSession = Depends(get_db)):
         scraped = s.scraped_at.replace(tzinfo=None) if s.scraped_at else None
         if scraped and scraped >= one_week_ago:
             this_week_count += 1
-        if s.fit_score and s.fit_score >= 5:
+        if s.fit_score and s.fit_score >= top_match_threshold:
             top_match_count += 1
-        if s.ai_score is not None:
-            ai_score_sum += s.ai_score
-            ai_score_count += 1
         if s.fit_score is not None:
             fit_score_sum += s.fit_score
             fit_score_count += 1
@@ -104,13 +122,11 @@ async def get_market_map(request: Request, db: AsyncSession = Depends(get_db)):
     # Summary stats
     total = len(startups)
     top_match_rate = round((top_match_count / total) * 100) if total else 0
-    avg_ai_score = round(ai_score_sum / ai_score_count, 1) if ai_score_count else 0
 
     return {
         "total_companies": total,
         "this_week": this_week_count,
         "top_match_rate": top_match_rate,
-        "avg_ai_score": avg_ai_score,
         "avg_fit_score": round(fit_score_sum / fit_score_count, 1) if fit_score_count else 0,
         "stage_breakdown": stage_data,
         "sector_breakdown": sector_data,
