@@ -121,7 +121,7 @@ class StartupUpdate(BaseModel):
     sector: Optional[str] = None
     one_liner: Optional[str] = None
 
-def _startup_to_card(startup: Startup) -> Dict[str, Any]:
+def _startup_to_card(startup) -> Dict[str, Any]:
     return {
         "id": startup.id,
         "name": startup.name,

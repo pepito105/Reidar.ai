@@ -36,7 +36,7 @@ class SignalsRequest(BaseModel):
     since: Optional[str] = None  # unused when brief is last-scrape-based
 
 
-def _last_activity_at(startup: Startup) -> Optional[datetime]:
+def _last_activity_at(startup) -> Optional[datetime]:
     log = startup.activity_log or []
     if not log:
         return None

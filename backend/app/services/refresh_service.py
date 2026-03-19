@@ -10,7 +10,7 @@ from app.services.classifier import detect_signals
 logger = logging.getLogger(__name__)
 
 
-async def refresh_company(startup: Startup, db: AsyncSession) -> list:
+async def refresh_company(startup, db: AsyncSession) -> list:
     try:
         raw_signals = await detect_signals(
             company_name=startup.name,
