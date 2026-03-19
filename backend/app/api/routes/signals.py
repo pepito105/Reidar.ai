@@ -763,7 +763,7 @@ async def sourcing_stream(request: Request, db: AsyncSession = Depends(get_db), 
 
                 for i, query in enumerate(queries):
                     await emit("searching", f"Search {i+1}/{len(queries)}: \"{query}\"", {"query": query})
-                    companies = await search_and_extract_companies(query, profile.investment_thesis, profile.firm_name)
+                    companies, _urls_found, _brave_count = await search_and_extract_companies(query, profile.investment_thesis, profile.firm_name)
                     new = []
                     for c in companies:
                         name = c.get("name", "").strip()
