@@ -1,5 +1,4 @@
 import logging
-import asyncio
 import re
 import uuid as _uuid_mod
 from datetime import datetime
@@ -9,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from anthropic import AsyncAnthropic
 from app.core.config import settings
+from app.services.research_service import firecrawl_scrape
 
 logger = logging.getLogger(__name__)
 client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
@@ -42,25 +42,8 @@ async def enrich_firm_from_website(
         return {}
 
     try:
-        from firecrawl import FirecrawlApp
-        firecrawl = FirecrawlApp(api_key=settings.FIRECRAWL_API_KEY)
-
         logger.info(f"[firm_enrichment] Calling Firecrawl scrape for {website_url}")
-        loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(
-            None,
-            lambda: firecrawl.scrape(website_url, params={"formats": ["markdown"]})
-        )
-
-        result_keys = list(result.keys()) if isinstance(result, dict) else "N/A"
-        logger.info(f"[firm_enrichment] Firecrawl response type={type(result).__name__} keys={result_keys}")
-
-        # Handle both SDK versions: top-level markdown vs nested data.markdown
-        content = (
-            (result.get("markdown") or "")
-            or (result.get("content") or "")
-            or ((result.get("data") or {}).get("markdown") or "")
-        )
+        content = await firecrawl_scrape(website_url, max_length=8000) or ""
         logger.info(f"[firm_enrichment] Firecrawl content length={len(content)} chars")
 
         if not content or len(content) < 100:

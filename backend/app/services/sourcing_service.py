@@ -217,7 +217,15 @@ async def generate_contextual_queries(
         if row.thesis_tags:
             pipeline_themes.extend(row.thesis_tags)
 
-    portfolio_companies = (profile.firm_context or {}).get("portfolio_companies", [])
+    # Portfolio skip list — query FirmCompanyScore where is_portfolio=True
+    portfolio_result = await db.execute(
+        sa_select(Company.name)
+        .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+        .where(FirmCompanyScore.user_id == user_id)
+        .where(FirmCompanyScore.is_portfolio == True)
+        .limit(100)
+    )
+    portfolio_companies = [row[0] for row in portfolio_result.all() if row[0]]
     themes_line = f'INVESTMENT THEMES: {", ".join((profile.firm_context or {}).get("investment_themes") or [])}' if (profile.firm_context or {}).get("investment_themes") else ""
     portfolio_line = f'PORTFOLIO (skip these): {", ".join(portfolio_companies)}' if portfolio_companies else ""
     website_line = f"FIRM WEBSITE: {firm_website}" if firm_website else ""
@@ -645,6 +653,7 @@ async def run_autonomous_sourcing(
                 "description": company.one_liner or company.name,
                 "website": company.website,
                 "source": company.source,
+                "website_content": company.website_content,
             }
             for i, (company, _score) in enumerate(newly_created)
         ]

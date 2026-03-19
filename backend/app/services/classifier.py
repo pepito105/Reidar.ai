@@ -656,9 +656,21 @@ async def classify_batch(companies: list[dict], firm) -> list[dict]:
     scoring_guide = _build_scoring_guide(firm)
     mandate_category_guide = _build_mandate_category_guide(firm)
 
+    def _company_block(i: int, c: dict) -> str:
+        parts = [
+            f"{i + 1}. ID: {c.get('id')}",
+            f"   Name: {c.get('name', '')}",
+            f"   Description: {c.get('description', '')}",
+            f"   Website: {c.get('website') or 'Unknown'}",
+            f"   Source: {c.get('source', '')}",
+        ]
+        wc = c.get("website_content")
+        if wc:
+            parts.append(f"   Website Content (excerpt): {wc[:1000]}")
+        return "\n".join(parts)
+
     companies_block = "\n\n".join(
-        f"{i + 1}. ID: {c.get('id')}\n   Name: {c.get('name', '')}\n   Description: {c.get('description', '')}\n   Website: {c.get('website') or 'Unknown'}\n   Source: {c.get('source', '')}"
-        for i, c in enumerate(companies)
+        _company_block(i, c) for i, c in enumerate(companies)
     )
 
     prompt = f"""{firm_context}
