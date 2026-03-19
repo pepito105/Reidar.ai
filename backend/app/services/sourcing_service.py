@@ -2,8 +2,9 @@ import logging
 import asyncio
 import json
 import re
+import uuid as _uuid_mod
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from anthropic import AsyncAnthropic
@@ -16,6 +17,92 @@ from app.models.sourcing_history import SourcingHistory
 logger = logging.getLogger(__name__)
 client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
+
+# ── Slug helpers ─────────────────────────────────────────────────────────────
+
+def _slugify(name: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-")[:80]
+
+
+def _make_global_slug(name: str) -> str:
+    """Global (company-level) slug — no user_id suffix. Falls back to UUID suffix on collision."""
+    return _slugify(name)
+
+
+def _normalize_domain(url: str) -> Optional[str]:
+    try:
+        from urllib.parse import urlparse
+        domain = urlparse(url).netloc.lower().replace("www.", "")
+        return domain if domain else None
+    except Exception:
+        return None
+
+
+def _normalize_name(s: str) -> str:
+    if not s:
+        return ""
+    s = s.lower().strip()
+    s = re.sub(r"\b(inc|llc|ltd|corp|co|technologies|labs|ai|hq)\b", "", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+# ── Two-layer deduplication helpers ─────────────────────────────────────────
+
+async def _find_global_company(website: str, name: str, db: AsyncSession) -> Optional[Company]:
+    """
+    Check the global companies table.
+    Returns the existing Company if found by domain or normalized name, else None.
+    """
+    if website:
+        domain = _normalize_domain(website)
+        if domain:
+            result = await db.execute(
+                select(Company).where(Company.website.ilike(f"%{domain}%")).limit(1)
+            )
+            existing = result.scalar_one_or_none()
+            if existing:
+                return existing
+
+    if name:
+        norm = _normalize_name(name)
+        if len(norm) < 3:
+            return None
+        result = await db.execute(select(Company))
+        for company in result.scalars().all():
+            if company.name and _normalize_name(company.name) == norm:
+                return company
+
+    return None
+
+
+async def _firm_already_scored(company_id, user_id: str, db: AsyncSession) -> bool:
+    """Return True if this firm already has a FirmCompanyScore row for this company."""
+    result = await db.execute(
+        select(FirmCompanyScore)
+        .where(FirmCompanyScore.company_id == company_id)
+        .where(FirmCompanyScore.user_id == user_id)
+        .limit(1)
+    )
+    return result.scalar_one_or_none() is not None
+
+
+async def is_duplicate(website: str, name: str, db: AsyncSession, user_id: Optional[str] = None) -> bool:
+    """
+    Legacy compatibility shim used by signals.py route.
+    Checks the global companies table for website/name match,
+    then (if user_id given) checks whether this firm has already scored it.
+    Returns True if this firm should skip the company entirely.
+    """
+    company = await _find_global_company(website, name, db)
+    if company is None:
+        return False
+    if user_id is None:
+        return True
+    return await _firm_already_scored(company.id, user_id, db)
+
+
+# ── Query generation (unchanged prompts) ─────────────────────────────────────
 
 async def generate_search_queries(thesis: str, firm_name: str, firm_website: str = None, firm_context: dict = None, custom_brief: str = None, count: int = 3) -> List[str]:
     website_line = f"FIRM WEBSITE: {firm_website}" if firm_website else ""
@@ -99,22 +186,24 @@ async def generate_contextual_queries(
     )
     recent_queries = [r[0] for r in recent_queries_result.all()]
 
-    # Sector coverage — what sectors are already in the pipeline?
+    # Sector coverage — join Company → FirmCompanyScore scoped to this firm
     sector_result = await db.execute(
-        sa_select(Startup.sector, func.count(Startup.id).label("cnt"))
-        .where(Startup.user_id == user_id)
-        .where(Startup.sector.isnot(None))
-        .group_by(Startup.sector)
-        .order_by(func.count(Startup.id).desc())
+        sa_select(Company.sector, func.count(Company.id).label("cnt"))
+        .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+        .where(FirmCompanyScore.user_id == user_id)
+        .where(Company.sector.isnot(None))
+        .group_by(Company.sector)
+        .order_by(func.count(Company.id).desc())
         .limit(10)
     )
     sector_coverage = {row.sector: row.cnt for row in sector_result.all()}
 
-    # Pipeline companies (for themes)
+    # Pipeline themes — from FirmCompanyScore (thesis_tags) for active pipeline
     pipeline_result = await db.execute(
-        sa_select(Startup.thesis_tags, Startup.sector)
-        .where(Startup.user_id == user_id)
-        .where(Startup.pipeline_status.in_(["watching", "outreach", "diligence"]))
+        sa_select(FirmCompanyScore.thesis_tags, Company.sector)
+        .join(Company, Company.id == FirmCompanyScore.company_id)
+        .where(FirmCompanyScore.user_id == user_id)
+        .where(FirmCompanyScore.pipeline_status.in_(["watching", "outreach", "diligence"]))
         .limit(20)
     )
     pipeline_rows = pipeline_result.all()
@@ -181,6 +270,8 @@ Example: ["query one", "query two", "query three"]"""
         logger.error(f"Failed to generate contextual queries, falling back: {e}")
         return await generate_search_queries(thesis, firm_name, firm_website=firm_website, firm_context=profile.firm_context, count=count)
 
+
+# ── Web search + extraction (unchanged) ──────────────────────────────────────
 
 async def search_and_extract_companies(query: str, thesis: str, firm_name: str) -> List[dict]:
     """
@@ -379,44 +470,15 @@ Each item must have these exact fields:
         return []
 
 
-async def is_duplicate(website: str, name: str, db: AsyncSession, user_id: Optional[str] = None) -> bool:
-    def normalize(s):
-        if not s:
-            return ""
-        s = s.lower().strip()
-        s = re.sub(r'\b(inc|llc|ltd|corp|co|technologies|labs|ai|hq)\b', '', s)
-        s = re.sub(r'\s+', ' ', s).strip()
-        return s
+# ── Main sourcing entry point ─────────────────────────────────────────────────
 
-    base = select(Startup)
-    if user_id is not None:
-        base = base.where(Startup.user_id == user_id)
-
-    if website:
-        try:
-            from urllib.parse import urlparse
-            domain = urlparse(website).netloc.replace('www.', '')
-            if domain:
-                q = base.where(Startup.website.ilike(f"%{domain}%")).limit(1)
-                result = await db.execute(q)
-                if result.scalar_one_or_none():
-                    return True
-        except Exception:
-            pass
-
-    if name:
-        norm_name = normalize(name)
-        if len(norm_name) < 3:
-            return False
-        result = await db.execute(base)
-        all_companies = result.scalars().all()
-        for company in all_companies:
-            if company.name and normalize(company.name) == norm_name:
-                return True
-    return False
-
-
-async def run_autonomous_sourcing(db: AsyncSession, custom_brief: str = None, limit_per_source: int = 10, user_id: Optional[str] = None, nightly: bool = False) -> dict:
+async def run_autonomous_sourcing(
+    db: AsyncSession,
+    custom_brief: str = None,
+    limit_per_source: int = 10,
+    user_id: Optional[str] = None,
+    nightly: bool = False,
+) -> dict:
     if user_id is not None:
         profile_result = await db.execute(
             select(FirmProfile).where(FirmProfile.is_active == True).where(FirmProfile.user_id == user_id)
@@ -472,88 +534,142 @@ async def run_autonomous_sourcing(db: AsyncSession, custom_brief: str = None, li
         except Exception as hist_err:
             logger.warning(f"Failed to write sourcing history for query '{query[:40]}': {hist_err}")
 
-        # Wait between searches to stay under rate limit
         if i < len(queries) - 1:
-            logger.info("Waiting 15s between searches to respect rate limits...")
+            logger.info("Waiting 30s between searches to respect rate limits...")
             await asyncio.sleep(30)
 
     logger.info(f"Total unique companies from web search: {len(all_companies)}")
 
     added = 0
     skipped = 0
+    # Pairs of (Company, FirmCompanyScore) for batch scoring after commit
+    newly_created: List[Tuple[Company, FirmCompanyScore]] = []
 
-    for company in all_companies:
-        name = company.get("name")
-        website = company.get("website")
+    for company_data in all_companies:
+        name = company_data.get("name")
+        website = company_data.get("website")
         if not name:
             skipped += 1
             continue
-        if await is_duplicate(website, name, db, user_id=user_id):
-            logger.debug(f"Skipping duplicate: {name}")
+
+        # ── STEP 1: Find or create global Company record ─────────────────────
+        existing_company = await _find_global_company(website, name, db)
+
+        if existing_company is not None:
+            company = existing_company
+            # ── STEP 4: Research cache — if research is complete, no re-scrape needed
+            if company.research_status == "complete":
+                logger.debug(f"Research cache hit for {name} — will score from cached data")
+        else:
+            # New company — create global record with factual fields only
+            slug = _make_global_slug(name)
+            # Ensure slug uniqueness within this session
+            slug_result = await db.execute(
+                select(Company).where(Company.slug == slug).limit(1)
+            )
+            if slug_result.scalar_one_or_none():
+                slug = f"{slug}-{str(_uuid_mod.uuid4())[:4]}"
+            try:
+                company = Company(
+                    name=name,
+                    website=website,
+                    slug=slug,
+                    one_liner=company_data.get("one_liner"),
+                    funding_stage=company_data.get("funding_stage", "unknown"),
+                    sector=company_data.get("sector"),
+                    source="autonomous_sourcing",
+                    source_url=website,
+                    research_status="pending",
+                    scraped_at=datetime.utcnow(),
+                )
+                db.add(company)
+                await db.flush()  # populate company.id
+            except Exception as e:
+                logger.error(f"Failed to create Company for {name}: {e}")
+                await db.rollback()
+                skipped += 1
+                continue
+
+        # ── STEP 2: Check if this firm has already scored this company ────────
+        if await _firm_already_scored(company.id, user_id, db):
+            logger.debug(f"Skipping {name} — firm {user_id} already has a score")
             skipped += 1
             continue
+
+        # ── STEP 3: Create FirmCompanyScore (mandate scoring done in batch below)
         try:
-            startup = Startup(
-                name=name,
-                website=website,
-                one_liner=company.get("one_liner"),
-                funding_stage=company.get("funding_stage", "unknown"),
-                sector=company.get("sector"),
-                source="autonomous_sourcing",
-                source_url=website,
-                scraped_at=datetime.utcnow(),
-                research_status=None,
+            score = FirmCompanyScore(
+                company_id=company.id,
                 user_id=user_id,
+                pipeline_status="none",
+                has_unseen_signals=False,
             )
-            db.add(startup)
+            db.add(score)
             await db.flush()
+            newly_created.append((company, score))
             added += 1
         except Exception as e:
-            logger.error(f"Failed to add {name}: {e}")
+            logger.error(f"Failed to create FirmCompanyScore for {name}: {e}")
             await db.rollback()
+            skipped += 1
             continue
 
     await db.commit()
 
-    # Fast batch scoring — fit_score only, no deep analysis
-    from app.services.classifier import classify_batch
-    from sqlalchemy import select as sa_select
-    unscored_result = await db.execute(
-        sa_select(Startup).where(
-            Startup.user_id == user_id,
-            Startup.source == "autonomous_sourcing",
-            Startup.fit_score == None
-        )
-    )
-    unscored = unscored_result.scalars().all()
-    if unscored:
+    # ── Batch scoring: fit_score + mandate fields → FirmCompanyScore only ────
+    if newly_created:
+        from app.services.classifier import classify_batch
+
+        # Use sequential integer indices so Claude echoes them back cleanly
         companies_input = [
-            {"id": s.id, "name": s.name, "description": s.one_liner or s.name, "website": s.website, "source": s.source}
-            for s in unscored
+            {
+                "id": i,
+                "name": company.name,
+                "description": company.one_liner or company.name,
+                "website": company.website,
+                "source": company.source,
+            }
+            for i, (company, _score) in enumerate(newly_created)
         ]
+
         try:
             results = await classify_batch(companies_input, profile)
-            result_map = {r.get("id"): r for r in results if r.get("id")}
-            for startup in unscored:
-                result = result_map.get(startup.id)
-                if result:
-                    startup.one_liner = (result.get("one_liner") or startup.one_liner or "")[:499]
-                    startup.ai_score = result.get("ai_score")
-                    startup.fit_score = result.get("fit_score")
-                    startup.sector = (result.get("sector") or startup.sector or "")[:99]
-                    startup.mandate_category = (result.get("mandate_category") or "")[:99]
-                    startup.thesis_tags = result.get("thesis_tags", [])
-                    startup.business_model = (result.get("business_model") or "")[:499]
-                    startup.target_customer = (result.get("target_customer") or "")[:499]
-                    if (startup.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):
-                        startup.funding_stage = result["funding_stage"][:49]
-                # Write notification for 4/5 and 5/5 companies
-                if (startup.fit_score or 0) >= 4:
+            result_map = {r.get("id"): r for r in results if r.get("id") is not None}
+
+            for i, (company, score) in enumerate(newly_created):
+                result = result_map.get(i)
+                if not result:
+                    continue
+
+                # Global company fields — factual data that benefits all tenants
+                if result.get("one_liner"):
+                    company.one_liner = result["one_liner"][:499]
+                if result.get("sector"):
+                    company.sector = result["sector"][:99]
+                if result.get("business_model"):
+                    company.business_model = result["business_model"]
+                if result.get("target_customer"):
+                    company.target_customer = result["target_customer"]
+                if (company.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):
+                    company.funding_stage = result["funding_stage"][:49]
+                if result.get("name"):
+                    company.name = result["name"][:254]
+
+                # Mandate-specific fields → FirmCompanyScore only
+                score.fit_score = result.get("fit_score")
+                score.thesis_tags = result.get("thesis_tags", [])
+                score.mandate_category = (result.get("mandate_category") or "")[:99]
+                score.recommended_next_step = result.get("recommended_next_step")
+
+                # Notify for high-fit companies
+                if (score.fit_score or 0) >= 4:
                     try:
                         from app.services.notification_writer import write_new_company_notification
-                        await write_new_company_notification(db, startup, user_id=user_id)
+                        # Pass a duck-typed object the notification writer expects
+                        await write_new_company_notification(db, score, user_id=user_id)
                     except Exception as notify_err:
-                        logger.warning(f"Failed to write new company notification for {startup.name}: {notify_err}")
+                        logger.warning(f"Failed to write notification for {company.name}: {notify_err}")
+
             await db.commit()
         except Exception as e:
             logger.error(f"Batch classification failed in nightly sourcing: {e}")

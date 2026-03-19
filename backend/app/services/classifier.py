@@ -26,6 +26,22 @@ async def generate_embedding(text: str) -> list[float] | None:
 
 MODEL = "claude-haiku-4-5-20251001"
 
+# Fields that belong on the global Company record — factual, mandate-agnostic.
+# Callers use these to split classifier output when writing to the two-layer schema.
+GLOBAL_FIELDS = [
+    "one_liner", "enriched_one_liner", "ai_summary", "founding_year",
+    "funding_stage", "funding_amount_usd", "top_investors", "team_size",
+    "sector", "business_model", "target_customer", "notable_traction",
+    "traction_signals", "website_content", "sources_visited",
+]
+
+# Fields that belong on FirmCompanyScore — mandate-specific, per-tenant.
+FIRM_FIELDS = [
+    "fit_score", "fit_reasoning", "thesis_tags", "mandate_category",
+    "recommended_next_step", "comparable_companies", "key_risks",
+    "bull_case", "red_flags",
+]
+
 # Universal sector taxonomy — used across all firms
 SECTOR_TAXONOMY = [
     "AI Infrastructure",
