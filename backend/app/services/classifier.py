@@ -95,7 +95,7 @@ def _build_scoring_guide(firm) -> str:
 Score companies purely on objective quality signals:
 
 fit_score (1-5) — overall company quality:
-  5 = Exceptional — strong founder signal, large clear market, differentiated AI-native product, early traction
+  5 = Exceptional — strong founder signal, large clear market, differentiated product with evidence of early traction
   4 = Strong — compelling product, good market, solid team indicators
   3 = Interesting — promising but early or incomplete signal
   2 = Weak — generic product, crowded market, low differentiation
@@ -116,7 +116,7 @@ The firm thesis is: {firm.investment_thesis}
 Score companies on how well they match this specific thesis AND their quality:
 
 fit_score (1-5) — thesis fit + quality combined:
-  5 = PERFECT MATCH — directly addresses the thesis, AI-native, strong founder story, compelling product. Give 5 freely to companies that clearly fit.
+  5 = PERFECT MATCH — directly addresses the thesis, strong founder story, compelling product. Give 5 freely to companies that clearly fit.
   4 = STRONG FIT — meets most thesis criteria, one element missing or unclear
   3 = POSSIBLE FIT — relevant sector or adjacent, worth monitoring
   2 = WEAK FIT — tangentially related but missing key thesis criteria
@@ -129,12 +129,13 @@ ai_score (1-5) — how AI-native is this company:
   2 = Some AI/ML elements
   1 = No meaningful AI
 
-IMPORTANT: Be generous. If a company is AI-native B2B SaaS automating any knowledge work, operational process, or the firm's target verticals — that is a 5. Do not anchor on 3 or 4. Use the full range."""
+IMPORTANT: Be generous. If a company clearly addresses the firm's thesis with strong founder signal and market evidence — that is a 5. Do not anchor on 3 or 4. Use the full range."""
 
 
 async def classify_startup(name: str, description: str, website: Optional[str], source: str, firm, custom_focus: str = None) -> dict:
     firm_context = _build_firm_context(firm)
     mandate_category_guide = _build_mandate_category_guide(firm)
+    scoring_guide = _build_scoring_guide(firm)
     focus_line = f'ANALYST FOCUS: The analyst has a specific question — make sure your analysis directly addresses this: {custom_focus}\n\n' if custom_focus else ''
 
     prompt = f"""{firm_context}
@@ -159,18 +160,7 @@ Source: {source}
 
 POSITIONING: Write one_liner strictly in this formula: "We help [customer] [solve problem] by [mechanism]". Never use a generic description; always fill in the three slots with concrete customer, problem, and mechanism.
 
-SCORING GUIDE — use the full range, be generous not conservative:
-fit_score 5 = AI-native B2B SaaS, knowledge work automation, strong product-first story — directly matches thesis
-fit_score 4 = Strong fit, meets most criteria, compelling AI product
-fit_score 3 = Possible fit, relevant sector, worth monitoring
-fit_score 2 = Weak fit, tangentially related
-fit_score 1 = No fit, outside thesis or excluded sector
-
-ai_score 5 = AI is the core product
-ai_score 4 = AI is central to the product
-ai_score 3 = AI used meaningfully
-ai_score 2 = Some AI elements
-ai_score 1 = No meaningful AI
+{scoring_guide}
 
 SECTOR: You must assign exactly one sector from this fixed list — do not invent new labels:
 {SECTOR_TAXONOMY_STR}
@@ -191,8 +181,6 @@ RECOMMENDED_NEXT_STEP — choose exactly one format based on fit_score:
 KEY_RISKS: Use the Risk Matrix framework. For each risk include Likelihood (High/Medium/Low) and Impact (Critical/Major/Moderate/Minor). Max 3 risks. Format each as: "[Risk description] — Likelihood: [H/M/L], Impact: [Critical/Major/Moderate/Minor]"
 
 BULL_CASE: Structure each statement as "If [assumption] proves true, then [outcome] — making this a [market position] opportunity." Max 2 bull case statements.
-
-IMPORTANT: AI-native B2B SaaS automating knowledge work or operations should score 4-5. Be generous with founder-led product-first companies. Use 1-2 only for companies clearly outside thesis.
 
 Respond with ONLY a JSON object, no markdown:
 {{
