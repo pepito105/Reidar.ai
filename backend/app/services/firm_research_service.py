@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import re
 import uuid as _uuid_mod
@@ -145,9 +146,7 @@ Example: [{{"name": "Acme AI", "website": "https://acme.ai", "one_liner": "AI fo
 
         # ── Step 3: Persist portfolio companies if db session available ───────
         if db is not None and user_id and portfolio_companies:
-            if progress_callback:
-                await progress_callback("Saving portfolio companies...")
-            await _save_portfolio_companies(db, user_id, portfolio_companies)
+            await _save_portfolio_companies(db, user_id, portfolio_companies, progress_callback=progress_callback)
 
         return firm_context
 
@@ -160,92 +159,111 @@ async def _save_portfolio_companies(
     db: AsyncSession,
     user_id: str,
     portfolio_companies: list,
+    progress_callback=None,
 ) -> None:
     """
     For each portfolio company extracted from the firm website:
     - Find or create a global Company row
     - Create FirmCompanyScore with is_portfolio=True, pipeline_status="invested"
 
-    Each company is wrapped in its own savepoint so a single failure
-    does not roll back the others.
+    All companies are saved concurrently (max 10 at a time) using separate
+    DB sessions per task so the shared session is never accessed concurrently.
     """
     from app.models.company import Company
     from app.models.firm_company_score import FirmCompanyScore
+    from app.core.database import AsyncSessionLocal
 
+    valid = [co for co in portfolio_companies if (co.get("name") or "").strip()]
+    total = len(valid)
+    if total == 0:
+        return
+
+    if progress_callback:
+        await progress_callback(f"Saving {total} portfolio companies...")
+
+    sem = asyncio.Semaphore(10)
+    counter_lock = asyncio.Lock()
+    completed = 0
     saved = 0
-    skipped = 0
 
-    for co in portfolio_companies:
+    async def _save_one(co: dict) -> None:
+        nonlocal completed, saved
         name = (co.get("name") or "").strip()
-        if not name:
-            continue
         website = co.get("website") or None
+        result = False
 
-        try:
-            async with db.begin_nested():
-                # ── Find or create global Company ─────────────────────────────
-                existing = await _find_company(db, website, name)
+        async with sem:
+            try:
+                async with AsyncSessionLocal() as session:
+                    async with session.begin():
+                        # ── Find or create global Company ─────────────────────
+                        existing = await _find_company(session, website, name)
 
-                if existing:
-                    company = existing
-                    logger.info(f"[firm_enrichment] Portfolio '{name}' — existing company id={company.id}")
-                else:
-                    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:80]
-                    slug_check = await db.execute(
-                        select(Company).where(Company.slug == slug).limit(1)
-                    )
-                    if slug_check.scalar_one_or_none():
-                        slug = f"{slug}-{str(_uuid_mod.uuid4())[:4]}"
+                        if existing:
+                            company = existing
+                            logger.info(f"[firm_enrichment] Portfolio '{name}' — existing company id={company.id}")
+                        else:
+                            slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:80]
+                            slug_check = await session.execute(
+                                select(Company).where(Company.slug == slug).limit(1)
+                            )
+                            if slug_check.scalar_one_or_none():
+                                slug = f"{slug}-{str(_uuid_mod.uuid4())[:4]}"
 
-                    company = Company(
-                        id=_uuid_mod.uuid4(),
-                        name=name,
-                        website=website,
-                        slug=slug,
-                        one_liner=co.get("one_liner"),
-                        sector=co.get("sector"),
-                        source="portfolio_import",
-                        source_url=website,
-                        research_status="pending",
-                        scraped_at=datetime.utcnow(),
-                    )
-                    db.add(company)
-                    await db.flush()
-                    logger.info(f"[firm_enrichment] Created Company '{name}' id={company.id}")
+                            company = Company(
+                                id=_uuid_mod.uuid4(),
+                                name=name,
+                                website=website,
+                                slug=slug,
+                                one_liner=co.get("one_liner"),
+                                sector=co.get("sector"),
+                                source="portfolio_import",
+                                source_url=website,
+                                research_status="pending",
+                                scraped_at=datetime.utcnow(),
+                            )
+                            session.add(company)
+                            await session.flush()
+                            logger.info(f"[firm_enrichment] Created Company '{name}' id={company.id}")
 
-                # ── Skip if FirmCompanyScore already exists ────────────────────
-                existing_score = await db.execute(
-                    select(FirmCompanyScore)
-                    .where(FirmCompanyScore.company_id == company.id)
-                    .where(FirmCompanyScore.user_id == user_id)
-                    .limit(1)
-                )
-                if existing_score.scalar_one_or_none():
-                    logger.info(f"[firm_enrichment] Portfolio '{name}' — score already exists, skipping")
-                    skipped += 1
-                    continue
+                        # ── Skip if FirmCompanyScore already exists ────────────
+                        existing_score = await session.execute(
+                            select(FirmCompanyScore)
+                            .where(FirmCompanyScore.company_id == company.id)
+                            .where(FirmCompanyScore.user_id == user_id)
+                            .limit(1)
+                        )
+                        if existing_score.scalar_one_or_none():
+                            logger.info(f"[firm_enrichment] Portfolio '{name}' — score exists, skipping")
+                        else:
+                            score = FirmCompanyScore(
+                                company_id=company.id,
+                                user_id=user_id,
+                                is_portfolio=True,
+                                pipeline_status="invested",
+                                source="portfolio_import",
+                                fit_score=None,
+                            )
+                            session.add(score)
+                            logger.info(f"[firm_enrichment] Created FirmCompanyScore for '{name}'")
+                            result = True
+                        # session.begin() auto-commits on clean exit
 
-                # ── Create FirmCompanyScore ────────────────────────────────────
-                score = FirmCompanyScore(
-                    company_id=company.id,
-                    user_id=user_id,
-                    is_portfolio=True,
-                    pipeline_status="invested",
-                    source="portfolio_import",
-                    fit_score=None,
-                )
-                db.add(score)
-                await db.flush()
-                logger.info(f"[firm_enrichment] Created FirmCompanyScore for '{name}' id={score.id}")
+            except Exception as e:
+                logger.error(f"[firm_enrichment] Failed to save portfolio '{name}': {e}", exc_info=True)
+
+        async with counter_lock:
+            completed += 1
+            if result:
                 saved += 1
+            if progress_callback and completed % 5 == 0:
+                await progress_callback(f"Saved {completed}/{total} portfolio companies")
 
-        except Exception as e:
-            logger.error(f"[firm_enrichment] Failed to save portfolio '{name}': {e}", exc_info=True)
-            skipped += 1
-            continue
+    await asyncio.gather(*[_save_one(co) for co in valid])
 
-    await db.commit()
-    logger.info(f"[firm_enrichment] Portfolio save complete: {saved} saved, {skipped} skipped")
+    if progress_callback:
+        await progress_callback(f"Portfolio ready — {saved} companies added")
+    logger.info(f"[firm_enrichment] Portfolio save complete: {saved} saved, {completed - saved} skipped")
 
 
 async def _find_company(db: AsyncSession, website: Optional[str], name: str):

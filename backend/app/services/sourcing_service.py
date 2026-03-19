@@ -536,34 +536,49 @@ Content:
 ---
 """
 
-    prompt = f"""You are a VC analyst at {firm_name} evaluating potential investments.
-
-INVESTMENT THESIS: {thesis}
+    prompt = f"""You are extracting structured data from scraped web pages to build a startup database.
 
 SEARCH QUERY USED: "{query}"
 
-SCRAPED COMPANY WEBSITES:
+SCRAPED PAGES:
 {companies_text}
 
-For each company above, extract structured data IF it appears to be a
-real startup relevant to the thesis. Skip companies that are:
-- News sites, directories, or aggregators
-- Large established companies (not startups)
-- Not relevant to the investment thesis
-- Job boards, consulting firms, agencies
+Your job is to extract any software startup or tech company found on each page.
+DO NOT filter by investment thesis — thesis fit is scored separately later.
 
-For each relevant startup found, extract:
+Set is_relevant=false ONLY for these four cases:
+1. The page is a news article, blog post, press release, or directory (not the company's own site or a clear mention of a real company)
+2. The company is a large public enterprise or Fortune 500 (e.g. Microsoft, Salesforce, Google)
+3. The company is not a software/tech company (e.g. agency, consulting firm, law firm, restaurant)
+4. There is no identifiable company at all on the page
+
+Set is_relevant=true for ANY early-stage software startup, even if it does not match the search query topic. When in doubt, set true.
+
+For each company found, extract:
 - name: company name
-- website: the company's own homepage URL. IMPORTANT: Only fill this if the URL IS the company's actual homepage (e.g. acme.ai, getacme.com). If the URL is a news article, blog post, press release, or any third-party site about the company, set website to "" (empty string) — never store a news or media URL here.
-- source_url: the URL where you found this company (always fill with the "URL:" value from the COMPANY block above)
-- one_liner: "We help [customer] [do X] by [mechanism]" — max 20 words
+- website: the company's own homepage URL. IMPORTANT: Only fill this if the URL IS the company's own website (e.g. acme.ai, getacme.com). If the URL is a news article or third-party page about the company, set website to "" (empty string).
+- source_url: always fill with the "URL:" value from the page block above
+- one_liner: what the company does — "We help [customer] [do X]" — max 20 words
 - funding_stage: pre-seed, seed, series-a, series-b, or unknown
-- sector: the specific industry vertical
-- is_relevant: true if matches thesis, false if not
+- sector: the specific industry vertical (e.g. LegalTech, FinTech, HR Tech)
+- is_relevant: true unless it meets one of the four exclusion cases above
 
-Respond with ONLY a valid JSON array. If no relevant startups found, return [].
+Respond with ONLY a valid JSON array. If no companies found, return [].
 
-Examples:
+Examples of is_relevant=true (extract these):
+- A seed-stage SaaS startup automating invoicing for restaurants
+- A B2B HR tool for onboarding remote teams
+- An AI copilot for field service technicians
+- A fintech startup doing payroll for gig workers
+- Any software startup, even if niche or unrelated to the search query
+
+Examples of is_relevant=false (skip these):
+- TechCrunch article about funding rounds (news site)
+- Salesforce.com (Fortune 500 enterprise)
+- McKinsey & Company (consulting firm, not software)
+- A restaurant chain website
+- A page with no identifiable company
+
 Direct homepage: [{{"name": "Acme AI", "website": "https://acme.ai", "source_url": "https://acme.ai", "one_liner": "We help law firms automate contract review with AI", "funding_stage": "seed", "sector": "LegalTech", "is_relevant": true}}]
 Found via article: [{{"name": "Acme AI", "website": "", "source_url": "https://techcrunch.com/2025/acme-raises", "one_liner": "We help law firms automate contract review with AI", "funding_stage": "seed", "sector": "LegalTech", "is_relevant": true}}]"""
 
