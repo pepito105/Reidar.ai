@@ -144,18 +144,6 @@ async def create_firm_profile(
             profile.mandate_buckets = await _generate_mandate_buckets(data.investment_thesis)
         await db.commit()
         await db.refresh(profile)
-        if data.firm_website:
-            try:
-                context = await enrich_firm_from_website(
-                    data.firm_website, data.firm_name, db=db, user_id=user_id
-                )
-                if context:
-                    profile.firm_context = context
-                    await db.commit()
-                    await db.refresh(profile)
-                    logger.info(f"Enriched firm profile for {data.firm_name} from {data.firm_website}")
-            except Exception as e:
-                logger.error(f"Failed to enrich firm profile: {e}", exc_info=True)
         return profile
 
     buckets = await _generate_mandate_buckets(data.investment_thesis or "")
@@ -163,20 +151,6 @@ async def create_firm_profile(
     db.add(profile)
     await db.commit()
     await db.refresh(profile)
-
-    # Enrich firm profile from website if provided
-    if data.firm_website:
-        try:
-            context = await enrich_firm_from_website(
-                data.firm_website, data.firm_name, db=db, user_id=user_id
-            )
-            if context:
-                profile.firm_context = context
-                await db.commit()
-                await db.refresh(profile)
-                logger.info(f"Enriched firm profile for {data.firm_name} from {data.firm_website}")
-        except Exception as e:
-            logger.error(f"Failed to enrich firm profile: {e}", exc_info=True)
     return profile
 
 @router.put("/", response_model=FirmProfileResponse)

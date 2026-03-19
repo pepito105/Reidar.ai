@@ -337,6 +337,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
   }
 
   const getMessageColor = (type) => {
+    if (type === 'enrichment') return '#60a5fa'
     if (['start','queries','scoring'].includes(type)) return '#8888aa'
     if (['searching','waiting'].includes(type)) return '#a78bfa'
     if (type === 'found') return '#60a5fa'
@@ -453,6 +454,11 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
                       <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <span style={{ color: getMessageColor(item.type), fontSize: 13, fontWeight: 500 }}>Running search agent...</span>
                         <span style={{ color: '#555577', fontSize: 11 }}>{item.message.replace(/^Search \d+\/\d+: /, '').replace(/^"|"$/g, '')}</span>
+                      </span>
+                    ) : item.type === 'enrichment' ? (
+                      <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <span style={{ fontSize: 13, flexShrink: 0 }}>🌐</span>
+                        <span style={{ color: getMessageColor('enrichment'), fontSize: 13 }}>{item.message}</span>
                       </span>
                     ) : (
                       <span style={{ color: getMessageColor(item.type), fontSize: 13, fontWeight: item.type === 'complete' ? 700 : 400 }}>{item.message}</span>

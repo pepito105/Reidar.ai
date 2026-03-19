@@ -723,6 +723,31 @@ async def sourcing_stream(request: Request, db: AsyncSession = Depends(get_db), 
                     await queue.put(None)
                     return
 
+                # ── Firm enrichment (runs once if firm_context not yet populated) ──
+                if profile.firm_website and profile.firm_context is None:
+                    from app.services.firm_research_service import enrich_firm_from_website
+
+                    async def _enrichment_callback(message: str):
+                        await emit("enrichment", message)
+
+                    try:
+                        context = await enrich_firm_from_website(
+                            profile.firm_website,
+                            profile.firm_name,
+                            db=db,
+                            user_id=user_id,
+                            progress_callback=_enrichment_callback,
+                        )
+                        if context:
+                            profile.firm_context = context
+                            await db.commit()
+                            await db.refresh(profile)
+                    except Exception as _enrich_err:
+                        import logging as _logging
+                        _logging.getLogger(__name__).warning(
+                            f"Enrichment failed in stream for {profile.firm_name}: {_enrich_err}"
+                        )
+
                 await emit("start", f"Analyzing mandate for {profile.firm_name}...")
                 await asyncio.sleep(0.5)
 

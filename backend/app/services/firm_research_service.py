@@ -19,6 +19,7 @@ async def enrich_firm_from_website(
     firm_name: str,
     db: Optional[AsyncSession] = None,
     user_id: Optional[str] = None,
+    progress_callback=None,
 ) -> dict:
     """
     Crawl firm website with Firecrawl and extract structured context using Claude.
@@ -42,6 +43,14 @@ async def enrich_firm_from_website(
         return {}
 
     try:
+        try:
+            from urllib.parse import urlparse
+            _display_domain = urlparse(website_url).netloc.replace("www.", "") or website_url
+        except Exception:
+            _display_domain = website_url
+
+        if progress_callback:
+            await progress_callback(f"Visiting {_display_domain}...")
         logger.info(f"[firm_enrichment] Calling Firecrawl scrape for {website_url}")
         content = await firecrawl_scrape(website_url, max_length=8000) or ""
         logger.info(f"[firm_enrichment] Firecrawl content length={len(content)} chars")
@@ -50,9 +59,14 @@ async def enrich_firm_from_website(
             logger.warning(f"[firm_enrichment] Insufficient Firecrawl content (len={len(content)}) — skipping")
             return {}
 
+        if progress_callback:
+            await progress_callback("Reading website content...")
+
         import json
 
         # ── Step 1: Extract firm context (themes, stage, geography, team) ─────
+        if progress_callback:
+            await progress_callback("Extracting investment themes...")
         context_prompt = f"""You are analyzing the website of a VC firm called {firm_name}.
 
 Here is the website content:
@@ -88,8 +102,13 @@ Return ONLY the JSON object, no explanation."""
             f"team={firm_context.get('team')} "
             f"geography={firm_context.get('geography')}"
         )
+        if progress_callback:
+            themes = firm_context.get("investment_themes") or []
+            await progress_callback(f"Investment themes extracted{': ' + ', '.join(themes[:3]) if themes else ''}")
 
         # ── Step 2: Extract portfolio companies ───────────────────────────────
+        if progress_callback:
+            await progress_callback("Scanning for portfolio companies...")
         portfolio_prompt = f"""You are analyzing the website of a VC firm called {firm_name}.
 
 Here is the website content:
@@ -117,9 +136,17 @@ Example: [{{"name": "Acme AI", "website": "https://acme.ai", "one_liner": "AI fo
         if not isinstance(portfolio_companies, list):
             portfolio_companies = []
         logger.info(f"[firm_enrichment] Portfolio extraction: {len(portfolio_companies)} companies found")
+        if progress_callback:
+            count = len(portfolio_companies)
+            if count > 0:
+                await progress_callback(f"Found {count} portfolio {'company' if count == 1 else 'companies'}")
+            else:
+                await progress_callback("No portfolio companies found on site")
 
         # ── Step 3: Persist portfolio companies if db session available ───────
         if db is not None and user_id and portfolio_companies:
+            if progress_callback:
+                await progress_callback("Saving portfolio companies...")
             await _save_portfolio_companies(db, user_id, portfolio_companies)
 
         return firm_context
