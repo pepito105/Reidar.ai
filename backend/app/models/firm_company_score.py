@@ -28,12 +28,8 @@ class FirmCompanyScore(Base):
     company_id = Column(UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(String(255), nullable=False)
 
-    # Slug — per-tenant unique, generated via _make_slug(name, user_id)
-    slug = Column(String(255), nullable=True, index=True)
-
     # Mandate scoring
     fit_score = Column(Integer, nullable=True)
-    ai_score = Column(Integer, nullable=True)
     fit_reasoning = Column(Text, nullable=True)
     thesis_tags = Column(JSON, default=list)
     mandate_category = Column(String(100), nullable=True)

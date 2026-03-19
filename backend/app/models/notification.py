@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Boolean, DateTime, Integer, Text, JSON
+from typing import Optional
+from sqlalchemy import Column, String, Boolean, DateTime, Integer, Text, JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from app.core.database import Base
 
@@ -13,7 +14,12 @@ class Notification(Base):
     event_type = Column(String, nullable=False)  # new_top_match | new_strong_fit | research_complete | company_signal | stale_deal
     title = Column(String, nullable=False)
     body = Column(Text, nullable=True)
-    startup_id = Column(Integer, nullable=True, index=True)
+    company_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("companies.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     startup_name = Column(String, nullable=True)
     fit_score = Column(Integer, nullable=True)
     is_seen = Column(Boolean, default=False, nullable=False)
