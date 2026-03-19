@@ -7,7 +7,8 @@ from pydantic import BaseModel
 from typing import List, Optional
 from app.core.database import get_db
 from app.models.firm_profile import FirmProfile
-from app.models.startup import Startup
+from app.models.company import Company
+from app.models.firm_company_score import FirmCompanyScore
 from app.core.auth import get_current_user_id
 from app.services.firm_research_service import enrich_firm_from_website
 

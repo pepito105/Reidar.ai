@@ -4,7 +4,8 @@ import jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import get_db
-from app.models.startup import Startup
+from app.models.company import Company
+from app.models.firm_company_score import FirmCompanyScore
 from app.models.firm_profile import FirmProfile
 
 router = APIRouter(prefix="/market-map")

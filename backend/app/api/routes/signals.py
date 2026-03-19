@@ -6,7 +6,8 @@ from sqlalchemy import select, desc, func
 from pydantic import BaseModel
 from typing import Optional
 from app.core.database import get_db
-from app.models.startup import Startup
+from app.models.company import Company
+from app.models.firm_company_score import FirmCompanyScore
 from app.models.firm_profile import FirmProfile
 from app.models.signal import CompanySignal
 from app.core.config import settings
@@ -673,7 +674,7 @@ async def sourcing_stream(request: Request, db: AsyncSession = Depends(get_db), 
                 await asyncio.sleep(0.5)
 
                 from app.services.sourcing_service import generate_search_queries, search_and_extract_companies, is_duplicate
-                from app.models.startup import Startup
+                from app.models.firm_company_score import FirmCompanyScore
                 from datetime import datetime
 
                 queries = await generate_search_queries(profile.investment_thesis, profile.firm_name, firm_website=profile.firm_website, firm_context=profile.firm_context)

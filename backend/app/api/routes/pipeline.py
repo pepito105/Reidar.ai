@@ -4,7 +4,8 @@ from sqlalchemy import select, or_
 from pydantic import BaseModel
 from typing import List, Optional, Any
 from app.core.database import get_db
-from app.models.startup import Startup
+from app.models.company import Company
+from app.models.firm_company_score import FirmCompanyScore
 
 router = APIRouter(prefix="/pipeline")
 PIPELINE_STAGES = ["watching", "outreach", "diligence", "passed", "invested"]
@@ -191,7 +192,7 @@ async def move_in_pipeline(data: PipelineMove, request: Request, db: AsyncSessio
                 try:
                     async with AsyncSessionLocal() as bg_db:
                         from sqlalchemy import select
-                        from app.models.startup import Startup as StartupModel
+                        from app.models.firm_company_score import FirmCompanyScore as StartupModel
                         result = await bg_db.execute(
                             select(StartupModel).where(StartupModel.id == startup_id)
                         )

@@ -1,7 +1,7 @@
 import asyncio
 from sqlalchemy import text
 from app.core.database import engine, Base
-from app.models import Startup, FirmProfile
+from app.models import Company, FirmCompanyScore, FirmProfile
 
 async def init_db():
     async with engine.begin() as conn:

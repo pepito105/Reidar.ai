@@ -5,7 +5,8 @@ from sqlalchemy import select
 from pydantic import BaseModel
 from anthropic import AsyncAnthropic
 from app.core.database import get_db
-from app.models.startup import Startup
+from app.models.company import Company
+from app.models.firm_company_score import FirmCompanyScore
 from app.models.firm_profile import FirmProfile
 from app.core.config import settings
 

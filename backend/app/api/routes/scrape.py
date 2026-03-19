@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, text
 
 from app.core.database import get_db
-from app.models.startup import Startup
+from app.models.company import Company
+from app.models.firm_company_score import FirmCompanyScore
 from app.services.scheduler import job_refresh_signals
 
 router = APIRouter(prefix="/scrape", tags=["scrape"])

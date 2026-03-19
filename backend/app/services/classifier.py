@@ -263,7 +263,7 @@ async def research_startup(
     if db and firm:
         try:
             from sqlalchemy import select
-            from app.models.startup import Startup
+            from app.models.firm_company_score import FirmCompanyScore as Startup
             port_result = await db.execute(
                 select(Startup.name, Startup.sector, Startup.one_liner)
                 .where(Startup.user_id == firm.user_id)
@@ -602,7 +602,7 @@ Respond with ONLY a JSON array. If no real signals are found, return [].
         if db is not None:
             try:
                 from sqlalchemy import select
-                from app.models.startup import Startup
+                from app.models.firm_company_score import FirmCompanyScore as Startup
                 from app.models.signal import CompanySignal
 
                 existing_result = await db.execute(

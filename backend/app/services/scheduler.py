@@ -8,7 +8,8 @@ from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy import select, text
 
 from app.core.database import AsyncSessionLocal
-from app.models.startup import Startup
+from app.models.company import Company
+from app.models.firm_company_score import FirmCompanyScore
 from app.models.firm_profile import FirmProfile
 
 logger = logging.getLogger(__name__)
@@ -99,7 +100,7 @@ async def job_refresh_signals():
                 pass
 
 
-def _last_activity_at(startup: Startup) -> Optional[datetime]:
+def _last_activity_at(startup) -> Optional[datetime]:
     log = startup.activity_log or []
     if not log:
         return None

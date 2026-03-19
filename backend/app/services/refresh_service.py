@@ -2,7 +2,8 @@ import logging
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.startup import Startup
+from app.models.company import Company
+from app.models.firm_company_score import FirmCompanyScore
 from app.models.signal import CompanySignal
 from app.services.classifier import detect_signals
 

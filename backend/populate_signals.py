@@ -6,7 +6,8 @@ from datetime import datetime, timedelta
 from sqlalchemy import select
 from app.core.database import AsyncSessionLocal
 from app.core.init_db import init_db
-from app.models.startup import Startup
+from app.models.company import Company
+from app.models.firm_company_score import FirmCompanyScore
 from app.models.signal import CompanySignal
 
 DEMO_SIGNALS = [

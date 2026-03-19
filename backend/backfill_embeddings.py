@@ -6,7 +6,8 @@ import asyncio
 import logging
 from sqlalchemy import select
 from app.core.database import AsyncSessionLocal
-from app.models.startup import Startup
+from app.models.company import Company
+from app.models.firm_company_score import FirmCompanyScore
 from app.services.classifier import generate_embedding
 
 logging.basicConfig(level=logging.INFO)

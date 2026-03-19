@@ -10,9 +10,21 @@ from typing import List, Optional, Any, Dict
 logger = logging.getLogger(__name__)
 
 import asyncio as _asyncio
+import hashlib as _hashlib
+import re as _re_slug
 # In-memory progress queues: startup_id -> asyncio.Queue
 # Allows background research tasks to stream progress to SSE clients
 _research_queues: dict[int, _asyncio.Queue] = {}
+
+
+def _make_slug(name: str, user_id: str) -> str:
+    """Generate a per-tenant unique slug: 'acme-a3f2' where a3f2 is the
+    first 4 hex chars of the MD5 of user_id. Guarantees the same firm
+    always gets the same slug for the same company name, while two
+    different firms never collide on the same slug."""
+    base = _re_slug.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-")[:80]
+    suffix = _hashlib.md5((user_id or "").encode()).hexdigest()[:4]
+    return f"{base}-{suffix}"
 
 
 def _utc_isoformat(dt) -> Optional[str]:
@@ -25,7 +37,8 @@ def _utc_isoformat(dt) -> Optional[str]:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.isoformat().replace("+00:00", "Z")
 from app.core.database import get_db, AsyncSessionLocal
-from app.models.startup import Startup
+from app.models.company import Company
+from app.models.firm_company_score import FirmCompanyScore
 from app.models.firm_profile import FirmProfile
 
 
@@ -229,10 +242,7 @@ async def add_company(data: AddCompanyRequest, request: Request, db: AsyncSessio
     firm_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True).where(FirmProfile.user_id == user_id).limit(1))
     firm = firm_result.scalar_one_or_none()
 
-    slug = _re.sub(r"[^a-z0-9]+", "-", data.name.lower()).strip("-")
-    existing = await db.execute(select(Startup).where(Startup.slug == slug))
-    if existing.scalar_one_or_none():
-        slug = f"{slug}-{int(_dt.datetime.now().timestamp())}"
+    slug = _make_slug(data.name, user_id)
 
     description = data.description or data.name
     result = await classify_startup(
@@ -300,7 +310,7 @@ async def portfolio_import(payload: PortfolioImportRequest, request: Request, db
         name = (item.get("name") or "").strip()
         if not name:
             continue
-        slug = _re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:80]
+        slug = _make_slug(name, user_id)
         existing = await db.execute(select(Startup).where(Startup.slug == slug))
         if existing.scalar_one_or_none():
             continue
@@ -333,8 +343,7 @@ async def portfolio_import(payload: PortfolioImportRequest, request: Request, db
         name = (item.get("name") or "").strip()
         if not name:
             continue
-        import re as _re
-        slug = _re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:80]
+        slug = _make_slug(name, user_id)
         result = await db.execute(
             sa_select(Startup).where(Startup.slug == slug)
             .where(Startup.user_id == user_id)

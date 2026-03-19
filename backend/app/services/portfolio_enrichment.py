@@ -18,7 +18,7 @@ async def enrich_portfolio_company(startup_id: int) -> None:
     async with AsyncSessionLocal() as db:
         try:
             from sqlalchemy import select
-            from app.models.startup import Startup
+            from app.models.firm_company_score import FirmCompanyScore as Startup
             result = await db.execute(
                 select(Startup).where(Startup.id == startup_id)
             )

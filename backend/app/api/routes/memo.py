@@ -7,7 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import get_db
-from app.models.startup import Startup
+from app.models.company import Company
+from app.models.firm_company_score import FirmCompanyScore
 from app.models.firm_profile import FirmProfile
 from app.core.config import settings
 from anthropic import AsyncAnthropic
@@ -118,7 +119,7 @@ async def delete_file(
 
     return {"success": True}
 
-async def generate_memo_for_startup(startup: Startup, firm, db: AsyncSession):
+async def generate_memo_for_startup(startup: FirmCompanyScore, firm, db: AsyncSession):
     """Generate memo text for a startup. Caller is responsible for saving startup.memo and committing."""
     file_context = ""
     for f in (startup.memo_files or []):

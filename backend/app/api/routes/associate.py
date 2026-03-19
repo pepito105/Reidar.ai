@@ -9,7 +9,8 @@ from sqlalchemy import select
 from anthropic import AsyncAnthropic
 from app.core.database import get_db
 from app.core.config import settings
-from app.models.startup import Startup
+from app.models.company import Company
+from app.models.firm_company_score import FirmCompanyScore
 from app.models.firm_profile import FirmProfile
 from app.services.associate_memory_service import retrieve_memories, format_memories_for_prompt
 
@@ -117,7 +118,7 @@ async def _build_coverage_context(db: AsyncSession, user_id: str) -> str:
     """
     try:
         from sqlalchemy import select, or_
-        from app.models.startup import Startup
+        from app.models.firm_company_score import FirmCompanyScore as Startup
         result = await db.execute(
             select(Startup)
             .where(Startup.user_id == user_id)
@@ -156,7 +157,7 @@ async def _build_signals_context(db: AsyncSession, user_id: str) -> str:
     try:
         from sqlalchemy import select, or_
         from app.models.signal import CompanySignal
-        from app.models.startup import Startup
+        from app.models.firm_company_score import FirmCompanyScore as Startup
         from datetime import timedelta
         cutoff = datetime.utcnow() - timedelta(days=30)
         result = await db.execute(
@@ -197,7 +198,7 @@ async def _build_research_context(db: AsyncSession, user_id: str) -> str:
     """
     try:
         from sqlalchemy import select, or_
-        from app.models.startup import Startup
+        from app.models.firm_company_score import FirmCompanyScore as Startup
         import json as _json
         from datetime import timedelta
         research_cutoff = datetime.utcnow() - timedelta(days=14)
