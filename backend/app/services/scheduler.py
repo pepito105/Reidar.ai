@@ -15,71 +15,6 @@ logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler(timezone='America/New_York')
 
 
-async def job_run_scrapers():
-    logger.info('Scheduler: Starting nightly scrape')
-    from app.services.scraping_service import run_full_scrape
-    async with AsyncSessionLocal() as db:
-        try:
-            from app.services.job_health import start_job_run, complete_job_run, fail_job_run
-            run = await start_job_run(db, "nightly_scrape")
-
-            stats = await run_full_scrape(db)
-            logger.info(f'Nightly scrape complete: {stats}')
-
-            profiles_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
-            profiles = profiles_result.scalars().all()
-
-            from datetime import timezone
-            from app.services.notification_service import send_top_match_alert
-            cutoff = datetime.utcnow() - timedelta(hours=2)
-            total_fives = 0
-
-            for profile in profiles:
-                user_id = profile.user_id
-                firm_name = profile.firm_name or "your firm"
-                notify_emails = profile.notification_emails
-                min_score = profile.notify_min_fit_score or 4
-                should_notify = profile.notify_top_match
-                thesis = profile.investment_thesis or ""
-
-                new_result = await db.execute(
-                    select(Startup)
-                    .where(Startup.user_id == user_id)
-                    .where(Startup.scraped_at >= cutoff)
-                    .where(Startup.fit_score >= min_score)
-                    .order_by(Startup.fit_score.desc())
-                )
-                new_top = new_result.scalars().all()
-
-                fives = [s for s in new_top if s.fit_score == 5]
-                total_fives += len(fives)
-                if fives and should_notify:
-                    for s in fives:
-                        await send_top_match_alert(
-                            company={
-                                "name": s.name,
-                                "fit_score": s.fit_score,
-                                "one_liner": s.one_liner,
-                                "funding_stage": s.funding_stage,
-                                "sector": s.sector,
-                            },
-                            firm_name=firm_name,
-                            thesis=thesis,
-                            notification_emails=notify_emails,
-                        )
-                    logger.info(f'Top match alerts sent for {len(fives)} 5/5 companies ({firm_name})')
-                else:
-                    logger.info(f'No 5/5 companies from this scrape for {firm_name} — skipping alert')
-
-            await complete_job_run(db, run.id, stats={"total_fives": total_fives, "firms_processed": len(profiles)}, firm_count=len(profiles))
-
-        except Exception as e:
-            logger.error(f'Nightly scrape failed: {e}', exc_info=True)
-            try:
-                await fail_job_run(db, run.id, error=str(e), job_name="nightly_scrape")
-            except Exception:
-                pass
-
 
 async def job_refresh_signals():
     logger.info('Scheduler: Starting nightly signal refresh')
@@ -303,6 +238,7 @@ async def job_run_sourcing():
     from app.services.research_service import run_research_batch
     from sqlalchemy import select
     async with AsyncSessionLocal() as db:
+        run = None
         try:
             from app.services.job_health import start_job_run, complete_job_run, fail_job_run
             run = await start_job_run(db, "autonomous_sourcing")
@@ -318,7 +254,10 @@ async def job_run_sourcing():
             for profile in profiles:
                 firm_name = profile.firm_name or 'Unknown'
                 user_id = profile.user_id
+                thesis = profile.investment_thesis or ""
                 logger.info(f'Nightly sourcing for: {firm_name}')
+
+                run_started_at = datetime.utcnow()
 
                 # Step 2: Deep autonomous sourcing — 8 queries instead of 3
                 try:
@@ -342,13 +281,46 @@ async def job_run_sourcing():
                 except Exception as e:
                     logger.error(f'Stale deal notifications failed for {firm_name}: {e}')
 
+                # Step 4: Send top match email for new companies found in this run
+                try:
+                    from app.services.notification_service import send_sourcing_alert
+                    if profile.notify_top_match and profile.notification_emails:
+                        min_score = profile.notify_min_fit_score or 4
+                        new_matches_result = await db.execute(
+                            select(Startup)
+                            .where(Startup.user_id == user_id)
+                            .where(Startup.scraped_at >= run_started_at)
+                            .where(Startup.fit_score >= min_score)
+                            .order_by(Startup.fit_score.desc())
+                        )
+                        new_matches = new_matches_result.scalars().all()
+                        if new_matches:
+                            await send_sourcing_alert(
+                                companies=[{
+                                    "name": s.name,
+                                    "one_liner": s.one_liner,
+                                    "fit_score": s.fit_score,
+                                    "sector": s.sector,
+                                    "funding_stage": s.funding_stage,
+                                } for s in new_matches],
+                                firm_name=firm_name,
+                                thesis=thesis,
+                                notification_emails=profile.notification_emails,
+                            )
+                            logger.info(f'Sourcing alert sent for {len(new_matches)} companies ({firm_name})')
+                        else:
+                            logger.info(f'No new top matches from sourcing for {firm_name} — skipping alert')
+                except Exception as e:
+                    logger.error(f'Sourcing alert failed for {firm_name}: {e}')
+
             await complete_job_run(db, run.id, stats={"firms_processed": len(profiles)}, firm_count=len(profiles))
         except Exception as e:
             logger.error(f'Nightly sourcing job failed: {e}', exc_info=True)
-            try:
-                await fail_job_run(db, run.id, error=str(e), job_name="autonomous_sourcing")
-            except Exception:
-                pass
+            if run:
+                try:
+                    await fail_job_run(db, run.id, error=str(e), job_name="autonomous_sourcing")
+                except Exception:
+                    pass
 
 
 async def run_startup_check():
@@ -361,13 +333,6 @@ async def run_startup_check():
 
 
 def start_scheduler():
-    scheduler.add_job(
-        job_run_scrapers,
-        CronTrigger(hour=4, minute=30, timezone='America/New_York'),
-        id='nightly_scrape',
-        replace_existing=True,
-        misfire_grace_time=3600,
-    )
     scheduler.add_job(
         job_refresh_signals,
         CronTrigger(hour=3, minute=0),
@@ -383,13 +348,6 @@ def start_scheduler():
         misfire_grace_time=3600,
     )
     scheduler.add_job(
-        job_run_research,
-        CronTrigger(hour=3, minute=30, timezone='America/New_York'),
-        id='research_batch',
-        replace_existing=True,
-        misfire_grace_time=3600,
-    )
-    scheduler.add_job(
         job_run_sourcing,
         CronTrigger(hour=4, minute=0, timezone='America/New_York'),
         id='autonomous_sourcing',
@@ -397,4 +355,4 @@ def start_scheduler():
         misfire_grace_time=3600,
     )
     scheduler.start()
-    logger.info('Scheduler started - signal refresh 3AM, deep sourcing 4AM, weekly summary Monday 8AM ET')
+    logger.info('Scheduler started - signal refresh 3AM, deep sourcing 4AM ET, weekly summary Monday 8AM ET')

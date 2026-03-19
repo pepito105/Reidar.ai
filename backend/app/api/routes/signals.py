@@ -362,7 +362,7 @@ async def test_notification(
     """Test endpoint to trigger notification emails manually."""
     user_id = _user_id_from_request(request)
     from app.services.notification_service import (
-        send_top_match_alert,
+        send_sourcing_alert,
         send_diligence_batch_alert,
         send_weekly_summary,
     )
@@ -390,11 +390,7 @@ async def test_notification(
             }
             for s in result.scalars().all()
         ]
-        results = [
-            await send_top_match_alert(c, firm_name, thesis=thesis, notification_emails=notify_emails)
-            for c in companies
-        ]
-        success = any(results)
+        success = await send_sourcing_alert(companies, firm_name, thesis=thesis, notification_emails=notify_emails)
         return {"sent": success, "type": "top_match", "companies": len(companies)}
 
     elif notification_type == "diligence":

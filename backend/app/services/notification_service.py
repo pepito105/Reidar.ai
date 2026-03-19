@@ -228,52 +228,71 @@ Write in the voice of a sharp, direct investment analyst. No fluff. Reference sp
     return _send_email(subject, html, to_email=notification_emails)
 
 
-# ── 2. New Top Match Alert (5/5 only) ────────────────────────────────────────
+# ── 2. Nightly Sourcing Alert ────────────────────────────────────────────────
 
-async def send_top_match_alert(
-    company: dict,
+def _fit_pips(score: int) -> str:
+    filled = "●" * score
+    empty = "○" * (5 - score)
+    colors = {5: "#10b981", 4: "#6366f1", 3: "#f59e0b"}
+    color = colors.get(score, "#6b7280")
+    return f'<span style="color:{color};letter-spacing:2px;font-size:13px;">{filled}</span><span style="color:#2a2a3e;letter-spacing:2px;font-size:13px;">{empty}</span>'
+
+
+def _sourcing_company_block(company: dict, take: str = "") -> str:
+    name = company.get("name", "Unknown")
+    one_liner = company.get("one_liner") or ""
+    fit = company.get("fit_score", 0)
+    pips = _fit_pips(fit)
+    take_html = (
+        f'<div style="font-size:12px;color:#9090b0;line-height:1.6;margin-top:8px;'
+        f'font-style:italic;">{take}</div>'
+    ) if take else ""
+    return f"""
+    <div style="border-bottom:1px solid #1a1a2e;padding:14px 0;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+        <span style="font-size:15px;font-weight:700;color:#f0f0ff;">{name}</span>
+        <span style="line-height:1;">{pips}</span>
+      </div>
+      <div style="font-size:13px;color:#8888aa;line-height:1.5;">{one_liner}</div>
+      {take_html}
+    </div>"""
+
+
+async def send_sourcing_alert(
+    companies: List[dict],
     firm_name: str = "your firm",
     thesis: str = "",
     notification_emails: str = None,
 ) -> bool:
-    name = company.get("name", "Unknown")
-    one_liner = company.get("one_liner", "")
+    if not companies:
+        return False
 
-    take_prompt = f"""You are the AI investment associate for {firm_name}. A new company just scored 5/5 against the firm's mandate.
+    count = len(companies)
+    n = count
+    subject = f"Radar: {n} new match{'es' if n > 1 else ''} tonight"
 
-Company: {name}
-What they do: {one_liner}
-Firm thesis: {thesis or "early-stage technology investing"}
-
-Write 2 sentences: (1) why this is a perfect thesis fit, (2) what the analyst should do next. Be specific and direct. No hype. Maximum 50 words total."""
-
-    take = await _claude_narrative(take_prompt, max_tokens=120)
+    company_blocks = ""
+    for c in companies[:10]:
+        take_prompt = f"""One sentence, max 20 words: why is {c['name']} — "{c.get('one_liner', '')}" — relevant for a fund focused on {thesis or 'early-stage technology'}? Be specific."""
+        take = await _claude_narrative(take_prompt, max_tokens=60)
+        company_blocks += _sourcing_company_block(c, take=take)
 
     body = f"""
-    <div style="background:#0f0f1a;border:1px solid #1e1e2e;border-left:4px solid #10b981;
-                border-radius:10px;padding:18px 20px;margin-bottom:20px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-        <span style="font-size:16px;font-weight:700;color:#f0f0ff;">{name}</span>
-        <span style="font-size:11px;font-weight:600;color:#10b981;background:#10b98122;
-                     padding:2px 8px;border-radius:4px;">Top Match · 5/5</span>
-        {f'<span style="font-size:11px;color:#6b7280;background:#1a1a2e;padding:2px 8px;border-radius:4px;">{company.get("funding_stage","")}</span>' if company.get("funding_stage") else ''}
-      </div>
-      <div style="font-size:13px;color:#8888aa;margin-bottom:12px;">{one_liner}</div>
-      {f'<div style="font-size:13px;color:#c0c0e0;line-height:1.7;padding-top:12px;border-top:1px solid #1a1a2e;">{take}</div>' if take else ''}
+    <div style="margin-bottom:4px;">
+      {company_blocks}
     </div>
-    {_cta_button(f"View {name} in Radar →")}"""
+    {_cta_button("Open Radar →")}"""
 
     html = _base_email(
-        title=f"🎯 Top Match: {name}",
-        subtitle=f"5/5 mandate fit · {datetime.now().strftime('%A, %B %d')}",
+        title=f"{n} new {'match' if n == 1 else 'matches'} found overnight",
+        subtitle=f"{datetime.now().strftime('%A, %B %d')} · {firm_name}",
         body=body,
         firm_name=firm_name,
     )
-    subject = f"Radar: 🎯 {name} is a perfect fit for your mandate"
     return _send_email(subject, html, to_email=notification_emails)
 
 
-# ── 3. Diligence Signal Batch Alert ──────────────────────────────────────────
+# ── 4. Diligence Signal Batch Alert ──────────────────────────────────────────
 
 async def send_diligence_batch_alert(
     alerts: List[dict],

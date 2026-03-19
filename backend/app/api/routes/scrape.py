@@ -9,7 +9,7 @@ from sqlalchemy import select, func, text
 
 from app.core.database import get_db
 from app.models.startup import Startup
-from app.services.scheduler import job_run_scrapers, job_refresh_signals
+from app.services.scheduler import job_refresh_signals
 
 router = APIRouter(prefix="/scrape", tags=["scrape"])
 logger = logging.getLogger(__name__)
@@ -54,13 +54,12 @@ async def trigger_manual_scrape(background_tasks: BackgroundTasks):
         global _scrape_running
         _scrape_running = True
         try:
-            logger.info("Manual scrape triggered from UI")
-            await job_run_scrapers()
+            logger.info("Manual signal refresh triggered from UI")
             await job_refresh_signals()
         except Exception as e:
-            logger.error(f"Manual scrape failed: {e}")
+            logger.error(f"Manual signal refresh failed: {e}")
         finally:
             _scrape_running = False
 
     background_tasks.add_task(run_scrape)
-    return {"message": "Scrape started - new companies will appear in Coverage as they are classified", "started": True}
+    return {"message": "Signal refresh started", "started": True}
