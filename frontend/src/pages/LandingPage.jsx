@@ -69,9 +69,11 @@ const STYLES = `
 
   /* TICKER */
   .ticker{overflow:hidden;border-top:1px solid rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.05);padding:11px 0}
-  .ticker-inner{display:flex;animation:ticker 38s linear infinite;width:max-content}
+  .ticker-inner{display:flex;animation:ticker 32s linear infinite;width:max-content}
+  .ticker:hover .ticker-inner{animation-play-state:paused}
   .tick-item{display:flex;align-items:center;gap:10px;padding:0 32px;white-space:nowrap;font-family:'DM Mono',monospace;font-size:10px;color:rgba(235,235,235,.2);letter-spacing:.08em}
   .tick-sep{color:rgba(107,71,245,.4);font-size:8px}
+  .dyn-tick-dot{width:6px;height:6px;border-radius:50%;background:#00ff88;animation:pulse 2s ease-in-out infinite;flex-shrink:0}
 
   /* LAYOUT */
   .wrap{max-width:1160px;margin:0 auto;padding:0 40px}
@@ -93,8 +95,8 @@ const STYLES = `
 
   /* COMPETITORS */
   .comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden;margin-top:44px}
-  .comp-cell{padding:30px;background:rgba(255,255,255,.014);border-right:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06);transition:background .2s}
-  .comp-cell:hover{background:rgba(107,71,245,.04)}
+  .comp-cell{padding:30px;background:rgba(255,255,255,.014);border-right:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06);transition:background .2s,box-shadow .2s}
+  .comp-cell:hover{background:rgba(107,71,245,.06);box-shadow:inset 3px 0 0 rgba(107,71,245,.35)}
   .comp-cell:nth-child(2n){border-right:none}
   .comp-cell:nth-last-child(-n+2){border-bottom:none}
   .comp-name{font-family:'DM Mono',monospace;font-size:10px;color:rgba(235,235,235,.26);letter-spacing:.07em;margin-bottom:8px}
@@ -171,6 +173,37 @@ const STYLES = `
     .int-grid{grid-template-columns:1fr}
     .cta-wrap{margin:0 20px 72px;padding:48px 24px}
     .footer{flex-direction:column;gap:12px;text-align:center;padding:24px}
+  }
+
+  /* MEET REIDAR — DYNAMIC TAB LAYOUT */
+  @keyframes dyn-panel-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes dyn-fade-in{from{opacity:0}to{opacity:1}}
+  @keyframes dyn-slide-down{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes dyn-center-glow{0%,100%{box-shadow:0 0 0 1px rgba(107,71,245,.45),0 0 8px rgba(107,71,245,.1)}50%{box-shadow:0 0 0 1px rgba(107,71,245,.7),0 0 32px rgba(107,71,245,.45)}}
+  .dyn-shell{display:flex;border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden;margin-top:44px;min-height:340px}
+  .dyn-tabs{width:260px;flex-shrink:0;border-right:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.012);display:flex;flex-direction:column;padding:8px}
+  .dyn-tab{padding:14px 16px;border-radius:8px;cursor:pointer;transition:background .18s,border-color .18s;border-left:2px solid transparent;margin-bottom:2px}
+  .dyn-tab:hover{background:rgba(255,255,255,.04)}
+  .dyn-tab.dyn-active{background:rgba(107,71,245,.1);border-left-color:#6B47F5}
+  .dyn-tab-tag{font-family:'DM Mono',monospace;font-size:9px;color:rgba(107,71,245,.4);letter-spacing:.1em;margin-bottom:6px}
+  .dyn-tab.dyn-active .dyn-tab-tag{color:#A992FA}
+  .dyn-tab-title{font-size:13px;font-weight:500;color:rgba(235,235,235,.38);transition:color .15s;line-height:1.3}
+  .dyn-tab.dyn-active .dyn-tab-title{color:#EBEBEB}
+  .dyn-tab-prog{height:2px;background:rgba(107,71,245,.12);border-radius:1px;margin-top:10px;overflow:hidden;display:none}
+  .dyn-tab.dyn-active .dyn-tab-prog{display:block}
+  .dyn-tab-prog-bar{height:100%;background:#6B47F5;border-radius:1px}
+  .dyn-panel{flex:1;background:#0C0C10;overflow:hidden;position:relative}
+  .dyn-panel-inner{padding:32px;height:100%;animation:dyn-panel-in .15s ease both}
+  @media(max-width:900px){
+    .dyn-shell{flex-direction:column}
+    .dyn-tabs{width:auto;border-right:none;border-bottom:1px solid rgba(255,255,255,.07);flex-direction:row;flex-wrap:wrap}
+    .dyn-tab{flex:1;min-width:120px;border-left:none;border-bottom:2px solid transparent}
+    .dyn-tab.dyn-active{background:rgba(107,71,245,.1);border-left-color:transparent;border-bottom-color:#6B47F5}
+  }
+  @media(max-width:640px){
+    .dyn-tabs{flex-direction:column}
+    .dyn-tab{min-width:auto;border-bottom:none;border-left:2px solid transparent}
+    .dyn-tab.dyn-active{border-left-color:#6B47F5;border-bottom-color:transparent}
   }
 `;
 
@@ -859,20 +892,20 @@ function ProductPreview() {
 }
 
 /* ─── CONSTANTS ─── */
-const TICKER_ITEMS = ["MANDATE-AWARE SOURCING","AI INVESTMENT MEMOS","PIPELINE TRACKING","MARKET INTELLIGENCE","HOT SIGNALS","THESIS-FIRST FILTERING","AUTONOMOUS RESEARCH","NIGHTLY AI SOURCING","RESEARCH AGENTS ON DEMAND","EMERGING FUND TOOLING"];
+const TICKER_ITEMS = ["MANDATE-AWARE SOURCING","INSTITUTIONAL DEAL MEMORY","AI INVESTMENT MEMOS","PIPELINE TRACKING","NEVER MISS A COMPANY AGAIN","CONVERSATION INTELLIGENCE","RE-SURFACE AT THE RIGHT MOMENT","NIGHTLY AI SOURCING","RESEARCH AGENTS ON DEMAND","EMERGING FUND TOOLING","CONTEXT THAT COMPOUNDS"];
 const STEPS = [
-  { n:"01", t:"Reads your firm",   d:"Reidar reads your thesis and firm website — learning your mandate, portfolio, and what you care about" },
-  { n:"02", t:"Sources nightly",   d:"At 4AM, AI-powered web search runs mandate-specific queries across the web to surface early-stage startups" },
-  { n:"03", t:"Classifies",        d:"Claude scores each company 1–5 against your thesis. Below threshold = never reaches your feed" },
-  { n:"04", t:"Researches",        d:"On demand: deploy research agents — visiting websites, reading filings, running full investment analysis" },
-  { n:"05", t:"Monitors signals",  d:"For pipeline companies, Reidar watches for funding rounds, key hires, and market moves" },
-  { n:"06", t:"Briefs you",        d:"Monday morning: a narrative digest. New top matches. Pipeline signals. What's moving in your sectors." },
+  { n:"01", t:"Reads your firm",               d:"Reidar reads your thesis and firm website — learning your mandate, portfolio, and what you care about." },
+  { n:"02", t:"Sources nightly",               d:"At 4AM, AI-powered web search runs mandate-specific queries across the web to surface early-stage startups." },
+  { n:"03", t:"Classifies",                    d:"Claude scores each company 1–5 against your thesis. Below threshold = never reaches your feed." },
+  { n:"04", t:"Researches on demand",          d:"Deploy research agents on any company — full investment analysis, memo, recommended next step." },
+  { n:"05", t:"Learns from every interaction", d:"Founder call notes, pipeline moves, passes, and deal context all feed back in. The more you use Reidar, the sharper the signal." },
+  { n:"06", t:"Surfaces what matters",         d:"Pipeline company just raised? Company you passed on hit $5M ARR? Reidar flags it at the right moment." },
 ];
 const COMPS = [
-  { name:"Harmonic",   t:"Best-in-class data.",  c:"But it's a search engine. It doesn't know your mandate. You still do all the work." },
-  { name:"PitchBook",  t:"Institutional depth.", c:"$12K–$100K/yr. Built for analysts at brand-name funds, not emerging GPs." },
-  { name:"Affinity",   t:"Dominant VC CRM.",     c:"Tracks your relationships, not deals you haven't seen yet. Orthogonal problem." },
-  { name:"Crunchbase", t:"Broad coverage.",      c:"A directory, not an analyst. Descriptive, not mandate-aware, not predictive." },
+  { name:"Harmonic",   t:"Best-in-class data.",  c:"But it's a search engine. You bring the query, the context. It doesn't know what you've already seen — or what you passed on last year." },
+  { name:"PitchBook",  t:"Institutional depth.", c:"$12K–$100K/yr. Built for brand-name funds, not emerging GPs. Won't remember what you told it last quarter." },
+  { name:"Affinity",   t:"Tracks relationships.", c:"Knows who you know. Doesn't know what you've seen, what fits your mandate, or when to bring a company back." },
+  { name:"Crunchbase", t:"Broad coverage.",      c:"A directory, not an analyst. Start from scratch every time." },
 ];
 
 const INTEGRATIONS = [
@@ -883,49 +916,59 @@ const INTEGRATIONS = [
     badgeColor: "#10b981",
     badgeBg: "rgba(16,185,129,.12)",
     badgeBorder: "rgba(16,185,129,.25)",
-    icon: "G",
-    iconBg: "#c5221f",
+    iconBg: "rgba(234,67,53,.15)",
+    iconBorder: "rgba(234,67,53,.4)",
   },
   {
     name: "Google Calendar",
     desc: "Meeting notes and founder interactions logged automatically",
     badge: "Coming soon",
-    icon: "📅",
     iconBg: "rgba(66,133,244,.15)",
-    iconBorder: "rgba(66,133,244,.25)",
+    iconBorder: "rgba(66,133,244,.4)",
   },
   {
     name: "Slack",
     desc: "Deal alerts and weekly digests delivered where your team already works",
     badge: "Coming soon",
-    icon: "#",
-    iconBg: "rgba(74,21,75,.4)",
-    iconBorder: "rgba(224,80,224,.2)",
+    iconBg: "rgba(224,30,90,.15)",
+    iconBorder: "rgba(224,30,90,.4)",
   },
   {
     name: "Notion",
     desc: "Push investment memos and company briefs directly to your workspace",
     badge: "Coming soon",
-    icon: "N",
     iconBg: "rgba(255,255,255,.08)",
-    iconBorder: "rgba(255,255,255,.15)",
+    iconBorder: "rgba(255,255,255,.2)",
   },
   {
     name: "LinkedIn",
     desc: "Founder and team signals surfaced inline with company profiles",
     badge: "Coming soon",
-    icon: "in",
-    iconBg: "rgba(10,102,194,.25)",
-    iconBorder: "rgba(10,102,194,.4)",
+    iconBg: "rgba(0,119,181,.15)",
+    iconBorder: "rgba(0,119,181,.4)",
   },
   {
     name: "Crunchbase",
     desc: "Funding history and investor data enriched automatically",
     badge: "Coming soon",
-    icon: "CB",
-    iconBg: "rgba(20,106,255,.15)",
-    iconBorder: "rgba(20,106,255,.3)",
+    iconBg: "rgba(2,136,209,.15)",
+    iconBorder: "rgba(2,136,209,.4)",
   },
+];
+
+const ORBIT_SVGS = [
+  /* Gmail */
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="#EA4335"/></svg>,
+  /* Google Calendar */
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M19 3h-1V1h-2v2H8V1H6v2H5C3.9 3 3 3.9 3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" fill="#4285F4"/></svg>,
+  /* Slack */
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5.042 15.165a2.528 2.528 0 01-2.52 2.523A2.528 2.528 0 010 15.165a2.527 2.527 0 012.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 012.521-2.52 2.527 2.527 0 012.521 2.52v6.313A2.528 2.528 0 018.834 24a2.528 2.528 0 01-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 01-2.521-2.52A2.528 2.528 0 018.834 0a2.528 2.528 0 012.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 012.521 2.521 2.528 2.528 0 01-2.521 2.521H2.522A2.528 2.528 0 010 8.834a2.528 2.528 0 012.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 012.522-2.521A2.528 2.528 0 0124 8.834a2.528 2.528 0 01-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 01-2.523 2.521 2.527 2.527 0 01-2.52-2.521V2.522A2.527 2.527 0 0115.165 0a2.528 2.528 0 012.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 012.523 2.522A2.528 2.528 0 0115.165 24a2.527 2.527 0 01-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 01-2.52-2.523 2.526 2.526 0 012.52-2.52h6.313A2.527 2.527 0 0124 15.165a2.528 2.528 0 01-2.522 2.523h-6.313z" fill="#E01E5A"/></svg>,
+  /* Notion */
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 3h4.5l9 13.5V3H21v18h-4.5L7.5 7.5V21H4V3z" fill="#ffffff"/></svg>,
+  /* LinkedIn */
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" fill="#0077B5"/></svg>,
+  /* Crunchbase */
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="12" width="5" height="8" rx="1" fill="#0288D1"/><rect x="9.5" y="7" width="5" height="13" rx="1" fill="#0288D1"/><rect x="17" y="4" width="5" height="16" rx="1" fill="#0288D1"/><line x1="2" y1="23" x2="22" y2="23" stroke="#0288D1" strokeWidth="1.5"/></svg>,
 ];
 
 const HERO_PHRASES = [
@@ -937,11 +980,554 @@ const HERO_PHRASES = [
 ];
 
 const TRAITS = [
-  { tag: "01 / READS YOUR FIRM", title: "Knows your mandate cold", desc: "Reidar reads your firm's website, loads your portfolio automatically, and internalizes your thesis. He knows what you've backed, what you avoid, and what a 5/5 looks like for your specific mandate — before you brief him on anything." },
-  { tag: "02 / WORKS OVERNIGHT", title: "Sources while you sleep", desc: "At 4AM every night, Reidar runs AI-powered web search — generating mandate-specific queries to find early-stage startups across the web." },
-  { tag: "03 / THINKS AHEAD", title: "Flags signals before you ask", desc: "For every company in your pipeline, Reidar monitors for funding rounds, key hires, and market moves — and tells you why it matters." },
-  { tag: "04 / LEARNS YOUR FIRM", title: "Gets sharper every deal", desc: "Every company you move through the pipeline, every pass, every note — Reidar is calibrating. Over time, his sourcing reflects not just your written thesis, but your actual pattern of judgment." },
+  { tag: "01 / READS YOUR FIRM", title: "Knows your mandate cold", desc: "Reidar reads your firm website, loads your portfolio automatically, and internalizes your thesis. He knows what you've backed, what you avoid, and what a 5/5 looks like for your mandate — before you brief him on anything." },
+  { tag: "02 / NEVER FORGETS", title: "Every company stays in play", desc: "Reidar remembers every company you've ever seen, passed on, or noted. When a company that was too early six months ago closes a round or hits a milestone — he brings it back. Not everything. Just the right thing at the right moment." },
+  { tag: "03 / CONVERSATION INTELLIGENCE", title: "Turns calls into deal flow", desc: "Drop in meeting notes or a rough transcript after a founder call. Reidar extracts the company context, scores it against your mandate, flags portfolio conflicts, and surfaces similar companies you've already seen. Thirty calls a week — none of them wasted." },
+  { tag: "04 / LEARNS YOUR FIRM", title: "Gets sharper every deal", desc: "Every company you move through the pipeline, every pass, every note — Reidar is calibrating. Over time his sourcing reflects not just your written thesis, but your actual pattern of judgment. The longer you use it, the harder it is to replicate." },
 ];
+
+/* ─── COMPETITOR GRID ─── */
+
+function CompetitorGrid() {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setVisible(true); obs.disconnect(); }
+    }, { threshold: 0.15 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return (
+    <div className="comp-grid" ref={ref}>
+      {COMPS.map((c, i) => (
+        <div
+          className="comp-cell"
+          key={c.name}
+          style={{
+            opacity: visible ? 1 : 0,
+            transform: visible ? 'none' : 'translateY(20px)',
+            transition: `opacity 0.4s ease ${i * 120}ms, transform 0.4s ease ${i * 120}ms, background .2s, box-shadow .2s`,
+          }}
+        >
+          <div className="comp-name">{c.name}</div>
+          <div className="comp-text"><strong>{c.t}</strong> {c.c}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─── INTEGRATIONS ORBIT ─── */
+
+function IntegrationsOrbit() {
+  const containerRef = useRef(null);
+  const frameRef = useRef(null);
+  const angleRef = useRef(0);
+  const [hoveredIdx, setHoveredIdx] = useState(null);
+  const R = 140;
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const icons = container.querySelectorAll('[data-orbit-icon]');
+    const SPEED = (Math.PI * 2) / (24 * 60);
+    const animate = () => {
+      angleRef.current += SPEED;
+      icons.forEach((el, i) => {
+        const a = angleRef.current + (i / INTEGRATIONS.length) * Math.PI * 2 - Math.PI / 2;
+        el.style.transform = `translate(${Math.cos(a) * R}px, ${Math.sin(a) * R}px)`;
+      });
+      frameRef.current = requestAnimationFrame(animate);
+    };
+    frameRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frameRef.current);
+  }, []);
+
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', marginTop: 48 }}>
+      <div ref={containerRef} style={{ position: 'relative', width: 340, height: 340 }}>
+        {/* Orbit ring visual */}
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%',
+          width: R * 2, height: R * 2,
+          marginTop: -R, marginLeft: -R,
+          borderRadius: '50%',
+          border: '1px solid rgba(107,71,245,.1)',
+          pointerEvents: 'none',
+        }} />
+        {/* Center mark */}
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%',
+          transform: 'translate(-50%,-50%)',
+          width: 56, height: 56, borderRadius: 14,
+          background: '#6B47F5',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 2,
+          animation: 'dyn-center-glow 3s ease-in-out infinite',
+        }}>
+          <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
+            <path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke="white" strokeWidth="1.5" fill="none"/>
+            <circle cx="7" cy="7" r="2" fill="white"/>
+          </svg>
+        </div>
+        {/* Icons */}
+        {INTEGRATIONS.map((int, i) => (
+          <div
+            key={int.name}
+            data-orbit-icon={i}
+            style={{
+              position: 'absolute',
+              top: 'calc(50% - 22px)', left: 'calc(50% - 22px)',
+              width: 44, height: 44,
+              zIndex: 3,
+            }}
+            onMouseEnter={() => setHoveredIdx(i)}
+            onMouseLeave={() => setHoveredIdx(null)}
+          >
+            <div style={{
+              width: 44, height: 44, borderRadius: 10,
+              background: int.iconBg || 'rgba(14,14,20,1)',
+              border: `1px solid ${hoveredIdx === i ? 'rgba(107,71,245,.5)' : (int.iconBorder || 'rgba(255,255,255,.12)')}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+              transform: hoveredIdx === i ? 'scale(1.12)' : 'none',
+              transition: 'transform .2s, border-color .2s, box-shadow .2s',
+              boxShadow: hoveredIdx === i ? '0 0 16px rgba(107,71,245,.3)' : 'none',
+            }}>
+              {ORBIT_SVGS[i]}
+            </div>
+            {hoveredIdx === i && (
+              <div style={{
+                position: 'absolute',
+                bottom: 'calc(100% + 10px)',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(10,10,16,.97)',
+                border: '1px solid rgba(255,255,255,.1)',
+                borderRadius: 8,
+                padding: '9px 13px',
+                whiteSpace: 'nowrap',
+                animation: 'dyn-panel-in .15s ease',
+                zIndex: 20,
+                pointerEvents: 'none',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: '#EBEBEB' }}>{int.name}</span>
+                  <span style={{
+                    fontFamily: "'Space Mono',monospace", fontSize: 8, letterSpacing: '.06em',
+                    padding: '2px 6px', borderRadius: 100,
+                    background: int.badgeBg || 'rgba(107,71,245,.1)',
+                    color: int.badgeColor || 'rgba(107,71,245,.7)',
+                    border: `1px solid ${int.badgeBorder || 'rgba(107,71,245,.2)'}`,
+                  }}>{int.badge}</span>
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(235,235,235,.45)', lineHeight: 1.45, maxWidth: 220 }}>{int.desc}</div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── MEET REIDAR PANELS ─── */
+
+function TraitPanel1() {
+  const [loopKey, setLoopKey] = useState(0);
+  const [stage, setStage] = useState(0);
+  const [pillsVis, setPillsVis] = useState(0);
+  const portfolioCos = ["Synthos", "Waymark AI", "Corpora", "Viven"];
+  useEffect(() => {
+    setStage(0); setPillsVis(0);
+    const t1 = setTimeout(() => setStage(1), 1200);
+    const t2 = setTimeout(() => setStage(2), 2500);
+    const t3 = setTimeout(() => setPillsVis(1), 2700);
+    const t4 = setTimeout(() => setPillsVis(2), 3000);
+    const t5 = setTimeout(() => setPillsVis(3), 3300);
+    const t6 = setTimeout(() => setPillsVis(4), 3600);
+    const t7 = setTimeout(() => setLoopKey(k => k + 1), 6000);
+    return () => [t1,t2,t3,t4,t5,t6,t7].forEach(clearTimeout);
+  }, [loopKey]);
+  return (
+    <div className="dyn-panel-inner">
+      <div style={{ background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",borderRadius:7,padding:"8px 12px",display:"flex",alignItems:"center",gap:8,marginBottom:18 }}>
+        <div style={{ width:6,height:6,borderRadius:"50%",flexShrink:0,background:stage===0?"#facc15":"#4ade80",animation:stage===0?"pulse 1.2s infinite":"none",transition:"background .5s" }} />
+        <span style={{ fontFamily:"'DM Mono',monospace",fontSize:11,color:"rgba(235,235,235,.4)" }}>failupventures.com</span>
+        {stage===0 && <span style={{ marginLeft:"auto",fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(235,235,235,.2)" }}>reading...</span>}
+        {stage>=1 && <span style={{ marginLeft:"auto",fontFamily:"'DM Mono',monospace",fontSize:9,color:"#4ade80",animation:"dyn-fade-in .4s ease" }}>✓ parsed</span>}
+      </div>
+      {stage>=1 && (
+        <div style={{ background:"rgba(107,71,245,.07)",border:"1px solid rgba(107,71,245,.18)",borderRadius:8,padding:"14px 16px",marginBottom:18,animation:"dyn-panel-in .35s ease" }}>
+          <div style={{ fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(107,71,245,.6)",letterSpacing:".1em",marginBottom:8 }}>THESIS EXTRACTED</div>
+          <div style={{ fontSize:12,color:"rgba(235,235,235,.65)",lineHeight:1.6 }}>AI-native B2B SaaS · regulated verticals · pre-seed / seed</div>
+        </div>
+      )}
+      {stage>=2 && (
+        <div style={{ animation:"dyn-panel-in .3s ease" }}>
+          <div style={{ fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(235,235,235,.25)",letterSpacing:".1em",marginBottom:10 }}>PORTFOLIO LOADED</div>
+          <div style={{ display:"flex",flexWrap:"wrap",gap:6 }}>
+            {portfolioCos.map((co, i) => i < pillsVis && (
+              <div key={co} style={{ padding:"5px 12px",borderRadius:20,background:"rgba(107,71,245,.1)",border:"1px solid rgba(107,71,245,.22)",fontSize:11,color:"#A992FA",animation:"dyn-panel-in .3s ease" }}>{co}</div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TraitPanel2() {
+  const [loopKey, setLoopKey] = useState(0);
+  const [stage, setStage] = useState(0);
+  useEffect(() => {
+    setStage(0);
+    const t1 = setTimeout(() => setStage(1), 1500);
+    const t2 = setTimeout(() => setStage(2), 2900);
+    const t3 = setTimeout(() => setLoopKey(k => k + 1), 5800);
+    return () => [t1,t2,t3].forEach(clearTimeout);
+  }, [loopKey]);
+  return (
+    <div className="dyn-panel-inner">
+      {stage>=1 && (
+        <div style={{ background:"rgba(34,197,94,.08)",border:"1px solid rgba(34,197,94,.2)",borderRadius:8,padding:"12px 14px",marginBottom:16,display:"flex",gap:10,alignItems:"flex-start",animation:"dyn-slide-down .35s ease" }}>
+          <div style={{ width:22,height:22,borderRadius:6,background:"rgba(34,197,94,.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:13,color:"#4ade80" }}>↗</div>
+          <div>
+            <div style={{ fontSize:12,fontWeight:500,color:"#4ade80",marginBottom:3 }}>New signal — Meridian Health</div>
+            <div style={{ fontSize:11,color:"rgba(235,235,235,.5)",lineHeight:1.5 }}>Closed a $3.2M seed round. Worth another look?</div>
+          </div>
+        </div>
+      )}
+      <div style={{ background:stage>=2?"rgba(34,197,94,.04)":"rgba(239,68,68,.04)",border:`1px solid ${stage>=2?"rgba(34,197,94,.2)":"rgba(239,68,68,.15)"}`,borderRadius:10,padding:"16px 18px",transition:"background .6s,border-color .6s" }}>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10 }}>
+          <div>
+            <div style={{ fontSize:14,fontWeight:500,color:"#EBEBEB",marginBottom:3 }}>Meridian Health</div>
+            <div style={{ fontSize:11,color:"rgba(235,235,235,.4)" }}>AI-native patient intake platform</div>
+          </div>
+          <div style={{ padding:"3px 9px",borderRadius:4,fontSize:10,fontFamily:"'DM Mono',monospace",background:stage>=2?"rgba(34,197,94,.12)":"rgba(239,68,68,.1)",color:stage>=2?"#4ade80":"#fca5a5",border:`1px solid ${stage>=2?"rgba(34,197,94,.2)":"rgba(239,68,68,.2)"}`,transition:"all .6s ease",whiteSpace:"nowrap" }}>
+            {stage>=2?"Active signal":"Passed · 6mo ago"}
+          </div>
+        </div>
+        <div style={{ fontSize:11,color:"rgba(235,235,235,.35)",lineHeight:1.55 }}>Pre-seed · HealthTech · $3.2M seed closed</div>
+        {stage>=2 && (
+          <div style={{ marginTop:12,animation:"dyn-panel-in .4s ease" }}>
+            <div style={{ display:"inline-flex",padding:"7px 14px",borderRadius:6,background:"#4ade80",color:"#07070A",fontSize:11,fontWeight:600,cursor:"pointer" }}>Re-evaluate →</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const P3_TEXT = "Spoke to Riya at NovaMed. AI for prior auth. Pre-seed, raising $1.5M. Ex-Stripe founder. Benchmark might be in.";
+const P3_LINES = [
+  { text: "NovaMed — Top Match · 5/5", color: "#4ade80" },
+  { text: "AI-native, regulated vertical, pre-seed ✓", color: "rgba(235,235,235,.55)" },
+  { text: "⚠ Overlaps with Synthos in your pipeline", color: "#facc15" },
+  { text: "Benchmark signal → priority flag", color: "#A992FA" },
+];
+
+function TraitPanel3() {
+  const [loopKey, setLoopKey] = useState(0);
+  const [charIdx, setCharIdx] = useState(0);
+  const [phase, setPhase] = useState(0);
+  const [linesVis, setLinesVis] = useState(0);
+  useEffect(() => {
+    setCharIdx(0); setPhase(0); setLinesVis(0);
+    let localChar = 0;
+    const timers = [];
+    const typeChar = () => {
+      localChar++;
+      setCharIdx(localChar);
+      if (localChar >= P3_TEXT.length) {
+        timers.push(setTimeout(() => {
+          setPhase(1);
+          timers.push(setTimeout(() => setLinesVis(1), 200));
+          timers.push(setTimeout(() => setLinesVis(2), 420));
+          timers.push(setTimeout(() => setLinesVis(3), 640));
+          timers.push(setTimeout(() => setLinesVis(4), 860));
+          timers.push(setTimeout(() => setLoopKey(k => k + 1), 4500));
+        }, 400));
+        return;
+      }
+      timers.push(setTimeout(typeChar, 28));
+    };
+    timers.push(setTimeout(typeChar, 28));
+    return () => timers.forEach(clearTimeout);
+  }, [loopKey]);
+  return (
+    <div className="dyn-panel-inner">
+      {phase===0 && (
+        <div>
+          <div style={{ fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(235,235,235,.25)",letterSpacing:".1em",marginBottom:8 }}>CALL NOTES</div>
+          <div style={{ background:"rgba(255,255,255,.03)",border:"1px solid rgba(255,255,255,.08)",borderRadius:8,padding:14,minHeight:90 }}>
+            <span style={{ fontSize:12,color:"rgba(235,235,235,.6)",lineHeight:1.65,fontFamily:"'DM Mono',monospace" }}>
+              {P3_TEXT.slice(0,charIdx)}<span className="typewriter-cursor">|</span>
+            </span>
+          </div>
+        </div>
+      )}
+      {phase>=1 && (
+        <div style={{ animation:"dyn-panel-in .25s ease" }}>
+          <div style={{ fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(107,71,245,.6)",letterSpacing:".1em",marginBottom:12 }}>STRUCTURED EXTRACTION</div>
+          <div style={{ display:"flex",flexDirection:"column",gap:9 }}>
+            {P3_LINES.map((line, i) => i<linesVis && (
+              <div key={i} style={{ display:"flex",gap:8,alignItems:"flex-start",animation:"dyn-panel-in .25s ease" }}>
+                <span style={{ color:line.color,flexShrink:0,marginTop:2,fontSize:13 }}>›</span>
+                <span style={{ fontSize:12,color:line.color,lineHeight:1.5 }}>{line.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const P4_INSIGHTS = [
+  "Last 4 diligences: technical co-founder, enterprise background",
+  "3 passes in InsurTech this month — sector fatigue signal",
+  "Strongest pattern: pre-seed, 2-person team, ex-operator",
+];
+
+function TraitPanel4() {
+  const [loopKey, setLoopKey] = useState(0);
+  const [cardsVis, setCardsVis] = useState(0);
+  const [fading, setFading] = useState(false);
+  useEffect(() => {
+    setCardsVis(0); setFading(false);
+    const t1 = setTimeout(() => setCardsVis(1), 300);
+    const t2 = setTimeout(() => setCardsVis(2), 1200);
+    const t3 = setTimeout(() => setCardsVis(3), 2100);
+    const t4 = setTimeout(() => setFading(true), 4200);
+    const t5 = setTimeout(() => setLoopKey(k => k + 1), 4800);
+    return () => [t1,t2,t3,t4,t5].forEach(clearTimeout);
+  }, [loopKey]);
+  return (
+    <div className="dyn-panel-inner" style={{ opacity:fading?0:1,transition:"opacity .5s ease" }}>
+      <div style={{ fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(107,71,245,.5)",letterSpacing:".1em",marginBottom:16 }}>PATTERN LEARNED · THIS WEEK</div>
+      <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+        {P4_INSIGHTS.map((insight, i) => i<cardsVis && (
+          <div key={i} style={{ background:"rgba(255,255,255,.025)",border:"1px solid rgba(255,255,255,.07)",borderRadius:8,padding:"14px 16px",animation:"dyn-panel-in .4s ease" }}>
+            <div style={{ display:"flex",gap:10,alignItems:"flex-start" }}>
+              <div style={{ width:20,height:20,borderRadius:4,background:"rgba(107,71,245,.15)",border:"1px solid rgba(107,71,245,.25)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+                <span style={{ fontSize:8,color:"#A992FA" }}>{String(i+1).padStart(2,'0')}</span>
+              </div>
+              <span style={{ fontSize:12,color:"rgba(235,235,235,.55)",lineHeight:1.55 }}>{insight}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const MEET_CYCLE_MS = 5000;
+
+function MeetReidarTabs() {
+  const [active, setActive] = useState(0);
+  const [panelKey, setPanelKey] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const startRef = useRef(Date.now());
+  useEffect(() => {
+    if (paused) return;
+    startRef.current = Date.now();
+    setProgress(0);
+    const iv = setInterval(() => {
+      setProgress(Math.min(100, ((Date.now() - startRef.current) / MEET_CYCLE_MS) * 100));
+    }, 50);
+    const t = setTimeout(() => {
+      setActive(a => (a + 1) % TRAITS.length);
+      setPanelKey(k => k + 1);
+    }, MEET_CYCLE_MS);
+    return () => { clearInterval(iv); clearTimeout(t); };
+  }, [active, paused]);
+  const select = (i) => {
+    setActive(i);
+    setPanelKey(k => k + 1);
+    setProgress(0);
+    startRef.current = Date.now();
+    setPaused(false);
+  };
+  const Panels = [TraitPanel1, TraitPanel2, TraitPanel3, TraitPanel4];
+  const Panel = Panels[active];
+  return (
+    <div className="dyn-shell" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+      <div className="dyn-tabs">
+        {TRAITS.map((t, i) => (
+          <div key={t.tag} className={`dyn-tab${active===i?" dyn-active":""}`} onClick={() => select(i)}>
+            <div className="dyn-tab-tag">{t.tag}</div>
+            <div className="dyn-tab-title">{t.title}</div>
+            <div className="dyn-tab-prog">
+              <div className="dyn-tab-prog-bar" style={{ width:active===i?`${progress}%`:"0%" }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="dyn-panel">
+        <Panel key={panelKey} />
+      </div>
+    </div>
+  );
+}
+
+/* ─── WAITLIST MODAL ─── */
+
+function WaitlistModal({ open, onClose }) {
+  const [email, setEmail] = useState('');
+  const [firmName, setFirmName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+
+  const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+  const handleSubmit = async () => {
+    if (!email.trim()) { setError('Email is required.'); return; }
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`${API}/waitlist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), firm_name: firmName.trim() }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      setSuccess(true);
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(0,0,0,.72)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '0 16px',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: '#0d0d14',
+          border: '1px solid rgba(255,255,255,.1)',
+          borderRadius: 16,
+          padding: '40px 36px',
+          width: '100%',
+          maxWidth: 440,
+          position: 'relative',
+        }}
+      >
+        {/* Close */}
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute', top: 16, right: 16,
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'rgba(235,235,235,.4)', fontSize: 20, lineHeight: 1,
+            padding: '4px 8px',
+          }}
+        >×</button>
+
+        {success ? (
+          <div style={{ textAlign: 'center', padding: '16px 0' }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: '50%',
+              background: 'rgba(16,185,129,.12)',
+              border: '1px solid rgba(16,185,129,.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 20px',
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M5 13l4 4L19 7" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 600, color: '#f0f0ff', marginBottom: 10 }}>You're on the list.</div>
+            <div style={{ fontSize: 14, color: 'rgba(235,235,235,.5)', lineHeight: 1.6 }}>We'll reach out soon.</div>
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#f0f0ff', marginBottom: 10, fontFamily: "'Playfair Display',serif" }}>
+              Get early access to Reidar
+            </div>
+            <div style={{ fontSize: 14, color: 'rgba(235,235,235,.5)', lineHeight: 1.6, marginBottom: 28 }}>
+              We're onboarding a small number of VC firms. Leave your email and we'll be in touch.
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <input
+                type="email"
+                placeholder="Work email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                style={{
+                  background: 'rgba(255,255,255,.04)',
+                  border: '1px solid rgba(255,255,255,.1)',
+                  borderRadius: 8,
+                  padding: '12px 14px',
+                  color: '#f0f0ff',
+                  fontSize: 14,
+                  outline: 'none',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <input
+                type="text"
+                placeholder="Firm name (optional)"
+                value={firmName}
+                onChange={e => setFirmName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                style={{
+                  background: 'rgba(255,255,255,.04)',
+                  border: '1px solid rgba(255,255,255,.1)',
+                  borderRadius: 8,
+                  padding: '12px 14px',
+                  color: '#f0f0ff',
+                  fontSize: 14,
+                  outline: 'none',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                }}
+              />
+              {error && <div style={{ fontSize: 13, color: '#ef4444' }}>{error}</div>}
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                style={{
+                  marginTop: 4,
+                  background: loading ? 'rgba(107,71,245,.5)' : '#6B47F5',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '13px 20px',
+                  color: '#fff',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  transition: 'background .2s',
+                }}
+              >
+                {loading ? 'Sending…' : 'Request access'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /* ─── MAIN ─── */
 export default function LandingPage() {
@@ -949,6 +1535,7 @@ export default function LandingPage() {
   const [heroIdx, setHeroIdx] = useState(0);
   const [heroDisplayed, setHeroDisplayed] = useState('');
   const [heroPhase, setHeroPhase] = useState('typing');
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
   const { isSignedIn } = useAuth();
   useScrollReveal();
 
@@ -1013,7 +1600,7 @@ export default function LandingPage() {
           {isSignedIn ? (
             <><button className="btn-pri" onClick={goApp}>Go to Reidar →</button><UserButton afterSignOutUrl="/" /></>
           ) : (
-            <><button className="btn-ghost" onClick={() => window.location.href = SIGN_IN_URL}>Sign in</button><button className="btn-pri" onClick={() => window.location.href = SIGN_UP_URL}>Get started</button></>
+            <><button className="btn-ghost" onClick={() => window.location.href = SIGN_IN_URL}>Sign in</button><button className="btn-pri" onClick={() => setWaitlistOpen(true)}>Join the waitlist</button></>
           )}
         </div>
       </nav>
@@ -1024,9 +1611,9 @@ export default function LandingPage() {
         <div className="hero-fade" />
         <div className="hero-content">
           <h1 className="hero-h1">Your mandate,<br />deployed. <span className="acc">{heroDisplayed}<span className="typewriter-cursor">|</span></span></h1>
-          <p className="hero-sub">Reidar reads your thesis, sources startups nightly, scores every company against your mandate, and surfaces only what fits. Not a tool you use — an associate that works for you.</p>
+          <p className="hero-sub">Reidar knows your mandate, sources every night, and never forgets a company. Every deal you've ever touched is always in play — surfaced at the right moment, with full context. Not a tool you use. An associate that works for you.</p>
           <div className="hero-cta">
-            <button className="btn-lg" onClick={goApp}>Start for free →</button>
+            <button className="btn-lg" onClick={() => setWaitlistOpen(true)}>Start for free →</button>
             <button className="btn-out" onClick={() => window.location.href = '/how-it-works'}>
               See how it works
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -1044,7 +1631,7 @@ export default function LandingPage() {
       <div className="ticker">
         <div className="ticker-inner">
           {[...TICKER_ITEMS, ...TICKER_ITEMS].map((t, i) => (
-            <div className="tick-item" key={i}>{t}<span className="tick-sep">◆</span></div>
+            <div className="tick-item" key={i}><span className="dyn-tick-dot" />{t}<span className="tick-sep">◆</span></div>
           ))}
         </div>
       </div>
@@ -1055,14 +1642,8 @@ export default function LandingPage() {
           <div className="s-tag sr">Meet Reidar</div>
           <h2 className="s-h2 sr d1">Not a database. <em>An associate.</em></h2>
           <p className="s-p sr d2">Reidar lives inside your firm's context. He knows your portfolio, your thesis, what you've passed on and why. By the time you open your coverage feed, he's already been working for hours.</p>
-          <div className="meet-grid sr d3">
-            {TRAITS.map(t => (
-              <div className="meet-trait" key={t.tag}>
-                <div className="meet-trait-icon">{t.tag}</div>
-                <div className="meet-trait-t">{t.title}</div>
-                <div className="meet-trait-d">{t.desc}</div>
-              </div>
-            ))}
+          <div className="sr d3">
+            <MeetReidarTabs />
           </div>
         </section>
       </div>
@@ -1093,15 +1674,10 @@ export default function LandingPage() {
       <div className="wrap">
         <section id="why" className="sec">
           <div className="s-tag sr">The problem</div>
-          <h2 className="s-h2 sr d1">Every tool makes you <em>go to it.</em></h2>
-          <p className="s-p sr d2">Harmonic, PitchBook, Crunchbase — all databases you search. None know your mandate. None work proactively. None are priced for emerging funds.</p>
-          <div className="comp-grid sr d3">
-            {COMPS.map(c => (
-              <div className="comp-cell" key={c.name}>
-                <div className="comp-name">{c.name}</div>
-                <div className="comp-text"><strong>{c.t}</strong> {c.c}</div>
-              </div>
-            ))}
+          <h2 className="s-h2 sr d1">Every tool makes you <em>go to it.</em> Then forgets what you found.</h2>
+          <p className="s-p sr d2">Harmonic, PitchBook, Crunchbase — databases you search when you remember to look. None know your mandate. None track what you've already seen. None tell you when the moment on a company has arrived.</p>
+          <div className="sr d3">
+            <CompetitorGrid />
           </div>
         </section>
       </div>
@@ -1129,41 +1705,8 @@ export default function LandingPage() {
           <div className="s-tag sr">Integrations</div>
           <h2 className="s-h2 sr d1">Plugs into your world.</h2>
           <p className="s-p sr d2">Reidar connects to the tools you already use — so every inbound pitch, calendar meeting, and portfolio update flows into your deal intelligence automatically.</p>
-          <div className="int-grid sr d3">
-            {INTEGRATIONS.map(int => {
-              const isComingSoon = int.badge === "Coming soon";
-              return (
-                <div className="int-tile" key={int.name}>
-                  <div style={{
-                    width: 38, height: 38, borderRadius: 8, flexShrink: 0,
-                    background: int.iconBg,
-                    border: `1px solid ${int.iconBorder || 'rgba(255,255,255,.1)'}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, fontWeight: 700, color: '#EBEBEB', letterSpacing: '-.02em' }}>
-                      {int.icon}
-                    </span>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 13, fontWeight: 500, color: '#EBEBEB' }}>{int.name}</span>
-                      <span style={{
-                        fontFamily: "'Space Mono',monospace", fontSize: 8, letterSpacing: '.07em',
-                        padding: '2px 7px', borderRadius: 100,
-                        background: int.badgeBg || 'rgba(107,71,245,.1)',
-                        color: int.badgeColor || 'rgba(107,71,245,.7)',
-                        border: `1px solid ${int.badgeBorder || 'rgba(107,71,245,.2)'}`,
-                      }}>
-                        {int.badge}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 12, color: isComingSoon ? 'rgba(235,235,235,.3)' : 'rgba(235,235,235,.45)', lineHeight: 1.55 }}>
-                      {int.desc}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="sr d3">
+            <IntegrationsOrbit />
           </div>
           <p style={{ marginTop: 28, fontSize: 12, color: 'rgba(235,235,235,.2)', fontFamily: "'Space Mono',monospace", letterSpacing: '.04em' }}>
             More integrations on the roadmap. Built for how emerging funds actually work.
@@ -1175,7 +1718,7 @@ export default function LandingPage() {
       <div className="cta-wrap sr">
         <h2 className="cta-h2">Your mandate.<br />Deployed tonight.</h2>
         <p className="cta-sub">Set up in two minutes. No credit card. Results on night one.</p>
-        <button className="btn-lg" onClick={() => window.location.href = SIGN_UP_URL}>Start with Reidar →</button>
+        <button className="btn-lg" onClick={() => setWaitlistOpen(true)}>Join the waitlist →</button>
       </div>
 
       {/* FOOTER */}
@@ -1183,6 +1726,8 @@ export default function LandingPage() {
         <div className="foot-l">© 2026 Reidar. Built for emerging VC funds.</div>
         <div className="foot-r">POWERED BY CLAUDE · ANTHROPIC</div>
       </footer>
+
+      <WaitlistModal open={waitlistOpen} onClose={() => setWaitlistOpen(false)} />
     </>
   );
 }

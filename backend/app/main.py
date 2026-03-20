@@ -60,6 +60,8 @@ from app.api.routes.activity import router as activity_router
 app.include_router(activity_router, prefix="/api")
 from app.api.routes.sourcing import router as sourcing_router
 app.include_router(sourcing_router, prefix="/api")
+from app.api.routes.waitlist import router as waitlist_router
+app.include_router(waitlist_router, prefix="/api")
 
 
 @app.get("/health")

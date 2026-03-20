@@ -137,9 +137,9 @@ job_refresh_signals runs only for companies in:
 NOT for all companies with fit_score >= 3.
 
 ## Alembic
-Current head: f6a0b2c3d4e5
+Current head: b2c3d4e5f6a7
 Migration chain:
-bced87540914 → d4e8f1a2b3c5 → e5f9a1b2c3d6 → f6a0b2c3d4e5
+bced87540914 → d4e8f1a2b3c5 → e5f9a1b2c3d6 → f6a0b2c3d4e5 → b2c3d4e5f6a7
 
 To create a new migration:
   alembic revision -m "description"
