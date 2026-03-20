@@ -655,10 +655,7 @@ const CompanyCard = forwardRef(function CompanyCard({ startup: s, onClick, isSel
           <span>Est. {s.founding_year}</span>
         )}
         {s.team_size && (
-          <span>· {s.team_size}</span>
-        )}
-        {s.notable_traction && (
-          <span style={{ color: '#10b981', fontWeight: 600 }}>· {s.notable_traction}</span>
+          <span>· 👤 {s.team_size}</span>
         )}
       </div>
 
