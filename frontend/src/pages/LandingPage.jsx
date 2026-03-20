@@ -826,7 +826,13 @@ function ProductPreview() {
   const [key, setKey] = useState(0);
   const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const progRef = useRef(null);
+  useEffect(() => {
+    const fn = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', fn, { passive: true });
+    return () => window.removeEventListener('resize', fn);
+  }, []);
   const startRef = useRef(Date.now());
 
   const cycleMs = active === AI_ANALYST_TAB_INDEX ? AI_ANALYST_CYCLE_MS : active === COVERAGE_TAB_INDEX ? COVERAGE_CYCLE_MS : CYCLE_MS;
@@ -858,7 +864,7 @@ function ProductPreview() {
   const { Component, url } = TABS[active];
 
   return (
-    <div className="prod-shell" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+    <div className="prod-shell" style={isMobile ? { minHeight: 400, overflow: 'hidden' } : {}} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       {/* Tabs */}
       <div className="prod-tabs">
         {TABS.map((t, i) => (
@@ -1334,7 +1340,13 @@ function MeetReidarTabs() {
   const [panelKey, setPanelKey] = useState(0);
   const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const startRef = useRef(Date.now());
+  useEffect(() => {
+    const fn = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', fn, { passive: true });
+    return () => window.removeEventListener('resize', fn);
+  }, []);
   useEffect(() => {
     if (paused) return;
     startRef.current = Date.now();
@@ -1358,7 +1370,7 @@ function MeetReidarTabs() {
   const Panels = [TraitPanel1, TraitPanel2, TraitPanel3, TraitPanel4];
   const Panel = Panels[active];
   return (
-    <div className="dyn-shell" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+    <div className="dyn-shell" style={isMobile ? { minHeight: 480, overflow: 'hidden' } : {}} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       <div className="dyn-tabs">
         {TRAITS.map((t, i) => (
           <div key={t.tag} className={`dyn-tab${active===i?" dyn-active":""}`} onClick={() => select(i)}>
