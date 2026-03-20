@@ -1612,6 +1612,9 @@ export default function LandingPage() {
         <RadarBg />
         <div className="hero-fade" />
         <div className="hero-content">
+          <div style={{ display: 'inline-block', border: '1px solid rgba(107,71,245,0.3)', background: 'rgba(107,71,245,0.08)', padding: '4px 12px', borderRadius: 20, fontSize: 12, fontFamily: "'Space Mono',monospace", color: 'rgba(255,255,255,0.6)', letterSpacing: '0.1em', marginBottom: 20 }}>
+            Built for venture capital
+          </div>
           <h1 className="hero-h1">Your mandate,<br />deployed. <span className="acc">{heroDisplayed}<span className="typewriter-cursor">|</span></span></h1>
           <p className="hero-sub">Reidar knows your mandate, sources every night, and never forgets a company. Every deal you've ever touched is always in play — surfaced at the right moment, with full context. Not a tool you use. An associate that works for you.</p>
           <div className="hero-cta">
