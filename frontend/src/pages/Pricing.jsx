@@ -3,7 +3,7 @@ import { useState } from "react";
 const APP_URL = "/app";
 const SIGN_UP_URL = "/sign-up";
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');`;
+const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');`;
 
 const STYLES = `
   *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
@@ -40,7 +40,7 @@ const STYLES = `
   .pricing-hero{padding:96px 0 64px;text-align:center}
   .badge{display:inline-flex;align-items:center;gap:7px;padding:4px 12px;border-radius:100px;border:1px solid rgba(107,71,245,.4);background:rgba(107,71,245,.1);font-family:'DM Mono',monospace;font-size:10px;color:#A992FA;letter-spacing:.06em;margin-bottom:24px;animation:fadeUp .5s .05s both}
   .badge-dot{width:5px;height:5px;border-radius:50%;background:#6B47F5;animation:pulse 2s infinite}
-  .pricing-h1{font-size:clamp(32px,4.5vw,54px);font-weight:600;line-height:1.1;color:#EBEBEB;letter-spacing:-.03em;margin-bottom:16px;animation:fadeUp .55s .1s both}
+  .pricing-h1{font-family:'Playfair Display',serif;font-size:clamp(32px,4.5vw,54px);font-weight:700;line-height:1.1;color:#EBEBEB;letter-spacing:-.02em;margin-bottom:16px;animation:fadeUp .55s .1s both}
   .pricing-h1 .acc{color:#A992FA}
   .pricing-sub{font-size:16px;font-weight:300;color:rgba(235,235,235,.44);line-height:1.7;max-width:440px;margin:0 auto 40px;animation:fadeUp .55s .17s both}
 
@@ -84,8 +84,8 @@ const STYLES = `
 
   /* COMPARE TABLE */
   .compare-section{padding:96px 0}
-  .s-tag{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;color:#6B47F5;text-transform:uppercase;margin-bottom:14px}
-  .s-h2{font-size:34px;font-weight:600;line-height:1.15;color:#EBEBEB;letter-spacing:-.025em;margin-bottom:48px}
+  .s-tag{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.12em;color:#6B47F5;text-transform:uppercase;margin-bottom:14px}
+  .s-h2{font-family:'Playfair Display',serif;font-size:34px;font-weight:700;line-height:1.15;color:#EBEBEB;letter-spacing:-.01em;margin-bottom:48px}
   .compare-table{width:100%;border-collapse:collapse}
   .compare-table th{padding:12px 20px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;color:rgba(235,235,235,.3);text-transform:uppercase;text-align:left;border-bottom:1px solid rgba(255,255,255,.06)}
   .compare-table th.plan-col{text-align:center;color:rgba(235,235,235,.5)}
@@ -220,7 +220,7 @@ const COMPARE_ROWS = [
   { section: "Sourcing" },
   { label: "Nightly autonomous sourcing", solo: true, fund: true, platform: true },
   { label: "Companies per month", solo: "200", fund: "Unlimited", platform: "Unlimited" },
-  { label: "Mandate-aware AI sourcing (YC + web search)", solo: true, fund: true, platform: true },
+  { label: "Mandate-aware AI sourcing (nightly web search)", solo: true, fund: true, platform: true },
   { label: "Custom sourcing rules", solo: false, fund: false, platform: true },
   { section: "Analysis" },
   { label: "Mandate-aware AI scoring", solo: true, fund: true, platform: true },
@@ -238,24 +238,24 @@ const COMPARE_ROWS = [
 
 const FAQS = [
   {
-    q: "How is Radar different from Harmonic or PitchBook?",
-    a: "Those are databases you search. Radar works for you continuously — it knows your mandate, sources proactively every night, and only surfaces companies that fit your thesis. You open your inbox to finds your shortlist already built.",
+    q: "How is Reidar different from Harmonic or PitchBook?",
+    a: "Those are databases you search. Reidar works for you continuously — it knows your mandate, sources proactively every night, and only surfaces companies that fit your thesis. You open your inbox to find your shortlist already built.",
   },
   {
     q: "What does 'mandate-aware' actually mean?",
-    a: "When you set up Radar, you write your investment thesis in plain English. Every company that enters the system is scored 1–5 against that thesis specifically — not a generic AI score. A construction-focused fund and a fintech fund see completely different companies.",
+    a: "When you set up Reidar, you write your investment thesis in plain English. Every company that enters the system is scored 1–5 against that thesis specifically — not a generic AI score. A construction-focused fund and a fintech fund see completely different companies.",
   },
   {
     q: "How does the free trial work?",
-    a: "14 days, full access to your chosen plan, no credit card required. Radar runs its first sourcing job on signup so you see real results immediately — not an empty screen.",
+    a: "14 days, full access to your chosen plan, no credit card required. Reidar runs its first sourcing job on signup so you see real results immediately — not an empty screen.",
   },
   {
     q: "Can I cancel anytime?",
     a: "Yes. No contracts, no lock-ins. Cancel from your settings and you keep access until the end of your billing period.",
   },
   {
-    q: "What sourcing sources does Radar use?",
-    a: "YC batches (seeded once) plus nightly AI-powered web search — Claude generates mandate-specific queries and finds early-stage companies across the web, all scored against your thesis.",
+    q: "What sourcing sources does Reidar use?",
+    a: "Nightly AI-powered web search — Reidar generates mandate-specific queries and finds early-stage companies across the web, all scored against your thesis.",
   },
   {
     q: "Do you offer discounts for pre-seed funds or solo GPs?",
@@ -285,7 +285,7 @@ export default function Pricing() {
               </svg>
             </div>
           </div>
-          <span className="nav-name">Radar</span>
+          <span className="nav-name">Reidar</span>
         </a>
         <div className="nav-links">
           <a href="/how-it-works" className="nav-a">How it works</a>
@@ -467,14 +467,14 @@ export default function Pricing() {
                   <circle cx="6.5" cy="6.5" r="4.5" stroke="white" strokeOpacity=".4" strokeWidth="1" />
                 </svg>
               </div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(235,235,235,.5)', letterSpacing: '-.02em' }}>Radar</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(235,235,235,.5)', letterSpacing: '-.02em' }}>Reidar</span>
             </a>
             <div className="footer-links">
               <a href="/how-it-works" className="footer-link">How it works</a>
               <a href="/pricing" className="footer-link">Pricing</a>
               <a href="mailto:remi@balassanian.com" className="footer-link">Contact</a>
             </div>
-            <span className="footer-copy">© 2026 Radar. All rights reserved.</span>
+            <span className="footer-copy">© 2026 Reidar. All rights reserved.</span>
           </div>
         </div>
       </footer>

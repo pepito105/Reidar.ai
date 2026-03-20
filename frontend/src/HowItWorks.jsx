@@ -3,7 +3,7 @@ import { useAuth, UserButton } from "@clerk/clerk-react";
 
 const APP_URL = "/app";
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Lora:ital,wght@0,400;0,600;1,400&display=swap');`;
+const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');`;
 
 const STYLES = `
   *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
@@ -44,9 +44,9 @@ const STYLES = `
 
   /* PAGE HERO */
   .page-hero { padding:140px 40px 80px;text-align:center;max-width:760px;margin:0 auto;position:relative; }
-  .page-label { font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;color:#6B47F5;text-transform:uppercase;margin-bottom:18px;animation:fadeUp .5s .05s both; }
-  .page-h1 { font-size:clamp(32px,4.5vw,54px);font-weight:600;line-height:1.1;letter-spacing:-.03em;color:#EBEBEB;margin-bottom:18px;animation:fadeUp .55s .12s both; }
-  .page-h1 em { font-family:'Lora',serif;font-style:italic;color:#A992FA; }
+  .page-label { font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.14em;color:#6B47F5;text-transform:uppercase;margin-bottom:18px;animation:fadeUp .5s .05s both; }
+  .page-h1 { font-family:'Playfair Display',serif;font-size:clamp(32px,4.5vw,54px);font-weight:700;line-height:1.1;letter-spacing:-.02em;color:#EBEBEB;margin-bottom:18px;animation:fadeUp .55s .12s both; }
+  .page-h1 em { font-style:italic;color:#A992FA; }
   .page-sub { font-size:16px;font-weight:300;color:rgba(235,235,235,.45);line-height:1.75;max-width:540px;margin:0 auto;animation:fadeUp .55s .2s both; }
 
   /* TIMELINE */
@@ -70,8 +70,8 @@ const STYLES = `
   .step-card { background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:28px;transition:border-color .2s; }
   .step-card:hover { border-color:rgba(107,71,245,.25); }
   .sc-time { font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;color:rgba(107,71,245,.5);text-transform:uppercase;margin-bottom:12px; }
-  .sc-title { font-size:18px;font-weight:600;color:#EBEBEB;letter-spacing:-.02em;margin-bottom:10px;line-height:1.2; }
-  .sc-title em { font-family:'Lora',serif;font-style:italic;color:#A992FA;font-weight:400; }
+  .sc-title { font-family:'Playfair Display',serif;font-size:18px;font-weight:600;color:#EBEBEB;letter-spacing:-.01em;margin-bottom:10px;line-height:1.2; }
+  .sc-title em { font-style:italic;color:#A992FA;font-weight:400; }
   .sc-body { font-size:13px;color:rgba(235,235,235,.45);line-height:1.7;margin-bottom:18px; }
 
   /* MINI UI MOCKS inside cards */
@@ -139,8 +139,8 @@ const STYLES = `
   .ready-cell { padding:40px;background:rgba(255,255,255,.014); }
   .ready-cell:first-child { border-right:1px solid rgba(255,255,255,.06); }
   .ready-tag { font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;color:rgba(107,71,245,.6);text-transform:uppercase;margin-bottom:14px; }
-  .ready-h3 { font-size:24px;font-weight:600;color:#EBEBEB;letter-spacing:-.02em;line-height:1.2;margin-bottom:12px; }
-  .ready-h3 em { font-family:'Lora',serif;font-style:italic;color:#A992FA;font-weight:400; }
+  .ready-h3 { font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:#EBEBEB;letter-spacing:-.01em;line-height:1.2;margin-bottom:12px; }
+  .ready-h3 em { font-style:italic;color:#A992FA;font-weight:400; }
   .ready-p { font-size:13px;color:rgba(235,235,235,.4);line-height:1.7;margin-bottom:24px; }
   .ready-steps { display:flex;flex-direction:column;gap:10px;margin-bottom:28px; }
   .ready-step { display:flex;align-items:flex-start;gap:12px; }
@@ -198,7 +198,7 @@ function MockOnboarding() {
         <div className="mm-dot" style={{ background: "#FF5F57" }} />
         <div className="mm-dot" style={{ background: "#FFBD2E" }} />
         <div className="mm-dot" style={{ background: "#28C840" }} />
-        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>radar.app/setup</span>
+        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>reidar.ai/setup</span>
       </div>
       <div className="mm-body">
         <div style={{ marginBottom: 10, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(107,71,245,.6)", letterSpacing: ".1em" }}>FIRM SETUP · STEP 2 OF 3</div>
@@ -226,11 +226,11 @@ function MockOnboarding() {
 
 function MockScraping() {
   const sources = [
-    { name: "YC W25/S24 Batches",      count: "+43",  status: "done",    color: "#4ade80" },
-    { name: "AI Web Search (query 1)",  count: "+12",  status: "done",    color: "#4ade80" },
-    { name: "AI Web Search (query 2)",  count: "+9",   status: "running", color: "#facc15" },
-    { name: "AI Web Search (query 3)",  count: "+7",   status: "running", color: "#facc15" },
-    { name: "AI Web Search (query 4)",  count: "+11",  status: "queued",  color: "#6366f1" },
+    { name: "AI Web Search (query 1)",  count: "+18",  status: "done",    color: "#4ade80" },
+    { name: "AI Web Search (query 2)",  count: "+12",  status: "done",    color: "#4ade80" },
+    { name: "AI Web Search (query 3)",  count: "+9",   status: "running", color: "#facc15" },
+    { name: "AI Web Search (query 4)",  count: "+7",   status: "running", color: "#facc15" },
+    { name: "AI Web Search (query 5)",  count: "+11",  status: "queued",  color: "#6366f1" },
   ];
   return (
     <div className="mini-mock">
@@ -314,7 +314,7 @@ function MockCoverage() {
         <div className="mm-dot" style={{ background: "#FF5F57" }} />
         <div className="mm-dot" style={{ background: "#FFBD2E" }} />
         <div className="mm-dot" style={{ background: "#28C840" }} />
-        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>radar.app/coverage</span>
+        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>reidar.ai/coverage</span>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>
           <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#4ade80", animation: "pulse 2s infinite" }} />
           <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "#4ade80" }}>34 matched</span>
@@ -346,7 +346,7 @@ function MockMemo() {
         <div className="mm-dot" style={{ background: "#FF5F57" }} />
         <div className="mm-dot" style={{ background: "#FFBD2E" }} />
         <div className="mm-dot" style={{ background: "#28C840" }} />
-        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>radar.app/memo/synthos</span>
+        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>reidar.ai/memo/synthos</span>
       </div>
       <div className="mm-body">
         <div className="memo-section">
@@ -395,7 +395,7 @@ function MockParameters() {
         <div className="mm-dot" style={{ background: "#FF5F57" }} />
         <div className="mm-dot" style={{ background: "#FFBD2E" }} />
         <div className="mm-dot" style={{ background: "#28C840" }} />
-        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>setup · step 2 of 5</span>
+        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>reidar.ai/setup · step 2 of 5</span>
       </div>
       <div className="mm-body">
         <div style={{ marginBottom: 10 }}>
@@ -434,7 +434,7 @@ function MockFilters() {
         <div className="mm-dot" style={{ background: "#FF5F57" }} />
         <div className="mm-dot" style={{ background: "#FFBD2E" }} />
         <div className="mm-dot" style={{ background: "#28C840" }} />
-        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>setup · step 3 of 5</span>
+        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>reidar.ai/setup · step 3 of 5</span>
       </div>
       <div className="mm-body">
         <div style={{ marginBottom: 12 }}>
@@ -472,7 +472,7 @@ function MockPortfolio() {
         <div className="mm-dot" style={{ background: "#FF5F57" }} />
         <div className="mm-dot" style={{ background: "#FFBD2E" }} />
         <div className="mm-dot" style={{ background: "#28C840" }} />
-        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>setup · step 4 of 5</span>
+        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>reidar.ai/setup · step 4 of 5</span>
       </div>
       <div className="mm-body">
         <div style={{ background: "rgba(34,197,94,.06)", border: "1px solid rgba(34,197,94,.2)", borderRadius: 8, padding: "12px 14px", textAlign: "center", marginBottom: 10 }}>
@@ -501,7 +501,7 @@ function MockNotifSetup() {
         <div className="mm-dot" style={{ background: "#FF5F57" }} />
         <div className="mm-dot" style={{ background: "#FFBD2E" }} />
         <div className="mm-dot" style={{ background: "#28C840" }} />
-        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>setup · step 5 of 5</span>
+        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>reidar.ai/setup · step 5 of 5</span>
       </div>
       <div className="mm-body">
         <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 12 }}>
@@ -522,7 +522,7 @@ function MockNotifSetup() {
           ))}
         </div>
         <div style={{ width: "100%", padding: "11px 0", borderRadius: 7, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", textAlign: "center", fontSize: 13, fontWeight: 700, color: "#fff", boxShadow: "0 0 18px rgba(107,71,245,.35)" }}>
-          🚀 Launch Radar
+          🚀 Launch Reidar
         </div>
       </div>
     </div>
@@ -534,21 +534,21 @@ const STORY = [
   {
     time: "Step 1 · ~2 minutes",
     title: <>Define your <em>mandate.</em></>,
-    body: "Start with your firm name and investment thesis in plain English — as specific as you'd describe it to a founder. This becomes the lens Radar uses for every company it ever touches. The more specific, the sharper the signal.",
+    body: "Start with your firm name and investment thesis in plain English — as specific as you'd describe it to a founder. This becomes the lens Reidar uses for every company it ever touches. The more specific, the sharper the signal.",
     side: "left",
     Mock: MockOnboarding,
   },
   {
     time: "Step 2 · ~1 minute",
     title: <>Set your <em>parameters.</em></>,
-    body: "Choose the stages you invest at, your geography focus, and your check size range. These parameters tell Radar where to look and what to prioritize — companies outside your range are deprioritized before they reach you.",
+    body: "Choose the stages you invest at, your geography focus, and your check size range. These parameters tell Reidar where to look and what to prioritize — companies outside your range are deprioritized before they reach you.",
     side: "right",
     Mock: MockParameters,
   },
   {
     time: "Step 3 · ~1 minute",
     title: <>Configure your <em>filters.</em></>,
-    body: "Tell Radar what to never surface — crypto, hardware, defense, whatever falls outside your mandate. Then set your minimum fit threshold: a score of 4+ means only Strong Fits and Top Matches appear in your feed. You control the signal-to-noise ratio.",
+    body: "Tell Reidar what to never surface — crypto, hardware, defense, whatever falls outside your mandate. Then set your minimum fit threshold: a score of 4+ means only Strong Fits and Top Matches appear in your feed. You control the signal-to-noise ratio.",
     side: "left",
     Mock: MockFilters,
   },
@@ -562,14 +562,14 @@ const STORY = [
   {
     time: "Step 5 · ~30 seconds",
     title: <>Set up <em>notifications.</em></>,
-    body: "Choose what Radar emails you about: daily top matches from the nightly sourcing run, diligence signals when pipeline companies get new funding or press, and a weekly market brief every Monday. Then hit Launch — your first sourcing run starts immediately.",
+    body: "Choose what Reidar emails you about: daily top matches from the nightly sourcing run, diligence signals when pipeline companies get new funding or press, and a weekly market brief every Monday. Then hit Launch — your first sourcing run starts immediately.",
     side: "left",
     Mock: MockNotifSetup,
   },
   {
     time: "Every night, automatically",
-    title: <>Radar works while <em>you sleep.</em></>,
-    body: "Radar runs AI-powered sourcing every night — generating mandate-specific search queries, finding early-stage companies across the web, and scoring each one against your thesis. By morning, your inbox has a digest of the highest-conviction matches. Your feed keeps growing. You never miss a company worth seeing.",
+    title: <>Reidar works while <em>you sleep.</em></>,
+    body: "Reidar runs AI-powered sourcing every night — generating mandate-specific search queries, finding early-stage companies across the web, and scoring each one against your thesis. By morning, your inbox has a digest of the highest-conviction matches. Your feed keeps growing. You never miss a company worth seeing.",
     side: "right",
     Mock: MockNotification,
   },
@@ -606,7 +606,7 @@ export default function HowItWorks() {
               </svg>
             </div>
           </div>
-          <span className="nav-name">Radar</span>
+          <span className="nav-name">Reidar</span>
         </a>
         <div className="nav-center">
           <a href="/how-it-works" className="nav-a active">How it works</a>
@@ -614,7 +614,7 @@ export default function HowItWorks() {
         </div>
         <div className="nav-right">
           {isSignedIn ? (
-            <><button className="btn-pri" onClick={goApp}>Go to Radar →</button><UserButton afterSignOutUrl="/" /></>
+            <><button className="btn-pri" onClick={goApp}>Go to Reidar →</button><UserButton afterSignOutUrl="/" /></>
           ) : (
             <><button className="btn-ghost" onClick={goApp}>Sign in</button><button className="btn-pri" onClick={goApp}>Get started</button></>
           )}
@@ -624,8 +624,8 @@ export default function HowItWorks() {
       {/* PAGE HERO */}
       <div className="page-hero">
         <div className="page-label">How it works</div>
-        <h1 className="page-h1">Five steps. Then Radar <em>runs itself.</em></h1>
-        <p className="page-sub">Setup takes under 10 minutes. After that, Radar sources, scores, and surfaces companies every night — and emails you the ones worth seeing.</p>
+        <h1 className="page-h1">Five steps. Then Reidar <em>runs itself.</em></h1>
+        <p className="page-sub">Setup takes under 10 minutes. After that, Reidar sources, scores, and surfaces companies every night — and emails you the ones worth seeing.</p>
       </div>
 
       {/* TIMELINE */}
@@ -679,14 +679,14 @@ export default function HowItWorks() {
           <div className="ready-cell">
             <div className="ready-tag">Get started</div>
             <h3 className="ready-h3">Ready to set up your <em>associate?</em></h3>
-            <p className="ready-p">Five steps, under 10 minutes. Write your thesis, set your parameters, and Radar starts sourcing tonight.</p>
+            <p className="ready-p">Five steps, under 10 minutes. Write your thesis, set your parameters, and Reidar starts sourcing tonight.</p>
             <div className="ready-steps">
               {[
                 ["Define your mandate", "Your thesis in plain English — as specific as you'd say it to a founder."],
                 ["Set parameters & filters", "Stages, geography, check size, excluded sectors, fit threshold."],
                 ["Import your portfolio", "Optional but powerful — turns your bets into a sourcing signal."],
-                ["Set up notifications", "Choose what Radar emails you. Hit Launch. First run starts immediately."],
-                ["Radar works every night", "Scrapes, scores, surfaces. Email digest every morning."],
+                ["Set up notifications", "Choose what Reidar emails you. Hit Launch. First run starts immediately."],
+                ["Reidar works every night", "Scrapes, scores, surfaces. Email digest every morning."],
               ].map(([title, desc], i) => (
                 <div className="ready-step" key={i}>
                   <div className="rs-num">{i + 1}</div>
@@ -703,7 +703,7 @@ export default function HowItWorks() {
               {[
                 ["5", "onboarding steps, ~10 min total"],
                 ["8", "sourcing queries per night"],
-                ["every night", "Radar sources & scores automatically"],
+                ["every night", "Reidar sources & scores automatically"],
                 ["3", "email alerts — daily, signals, weekly brief"],
               ].map(([n, l]) => (
                 <div key={l} style={{ marginBottom: 28 }}>
@@ -719,7 +719,7 @@ export default function HowItWorks() {
       {/* FOOTER */}
       <footer className="footer">
         <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
-          <div className="foot-l">© 2026 Radar.</div>
+          <div className="foot-l">© 2026 Reidar.</div>
           <a href="/" className="foot-link">Home</a>
           <a href="/how-it-works" className="foot-link">How it works</a>
         </div>

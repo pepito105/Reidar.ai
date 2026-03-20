@@ -5,7 +5,7 @@ const APP_URL = "/app";
 const SIGN_IN_URL = "/sign-in";
 const SIGN_UP_URL = "/sign-up";
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');`;
+const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400&family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');`;
 
 const STYLES = `
   *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
@@ -55,7 +55,7 @@ const STYLES = `
   .hero-content{position:relative;z-index:2;padding:112px 24px 80px;max-width:680px;margin:0 auto}
   .badge{display:inline-flex;align-items:center;gap:7px;padding:4px 12px;border-radius:100px;border:1px solid rgba(107,71,245,.4);background:rgba(107,71,245,.1);font-family:'DM Mono',monospace;font-size:10px;color:#A992FA;letter-spacing:.06em;margin-bottom:24px;animation:fadeUp .5s .05s both}
   .badge-dot{width:5px;height:5px;border-radius:50%;background:#6B47F5;animation:pulse 2s infinite}
-  .hero-h1{font-size:clamp(36px,5vw,62px);font-weight:600;line-height:1.08;color:#EBEBEB;letter-spacing:-.03em;margin-bottom:20px;animation:fadeUp .55s .13s both}
+  .hero-h1{font-family:'Playfair Display',serif;font-size:clamp(36px,5vw,62px);font-weight:700;line-height:1.1;color:#EBEBEB;letter-spacing:-.02em;margin-bottom:20px;animation:fadeUp .55s .13s both}
   .hero-h1 .acc{color:#A992FA}
   .hero-sub{font-size:17px;font-weight:300;color:rgba(235,235,235,.48);line-height:1.7;max-width:460px;margin:0 auto 34px;animation:fadeUp .55s .2s both}
   .hero-cta{display:flex;gap:10px;align-items:center;justify-content:center;margin-bottom:52px;animation:fadeUp .55s .27s both}
@@ -76,8 +76,8 @@ const STYLES = `
   /* LAYOUT */
   .wrap{max-width:1160px;margin:0 auto;padding:0 40px}
   .sec{padding:96px 0}
-  .s-tag{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;color:#6B47F5;text-transform:uppercase;margin-bottom:14px}
-  .s-h2{font-size:34px;font-weight:600;line-height:1.15;color:#EBEBEB;letter-spacing:-.025em;margin-bottom:14px}
+  .s-tag{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.12em;color:#6B47F5;text-transform:uppercase;margin-bottom:14px}
+  .s-h2{font-family:'Playfair Display',serif;font-size:34px;font-weight:700;line-height:1.15;color:#EBEBEB;letter-spacing:-.01em;margin-bottom:14px}
   .s-h2 em{font-style:normal;color:rgba(235,235,235,.28)}
   .s-p{font-size:15px;font-weight:300;color:rgba(235,235,235,.42);line-height:1.72;max-width:500px}
   .divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);margin:0 40px}
@@ -126,8 +126,21 @@ const STYLES = `
   /* QUOTE */
   .quote{text-align:center;padding:80px 40px;max-width:760px;margin:0 auto}
   .qmark{font-size:60px;font-weight:600;color:rgba(107,71,245,.2);line-height:.5;margin-bottom:20px;font-family:'DM Mono',monospace}
-  .qtext{font-size:24px;font-weight:400;color:rgba(235,235,235,.6);line-height:1.45;letter-spacing:-.015em}
-  .qsrc{margin-top:22px;font-family:'DM Mono',monospace;font-size:10px;color:rgba(235,235,235,.22);letter-spacing:.08em}
+  .qtext{font-family:'Playfair Display',serif;font-size:24px;font-style:italic;font-weight:400;color:rgba(235,235,235,.6);line-height:1.45;letter-spacing:0}
+  .qsrc{margin-top:22px;font-family:'Space Mono',monospace;font-size:10px;color:rgba(235,235,235,.22);letter-spacing:.08em}
+
+  /* MEET REIDAR */
+  .meet-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:rgba(255,255,255,.06);border-radius:12px;overflow:hidden;margin-top:44px}
+  .meet-trait{padding:28px 24px;background:#07070A;transition:background .2s}
+  .meet-trait:hover{background:rgba(107,71,245,.06)}
+  .meet-trait-icon{font-family:'Space Mono',monospace;font-size:10px;color:rgba(107,71,245,.55);letter-spacing:.08em;margin-bottom:12px}
+  .meet-trait-t{font-size:14px;font-weight:500;color:#EBEBEB;margin-bottom:6px}
+  .meet-trait-d{font-size:12px;color:rgba(235,235,235,.4);line-height:1.6}
+
+  /* INTEGRATIONS */
+  .int-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:40px}
+  .int-tile{display:flex;align-items:flex-start;gap:14px;padding:20px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);border-radius:10px;transition:border-color .2s,background .2s}
+  .int-tile:hover{background:rgba(107,71,245,.04);border-color:rgba(107,71,245,.2)}
 
   /* CTA */
   .cta-wrap{margin:0 40px 96px;border:1px solid rgba(107,71,245,.18);border-radius:14px;padding:72px;text-align:center;position:relative;overflow:hidden;background:radial-gradient(ellipse 70% 100% at 50% 100%,rgba(107,71,245,.07),transparent 70%)}
@@ -147,12 +160,15 @@ const STYLES = `
     .prod-tab-desc{display:none!important}
     .steps{grid-template-columns:repeat(3,1fr)}
     .step{border-bottom:1px solid rgba(255,255,255,.06)}
+    .int-grid{grid-template-columns:repeat(2,1fr)}
   }
   @media(max-width:640px){
     .nav{padding:0 20px}.nav-links{display:none}
     .wrap{padding:0 20px}
     .steps{grid-template-columns:repeat(2,1fr)}
     .comp-grid{grid-template-columns:1fr}.comp-cell:nth-child(2n){border-right:none}
+    .meet-grid{grid-template-columns:1fr}
+    .int-grid{grid-template-columns:1fr}
     .cta-wrap{margin:0 20px 72px;padding:48px 24px}
     .footer{flex-direction:column;gap:12px;text-align:center;padding:24px}
   }
@@ -758,12 +774,12 @@ function MockChat() {
 
 /* ─── PRODUCT PREVIEW SHELL ─── */
 const TABS = [
-  { n: "01", name: "Coverage",       desc: "Your mandate-filtered deal feed",       url: "radar.app/coverage",  Component: MockCoverage },
-  { n: "02", name: "Memos",          desc: "AI investment memos per company",        url: "radar.app/memo",      Component: MockMemo },
-  { n: "03", name: "Pipeline",       desc: "Kanban deal tracking",                  url: "radar.app/pipeline",  Component: MockPipeline },
-  { n: "04", name: "Market Map",     desc: "Sector & stage intelligence",            url: "radar.app/market",    Component: MockMarketMap },
-  { n: "05", name: "Hot Signals",    desc: "Weekly AI brief for your firm",          url: "radar.app/signals",   Component: MockSignals },
-  { n: "06", name: "AI Analyst",     desc: "Chat with your full database",           url: "radar.app/chat",      Component: MockChat },
+  { n: "01", name: "Coverage",    desc: "Your mandate-filtered deal feed",      url: "reidar.ai/coverage",  Component: MockCoverage },
+  { n: "02", name: "Memos",       desc: "AI investment memos per company",       url: "reidar.ai/memo",      Component: MockMemo },
+  { n: "03", name: "Pipeline",    desc: "Kanban deal tracking",                  url: "reidar.ai/pipeline",  Component: MockPipeline },
+  { n: "04", name: "Market Map",  desc: "Sector & stage intelligence",           url: "reidar.ai/market",    Component: MockMarketMap },
+  { n: "05", name: "Hot Signals", desc: "Weekly AI brief for your firm",         url: "reidar.ai/signals",   Component: MockSignals },
+  { n: "06", name: "AI Analyst",  desc: "Chat with your full database",          url: "reidar.ai/chat",      Component: MockChat },
 ];
 
 const CYCLE_MS = 5000;
@@ -843,25 +859,96 @@ function ProductPreview() {
 }
 
 /* ─── CONSTANTS ─── */
-const TICKER_ITEMS = ["MANDATE-AWARE SOURCING","AI INVESTMENT MEMOS","PIPELINE TRACKING","MARKET INTELLIGENCE","HOT SIGNALS","THESIS-FIRST FILTERING","AUTONOMOUS RESEARCH","NIGHTLY AI SOURCING","CLAUDE-POWERED ANALYSIS","EMERGING FUND TOOLING"];
+const TICKER_ITEMS = ["MANDATE-AWARE SOURCING","AI INVESTMENT MEMOS","PIPELINE TRACKING","MARKET INTELLIGENCE","HOT SIGNALS","THESIS-FIRST FILTERING","AUTONOMOUS RESEARCH","NIGHTLY AI SOURCING","RESEARCH AGENTS ON DEMAND","EMERGING FUND TOOLING"];
 const STEPS = [
-  { n:"01", t:"Source",   d:"YC batches + AI-powered web search — mandate-aware sourcing every night" },
-  { n:"02", t:"Classify", d:"Claude scores AI-nativeness, vertical, sector, thesis tags" },
-  { n:"03", t:"Filter",   d:"Mandate score 1–5. Below threshold = invisible to you" },
-  { n:"04", t:"Surface",  d:"Only relevant deals in your Coverage feed, sorted by fit" },
-  { n:"05", t:"Track",    d:"Move deals through pipeline, add notes, log outreach" },
-  { n:"06", t:"Decide",   d:"Full memo, comparables, recommended next step" },
+  { n:"01", t:"Reads your firm",   d:"Reidar reads your thesis and firm website — learning your mandate, portfolio, and what you care about" },
+  { n:"02", t:"Sources nightly",   d:"At 4AM, AI-powered web search runs mandate-specific queries across the web to surface early-stage startups" },
+  { n:"03", t:"Classifies",        d:"Claude scores each company 1–5 against your thesis. Below threshold = never reaches your feed" },
+  { n:"04", t:"Researches",        d:"On demand: deploy research agents — visiting websites, reading filings, running full investment analysis" },
+  { n:"05", t:"Monitors signals",  d:"For pipeline companies, Reidar watches for funding rounds, key hires, and market moves" },
+  { n:"06", t:"Briefs you",        d:"Monday morning: a narrative digest. New top matches. Pipeline signals. What's moving in your sectors." },
 ];
 const COMPS = [
-  { name:"Harmonic",   t:"Best-in-class data.",  c:"Generic. Not mandate-aware. $$$." },
-  { name:"PitchBook",  t:"Institutional depth.", c:"$12K–$100K/yr. Not for early-stage." },
-  { name:"Affinity",   t:"Dominant VC CRM.",     c:"Relationship intelligence, not sourcing." },
-  { name:"Crunchbase", t:"Broad coverage.",      c:"Shallow and descriptive, not predictive." },
+  { name:"Harmonic",   t:"Best-in-class data.",  c:"But it's a search engine. It doesn't know your mandate. You still do all the work." },
+  { name:"PitchBook",  t:"Institutional depth.", c:"$12K–$100K/yr. Built for analysts at brand-name funds, not emerging GPs." },
+  { name:"Affinity",   t:"Dominant VC CRM.",     c:"Tracks your relationships, not deals you haven't seen yet. Orthogonal problem." },
+  { name:"Crunchbase", t:"Broad coverage.",      c:"A directory, not an analyst. Descriptive, not mandate-aware, not predictive." },
+];
+
+const INTEGRATIONS = [
+  {
+    name: "Gmail",
+    desc: "Inbound founder pitches auto-detected and scored against your mandate",
+    badge: "Early access",
+    badgeColor: "#10b981",
+    badgeBg: "rgba(16,185,129,.12)",
+    badgeBorder: "rgba(16,185,129,.25)",
+    icon: "G",
+    iconBg: "#c5221f",
+  },
+  {
+    name: "Google Calendar",
+    desc: "Meeting notes and founder interactions logged automatically",
+    badge: "Coming soon",
+    icon: "📅",
+    iconBg: "rgba(66,133,244,.15)",
+    iconBorder: "rgba(66,133,244,.25)",
+  },
+  {
+    name: "Slack",
+    desc: "Deal alerts and weekly digests delivered where your team already works",
+    badge: "Coming soon",
+    icon: "#",
+    iconBg: "rgba(74,21,75,.4)",
+    iconBorder: "rgba(224,80,224,.2)",
+  },
+  {
+    name: "Notion",
+    desc: "Push investment memos and company briefs directly to your workspace",
+    badge: "Coming soon",
+    icon: "N",
+    iconBg: "rgba(255,255,255,.08)",
+    iconBorder: "rgba(255,255,255,.15)",
+  },
+  {
+    name: "LinkedIn",
+    desc: "Founder and team signals surfaced inline with company profiles",
+    badge: "Coming soon",
+    icon: "in",
+    iconBg: "rgba(10,102,194,.25)",
+    iconBorder: "rgba(10,102,194,.4)",
+  },
+  {
+    name: "Crunchbase",
+    desc: "Funding history and investor data enriched automatically",
+    badge: "Coming soon",
+    icon: "CB",
+    iconBg: "rgba(20,106,255,.15)",
+    iconBorder: "rgba(20,106,255,.3)",
+  },
+];
+
+const HERO_PHRASES = [
+  "every night.",
+  "without prompting.",
+  "before you wake up.",
+  "across 100+ sources.",
+  "precisely as written.",
+];
+
+const TRAITS = [
+  { tag: "01 / READS YOUR FIRM", title: "Knows your mandate cold", desc: "Reidar reads your firm's website, loads your portfolio automatically, and internalizes your thesis. He knows what you've backed, what you avoid, and what a 5/5 looks like for your specific mandate — before you brief him on anything." },
+  { tag: "02 / WORKS OVERNIGHT", title: "Sources while you sleep", desc: "At 4AM every night, Reidar runs AI-powered web search — generating mandate-specific queries to find early-stage startups across the web." },
+  { tag: "03 / THINKS AHEAD", title: "Flags signals before you ask", desc: "For every company in your pipeline, Reidar monitors for funding rounds, key hires, and market moves — and tells you why it matters." },
+  { tag: "04 / LEARNS YOUR FIRM", title: "Gets sharper every deal", desc: "Every company you move through the pipeline, every pass, every note — Reidar is calibrating. Over time, his sourcing reflects not just your written thesis, but your actual pattern of judgment." },
 ];
 
 /* ─── MAIN ─── */
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
+  const [heroIdx, setHeroIdx] = useState(0);
+  const [heroDisplayed, setHeroDisplayed] = useState('');
+  const [heroPhase, setHeroPhase] = useState('typing');
   const { isSignedIn } = useAuth();
   useScrollReveal();
 
@@ -870,6 +957,30 @@ export default function LandingPage() {
     window.addEventListener("scroll", fn, { passive: true });
     return () => window.removeEventListener("scroll", fn);
   }, []);
+
+  useEffect(() => {
+    const phrase = HERO_PHRASES[heroIdx];
+    if (heroPhase === 'typing') {
+      if (heroDisplayed.length < phrase.length) {
+        const t = setTimeout(() => setHeroDisplayed(phrase.slice(0, heroDisplayed.length + 1)), 80);
+        return () => clearTimeout(t);
+      } else {
+        const t = setTimeout(() => setHeroPhase('pause'), 2200);
+        return () => clearTimeout(t);
+      }
+    } else if (heroPhase === 'pause') {
+      const t = setTimeout(() => setHeroPhase('erasing'), 200);
+      return () => clearTimeout(t);
+    } else if (heroPhase === 'erasing') {
+      if (heroDisplayed.length > 0) {
+        const t = setTimeout(() => setHeroDisplayed(d => d.slice(0, -1)), 38);
+        return () => clearTimeout(t);
+      } else {
+        setHeroIdx(i => (i + 1) % HERO_PHRASES.length);
+        setHeroPhase('typing');
+      }
+    }
+  }, [heroDisplayed, heroPhase, heroIdx]);
 
   const goApp = () => { window.location.href = APP_URL; };
   const scrollTo = id => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
@@ -891,7 +1002,7 @@ export default function LandingPage() {
               </svg>
             </div>
           </div>
-          <span className="nav-name">Radar</span>
+          <span className="nav-name">Reidar</span>
         </a>
         <div className="nav-links">
           <a href="/how-it-works" className="nav-a">How it works</a>
@@ -900,7 +1011,7 @@ export default function LandingPage() {
         </div>
         <div className="nav-right">
           {isSignedIn ? (
-            <><button className="btn-pri" onClick={goApp}>Go to Radar →</button><UserButton afterSignOutUrl="/" /></>
+            <><button className="btn-pri" onClick={goApp}>Go to Reidar →</button><UserButton afterSignOutUrl="/" /></>
           ) : (
             <><button className="btn-ghost" onClick={() => window.location.href = SIGN_IN_URL}>Sign in</button><button className="btn-pri" onClick={() => window.location.href = SIGN_UP_URL}>Get started</button></>
           )}
@@ -912,9 +1023,9 @@ export default function LandingPage() {
         <RadarBg />
         <div className="hero-fade" />
         <div className="hero-content">
-          <div className="badge"><div className="badge-dot" />Powered by Claude — Anthropic</div>
-          <h1 className="hero-h1">The AI associate<br />that <span className="acc">never sleeps.</span></h1>
-          <p className="hero-sub">Radar sources, classifies, and scores startups against your firm's mandate — continuously. Not a database you search. An associate that works for you.</p>
+          <div className="badge"><div className="badge-dot" />Now live — reidar.ai</div>
+          <h1 className="hero-h1">Your mandate,<br />deployed. <span className="acc">{heroDisplayed}<span className="typewriter-cursor">|</span></span></h1>
+          <p className="hero-sub">Reidar reads your thesis, sources startups nightly, scores every company against your mandate, and surfaces only what fits. Not a tool you use — an associate that works for you.</p>
           <div className="hero-cta">
             <button className="btn-lg" onClick={goApp}>Start for free →</button>
             <button className="btn-out" onClick={() => window.location.href = '/how-it-works'}>
@@ -939,12 +1050,32 @@ export default function LandingPage() {
         </div>
       </div>
 
+      {/* MEET REIDAR */}
+      <div className="wrap">
+        <section className="sec">
+          <div className="s-tag sr">Meet Reidar</div>
+          <h2 className="s-h2 sr d1">Not a database. <em>An associate.</em></h2>
+          <p className="s-p sr d2">Reidar lives inside your firm's context. He knows your portfolio, your thesis, what you've passed on and why. By the time you open your coverage feed, he's already been working for hours.</p>
+          <div className="meet-grid sr d3">
+            {TRAITS.map(t => (
+              <div className="meet-trait" key={t.tag}>
+                <div className="meet-trait-icon">{t.tag}</div>
+                <div className="meet-trait-t">{t.title}</div>
+                <div className="meet-trait-d">{t.desc}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <div className="divider" />
+
       {/* HOW IT WORKS */}
       <div className="wrap">
         <section id="how" className="sec">
           <div className="s-tag sr">The core loop</div>
           <h2 className="s-h2 sr d1">Six steps. <em>Runs every night.</em></h2>
-          <p className="s-p sr d2">Every night Radar sources, classifies, and scores. Your Coverage feed updates with only what matches your mandate — nothing else.</p>
+          <p className="s-p sr d2">Every night Reidar sources, classifies, and scores. Your Coverage feed updates with only what matches your mandate — nothing else.</p>
           <div className="steps sr d3">
             {STEPS.map(s => (
               <div className="step" key={s.n}>
@@ -981,8 +1112,8 @@ export default function LandingPage() {
       {/* QUOTE */}
       <div className="quote sr">
         <div className="qmark">"</div>
-        <p className="qtext">The analyst that never sleeps — already knows your mandate, already found something this week.</p>
-        <p className="qsrc">RADAR — AI INVESTMENT ASSOCIATE</p>
+        <p className="qtext">Your mandate, deployed. Already found something this week — you just haven't looked yet.</p>
+        <p className="qsrc">REIDAR — AI INVESTMENT ASSOCIATE</p>
       </div>
 
       <div className="divider" />
@@ -999,16 +1130,66 @@ export default function LandingPage() {
         </section>
       </div>
 
+      <div className="divider" />
+
+      {/* INTEGRATIONS */}
+      <div className="wrap">
+        <section className="sec">
+          <div className="s-tag sr">Integrations</div>
+          <h2 className="s-h2 sr d1">Plugs into your world.</h2>
+          <p className="s-p sr d2">Reidar connects to the tools you already use — so every inbound pitch, calendar meeting, and portfolio update flows into your deal intelligence automatically.</p>
+          <div className="int-grid sr d3">
+            {INTEGRATIONS.map(int => {
+              const isComingSoon = int.badge === "Coming soon";
+              return (
+                <div className="int-tile" key={int.name}>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 8, flexShrink: 0,
+                    background: int.iconBg,
+                    border: `1px solid ${int.iconBorder || 'rgba(255,255,255,.1)'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, fontWeight: 700, color: '#EBEBEB', letterSpacing: '-.02em' }}>
+                      {int.icon}
+                    </span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: '#EBEBEB' }}>{int.name}</span>
+                      <span style={{
+                        fontFamily: "'Space Mono',monospace", fontSize: 8, letterSpacing: '.07em',
+                        padding: '2px 7px', borderRadius: 100,
+                        background: int.badgeBg || 'rgba(107,71,245,.1)',
+                        color: int.badgeColor || 'rgba(107,71,245,.7)',
+                        border: `1px solid ${int.badgeBorder || 'rgba(107,71,245,.2)'}`,
+                      }}>
+                        {int.badge}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 12, color: isComingSoon ? 'rgba(235,235,235,.3)' : 'rgba(235,235,235,.45)', lineHeight: 1.55 }}>
+                      {int.desc}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <p style={{ marginTop: 28, fontSize: 12, color: 'rgba(235,235,235,.2)', fontFamily: "'Space Mono',monospace", letterSpacing: '.04em' }}>
+            More integrations on the roadmap. Built for how emerging funds actually work.
+          </p>
+        </section>
+      </div>
+
       {/* CTA */}
       <div className="cta-wrap sr">
-        <h2 className="cta-h2">Your mandate.<br />Your pipeline.<br />Your associate.</h2>
-        <p className="cta-sub">Set up in two minutes. No credit card required.</p>
-        <button className="btn-lg" onClick={() => window.location.href = SIGN_UP_URL}>Get started free →</button>
+        <h2 className="cta-h2">Your mandate.<br />Deployed tonight.</h2>
+        <p className="cta-sub">Set up in two minutes. No credit card. Results on night one.</p>
+        <button className="btn-lg" onClick={() => window.location.href = SIGN_UP_URL}>Start with Reidar →</button>
       </div>
 
       {/* FOOTER */}
       <footer className="footer">
-        <div className="foot-l">© 2026 Radar. Built for emerging VC funds.</div>
+        <div className="foot-l">© 2026 Reidar. Built for emerging VC funds.</div>
         <div className="foot-r">POWERED BY CLAUDE · ANTHROPIC</div>
       </footer>
     </>
