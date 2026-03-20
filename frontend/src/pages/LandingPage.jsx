@@ -1391,7 +1391,7 @@ function WaitlistModal({ open, onClose }) {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API}/waitlist`, {
+      const res = await fetch(`${API}/api/waitlist`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), firm_name: firmName.trim() }),

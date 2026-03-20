@@ -37,7 +37,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "https://zestful-creativity-production.up.railway.app"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "https://zestful-creativity-production.up.railway.app", "https://reidar.ai", "https://www.reidar.ai"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
