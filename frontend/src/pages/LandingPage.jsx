@@ -1023,7 +1023,6 @@ export default function LandingPage() {
         <RadarBg />
         <div className="hero-fade" />
         <div className="hero-content">
-          <div className="badge"><div className="badge-dot" />Now live — reidar.ai</div>
           <h1 className="hero-h1">Your mandate,<br />deployed. <span className="acc">{heroDisplayed}<span className="typewriter-cursor">|</span></span></h1>
           <p className="hero-sub">Reidar reads your thesis, sources startups nightly, scores every company against your mandate, and surfaces only what fits. Not a tool you use — an associate that works for you.</p>
           <div className="hero-cta">
@@ -1109,14 +1108,6 @@ export default function LandingPage() {
 
       <div className="divider" />
 
-      {/* QUOTE */}
-      <div className="quote sr">
-        <div className="qmark">"</div>
-        <p className="qtext">Your mandate, deployed. Already found something this week — you just haven't looked yet.</p>
-        <p className="qsrc">REIDAR — AI INVESTMENT ASSOCIATE</p>
-      </div>
-
-      <div className="divider" />
 
       {/* PRODUCT PREVIEW */}
       <div className="wrap">
