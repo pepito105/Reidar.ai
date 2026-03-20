@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { ClerkProvider, SignIn, SignUp } from '@clerk/clerk-react'
+import { ClerkProvider, SignIn, Waitlist } from '@clerk/clerk-react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import App from './App.jsx'
@@ -85,7 +85,41 @@ createRoot(document.getElementById('root')).render(
                   ← Back to Reidar
                 </button>
               </div>
-              <SignUp routing="path" path="/sign-up" afterSignUpUrl="/app" signInUrl="/sign-in" />
+              <Waitlist appearance={{
+                variables: {
+                  colorPrimary: '#6B47F5',
+                  colorBackground: '#0a0a0f',
+                  colorInputBackground: '#13131a',
+                  colorInputText: '#ffffff',
+                  colorText: '#ffffff',
+                  colorTextSecondary: 'rgba(255,255,255,0.5)',
+                  colorNeutral: '#ffffff',
+                  borderRadius: '8px',
+                },
+                elements: {
+                  card: {
+                    backgroundColor: '#0f0f17',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    boxShadow: '0 0 40px rgba(107,71,245,0.1)',
+                  },
+                  headerTitle: { color: '#ffffff', fontWeight: '600' },
+                  headerSubtitle: { color: 'rgba(255,255,255,0.5)' },
+                  socialButtonsBlockButton: {
+                    backgroundColor: '#13131a',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    color: '#ffffff',
+                  },
+                  formButtonPrimary: { backgroundColor: '#6B47F5' },
+                  footerActionLink: { color: '#6B47F5' },
+                  dividerLine: { backgroundColor: 'rgba(255,255,255,0.08)' },
+                  dividerText: { color: 'rgba(255,255,255,0.3)' },
+                  formFieldInput: {
+                    backgroundColor: '#13131a',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    color: '#ffffff',
+                  },
+                },
+              }} />
             </div>
           } />
         </Routes>

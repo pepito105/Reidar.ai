@@ -1389,168 +1389,13 @@ function MeetReidarTabs() {
   );
 }
 
-/* ─── WAITLIST MODAL ─── */
-
-function WaitlistModal({ open, onClose }) {
-  const [email, setEmail] = useState('');
-  const [firmName, setFirmName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState('');
-
-  const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-
-  const handleSubmit = async () => {
-    if (!email.trim()) { setError('Email is required.'); return; }
-    setLoading(true);
-    setError('');
-    try {
-      const res = await fetch(`${API}/api/waitlist`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), firm_name: firmName.trim() }),
-      });
-      if (!res.ok) throw new Error('Failed');
-      setSuccess(true);
-    } catch {
-      setError('Something went wrong. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!open) return null;
-
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(0,0,0,.72)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '0 16px',
-      }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: '#0d0d14',
-          border: '1px solid rgba(255,255,255,.1)',
-          borderRadius: 16,
-          padding: '40px 36px',
-          width: '100%',
-          maxWidth: 440,
-          position: 'relative',
-        }}
-      >
-        {/* Close */}
-        <button
-          onClick={onClose}
-          style={{
-            position: 'absolute', top: 16, right: 16,
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'rgba(235,235,235,.4)', fontSize: 20, lineHeight: 1,
-            padding: '4px 8px',
-          }}
-        >×</button>
-
-        {success ? (
-          <div style={{ textAlign: 'center', padding: '16px 0' }}>
-            <div style={{
-              width: 48, height: 48, borderRadius: '50%',
-              background: 'rgba(16,185,129,.12)',
-              border: '1px solid rgba(16,185,129,.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 20px',
-            }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M5 13l4 4L19 7" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 600, color: '#f0f0ff', marginBottom: 10 }}>You're on the list.</div>
-            <div style={{ fontSize: 14, color: 'rgba(235,235,235,.5)', lineHeight: 1.6 }}>We'll reach out soon.</div>
-          </div>
-        ) : (
-          <>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#f0f0ff', marginBottom: 10, fontFamily: "'Playfair Display',serif" }}>
-              Get early access to Reidar
-            </div>
-            <div style={{ fontSize: 14, color: 'rgba(235,235,235,.5)', lineHeight: 1.6, marginBottom: 28 }}>
-              We're onboarding a small number of VC firms. Leave your email and we'll be in touch.
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <input
-                type="email"
-                placeholder="Work email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                style={{
-                  background: 'rgba(255,255,255,.04)',
-                  border: '1px solid rgba(255,255,255,.1)',
-                  borderRadius: 8,
-                  padding: '12px 14px',
-                  color: '#f0f0ff',
-                  fontSize: 14,
-                  outline: 'none',
-                  width: '100%',
-                  boxSizing: 'border-box',
-                }}
-              />
-              <input
-                type="text"
-                placeholder="Firm name (optional)"
-                value={firmName}
-                onChange={e => setFirmName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                style={{
-                  background: 'rgba(255,255,255,.04)',
-                  border: '1px solid rgba(255,255,255,.1)',
-                  borderRadius: 8,
-                  padding: '12px 14px',
-                  color: '#f0f0ff',
-                  fontSize: 14,
-                  outline: 'none',
-                  width: '100%',
-                  boxSizing: 'border-box',
-                }}
-              />
-              {error && <div style={{ fontSize: 13, color: '#ef4444' }}>{error}</div>}
-              <button
-                onClick={handleSubmit}
-                disabled={loading}
-                style={{
-                  marginTop: 4,
-                  background: loading ? 'rgba(107,71,245,.5)' : '#6B47F5',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '13px 20px',
-                  color: '#fff',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  transition: 'background .2s',
-                }}
-              >
-                {loading ? 'Sending…' : 'Request access'}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
 /* ─── MAIN ─── */
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [heroIdx, setHeroIdx] = useState(0);
   const [heroDisplayed, setHeroDisplayed] = useState('');
   const [heroPhase, setHeroPhase] = useState('typing');
-  const [waitlistOpen, setWaitlistOpen] = useState(false);
-  const { isSignedIn } = useAuth();
+const { isSignedIn } = useAuth();
   useScrollReveal();
 
   useEffect(() => {
@@ -1614,7 +1459,7 @@ export default function LandingPage() {
           {isSignedIn ? (
             <><button className="btn-pri" onClick={goApp}>Go to Reidar →</button><UserButton afterSignOutUrl="/" /></>
           ) : (
-            <><button className="btn-ghost" onClick={() => window.location.href = SIGN_IN_URL}>Sign in</button><button className="btn-pri" onClick={() => setWaitlistOpen(true)}>Join the waitlist</button></>
+            <><button className="btn-ghost" onClick={() => window.location.href = SIGN_IN_URL}>Sign in</button><button className="btn-pri" onClick={() => window.location.href = SIGN_UP_URL}>Join the waitlist</button></>
           )}
         </div>
       </nav>
@@ -1630,7 +1475,7 @@ export default function LandingPage() {
           <h1 className="hero-h1">Your mandate,<br />deployed. <span className="acc">{heroDisplayed}<span className="typewriter-cursor">|</span></span></h1>
           <p className="hero-sub">Reidar knows your mandate, sources every night, and never forgets a company. Every deal you've ever touched is always in play — surfaced at the right moment, with full context. Not a tool you use. An associate that works for you.</p>
           <div className="hero-cta">
-            <button className="btn-lg" onClick={() => setWaitlistOpen(true)}>Start for free →</button>
+            <button className="btn-lg" onClick={() => window.location.href = SIGN_UP_URL}>Start for free →</button>
             <button className="btn-out" onClick={() => window.location.href = '/how-it-works'}>
               See how it works
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -1735,7 +1580,7 @@ export default function LandingPage() {
       <div className="cta-wrap sr">
         <h2 className="cta-h2">Your mandate.<br />Deployed tonight.</h2>
         <p className="cta-sub">Set up in two minutes. No credit card. Results on night one.</p>
-        <button className="btn-lg" onClick={() => setWaitlistOpen(true)}>Join the waitlist →</button>
+        <button className="btn-lg" onClick={() => window.location.href = SIGN_UP_URL}>Join the waitlist →</button>
       </div>
 
       {/* FOOTER */}
@@ -1744,7 +1589,6 @@ export default function LandingPage() {
         <div className="foot-r">POWERED BY CLAUDE · ANTHROPIC</div>
       </footer>
 
-      <WaitlistModal open={waitlistOpen} onClose={() => setWaitlistOpen(false)} />
-    </>
+</>
   );
 }
