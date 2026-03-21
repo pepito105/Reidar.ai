@@ -44,61 +44,60 @@ const LEFT_PANELS = {
     headline: 'Your thesis.\nYour filter.',
     body: [
       {
-        icon: '🎯',
-        title: 'Mandate-first, not database-first',
-        desc: 'Most tools are databases you search. Reidar works for you — every company it finds is scored against your exact thesis before it ever surfaces.',
+        tag: '01 / INTELLIGENCE',
+        title: 'Remembers every founder',
+        desc: 'Every company you touch, every call you take — structured and surfaced at the right moment. Nothing slips through.',
       },
       {
-        icon: '🤖',
-        title: 'AI reasoning, not AI search',
-        desc: 'Claude reads each company like an analyst would — evaluating business model, team, traction, and fit. Not keyword matching.',
+        tag: '02 / INBOX',
+        title: 'Reads your deal flow',
+        desc: 'Inbound pitches, meeting transcripts, warm intros — processed automatically. Your pipeline stays current without manual entry.',
       },
       {
-        icon: '📄',
-        title: 'Investment memos, automatically',
-        desc: 'Every company gets a full memo: thesis fit reasoning, risk matrix, bull case, comparables, and a recommended next step.',
+        tag: '03 / AUTOPILOT',
+        title: 'Works while you sleep',
+        desc: 'Nightly sourcing, signal monitoring, pre-call briefs. Your associate never stops — so you never miss the right moment.',
       },
     ],
-    tip: '"We invest at pre-seed and seed in technical founders building AI-native B2B SaaS that automates knowledge work in regulated verticals."',
+    tip: '"We invest from Seed to Series B in category-defining founders across Europe and the US — enterprise software, fintech, healthcare AI, and energy transition. We back technical founders building platforms, not features. Check size €1M–€40M."',
   },
   2: {
-    headline: '13 sources.\nScanned nightly.',
+    headline: 'Every signal.\nNothing missed.',
     body: [
       {
-        icon: '📡',
-        title: 'Always-on sourcing',
-        desc: 'While you sleep, Reidar scans YC batches, ProductHunt launches, funding announcements, and 10+ news feeds — all filtered through your mandate.',
+        tag: '01 / SOURCING',
+        title: 'Sources that matter',
+        desc: 'YC batches, ProductHunt, Hacker News, Brave Search, GitHub Trending, and 13 news feeds — scanned every night while you sleep.',
       },
       {
-        icon: '⚡',
+        tag: '02 / INBOX',
+        title: 'Reads your deal flow',
+        desc: 'Connect Gmail and Reidar processes inbound pitches, AI notetaker transcripts, and warm intros automatically.',
+      },
+      {
+        tag: '03 / TIMING',
         title: 'First-mover advantage',
-        desc: 'See pre-seed and seed companies before they hit your competitors\' radar. Early signals mean better entry terms.',
-      },
-      {
-        icon: '🌍',
-        title: 'Geography-aware',
-        desc: 'Set your focus regions. Reidar weights companies in your target markets higher and filters out noise from geographies you don\'t cover.',
+        desc: 'Reidar finds companies at pre-seed and seed before they hit the radar of bigger funds. Timing is the edge.',
       },
     ],
-    sources: ['YC Batches','ProductHunt','TechCrunch AI','VentureBeat','Hacker News','The Information','StrictlyVC','Axios Pro Rata','MIT Tech Review','Wired Business','Forbes AI','Fortune Term Sheet','Bloomberg Tech'],
   },
   3: {
     headline: 'Precision over\nvolume.',
     body: [
       {
-        icon: '🚫',
-        title: 'Hard excludes',
-        desc: 'Tell Reidar what to never surface. Crypto, hardware, defense — whatever falls outside your mandate gets filtered before it reaches you.',
+        tag: '01 / FILTERING',
+        title: 'Hard excludes enforced',
+        desc: 'Set sectors Reidar should never surface. Crypto, hardware, defense — whatever falls outside your mandate gets filtered before it reaches you.',
       },
       {
-        icon: '📊',
-        title: 'Fit threshold control',
-        desc: 'Set your minimum score. A 4+ threshold means only Strong Fits and Top Matches appear in your feed. You control the signal-to-noise ratio.',
-      },
-      {
-        icon: '🧠',
+        tag: '02 / SCORING',
         title: 'Claude scores every company',
-        desc: 'Every startup gets a 1–5 fit score with written reasoning. Not an algorithm — actual AI judgment based on your specific thesis.',
+        desc: 'Not keyword matching — Claude reads each company like an analyst would. Business model, team signal, traction, and thesis fit. 1–5.',
+      },
+      {
+        tag: '03 / CONTROL',
+        title: 'Your threshold, your feed',
+        desc: 'Set the minimum fit score that appears in Coverage. Raise it when you want only conviction plays. Lower it when sourcing is thin.',
       },
     ],
   },
@@ -106,19 +105,19 @@ const LEFT_PANELS = {
     headline: 'Your portfolio\nis context.',
     body: [
       {
-        icon: '🗂️',
-        title: 'Seed Reidar with what you know',
-        desc: 'Importing your portfolio gives the AI analyst instant context. It knows what you\'ve backed, what you like, and what to find more of.',
+        tag: '01 / MEMORY',
+        title: 'Reidar learns from your history',
+        desc: 'Your portfolio companies teach Reidar what you actually back — not just what you say you invest in. Pattern recognition compounds over time.',
       },
       {
-        icon: '🔍',
-        title: '"Find me more like these"',
-        desc: 'Ask the AI analyst to source companies similar to any portfolio company. Your existing bets become a sourcing signal.',
+        tag: '02 / CONFLICTS',
+        title: 'Portfolio conflicts flagged automatically',
+        desc: 'Any new company that semantically overlaps with your portfolio gets flagged before it reaches your feed. No awkward conversations.',
       },
       {
-        icon: '🏷️',
-        title: 'Portfolio badge, no fit score',
-        desc: 'You already decided these fit. Portfolio companies show with a distinct badge and skip scoring — they\'re reference points, not candidates.',
+        tag: '03 / SOURCING',
+        title: 'Find more like these',
+        desc: 'Reidar uses your portfolio as a sourcing signal — finding companies in adjacent spaces your portfolio companies are already validating.',
       },
     ],
     format: 'CSV format: Name, Website, Description, Stage — or one company per line.',
@@ -127,19 +126,19 @@ const LEFT_PANELS = {
     headline: 'Reidar works\nwhile you sleep.',
     body: [
       {
-        icon: '🌅',
-        title: 'Daily top matches digest',
-        desc: 'Get an email every morning with the highest-conviction companies from the latest scrape — only companies that clear your fit threshold.',
+        tag: '01 / SIGNALS',
+        title: 'Pipeline companies monitored daily',
+        desc: 'Every company you are watching or in diligence gets checked for funding rounds, key hires, product launches, and press — every night.',
       },
       {
-        icon: '🔬',
-        title: 'Diligence signals',
-        desc: 'When a company in your pipeline gets a major signal — new funding, key hire, press mention — Reidar flags it so you never miss a reason to move.',
+        tag: '02 / BRIEFS',
+        title: 'Pre-call briefs, automatically',
+        desc: 'Before a founder meeting, Reidar surfaces everything it knows — last contact, what changed, portfolio conflicts, suggested angles.',
       },
       {
-        icon: '📬',
-        title: 'Weekly market brief',
-        desc: 'A Friday summary of what moved in your thesis areas, standout companies, whitespace opportunities, and one highest-conviction pick.',
+        tag: '03 / ALERTS',
+        title: 'You hear about it first',
+        desc: 'Top match sourced overnight? Company you passed on just raised? Reidar emails you before you open your laptop.',
       },
     ],
   },
@@ -419,7 +418,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
   if (sourcing || sourcingComplete) {
     return (
       <div style={{ position: 'fixed', inset: 0, background: '#0a0a0f', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, overflow: 'auto' }}>
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}`}</style>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}} @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
         <div style={{ maxWidth: 680, width: '100%', margin: 'auto', padding: 24 }}>
           {sourcingComplete && sourcingError ? (
             <div style={{ textAlign: 'center' }}>
@@ -500,13 +499,11 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
 
             {/* Feature cards */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-              {panel.body.map(({ icon, title, desc }) => (
-                <div key={title} style={{ background: '#13131f', border: '1px solid #2a2a3d', borderRadius: 10, padding: '13px 15px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: 17, flexShrink: 0, marginTop: 1 }}>{icon}</span>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#e8e8f0', marginBottom: 3 }}>{title}</div>
-                    <div style={{ fontSize: 12, color: '#8888aa', lineHeight: 1.6 }}>{desc}</div>
-                  </div>
+              {panel.body.map(({ tag, title, desc }, i) => (
+                <div key={title} style={{ background: '#13131f', border: '1px solid #2a2a3d', borderRadius: 10, padding: '13px 15px', animation: 'fadeUp 0.4s ease both', animationDelay: `${i * 150}ms` }}>
+                  {tag && <div style={{ fontSize: 9, fontFamily: "'DM Mono',monospace", color: 'rgba(107,71,245,.6)', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 6 }}>{tag}</div>}
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#e8e8f0', marginBottom: 3 }}>{title}</div>
+                  <div style={{ fontSize: 12, color: '#8888aa', lineHeight: 1.6 }}>{desc}</div>
                 </div>
               ))}
             </div>
@@ -514,24 +511,20 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
             {/* Step-specific extras */}
             {step === 1 && (
               <div style={{ background: '#1a1230', border: '1px solid #4c1d95', borderRadius: 8, padding: 14 }}>
-                <div style={{ fontSize: 10, color: '#555577', letterSpacing: '1px', marginBottom: 6 }}>EXAMPLE THESIS</div>
+                <div style={{ fontSize: 10, color: '#555577', letterSpacing: '1px', marginBottom: 6 }}>EXAMPLE MANDATE</div>
                 <p style={{ fontSize: 12, color: '#a78bfa', fontStyle: 'italic', margin: 0, lineHeight: 1.6 }}>{panel.tip}</p>
               </div>
             )}
 
             {step === 2 && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                {LEFT_PANELS[2].sources.map(name => (
-                  <div key={name} style={{ background: '#13131f', border: '1px solid #2a2a3d', borderRadius: 20, padding: '5px 10px', fontSize: 11, color: '#8888aa', display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#8b5cf6', flexShrink: 0 }} />{name}
-                  </div>
-                ))}
-              </div>
+              <p style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: 'rgba(107,71,245,.5)', margin: 0 }}>
+                20+ sources monitored continuously
+              </p>
             )}
 
             {step === 4 && (
               <div style={{ background: '#1a1230', border: '1px solid #4c1d95', borderRadius: 8, padding: 12 }}>
-                <div style={{ fontSize: 11, color: '#555577', letterSpacing: '1px', marginBottom: 4 }}>FORMAT</div>
+                <div style={{ fontSize: 11, color: '#555577', letterSpacing: '1px', marginBottom: 4 }}>CSV FORMAT</div>
                 <p style={{ fontSize: 12, color: '#a78bfa', margin: 0, lineHeight: 1.6 }}>{panel.format}</p>
               </div>
             )}
@@ -554,7 +547,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
           </div>
 
           <div style={{ borderTop: '1px solid #2a2a3d', paddingTop: 16 }}>
-            <p style={{ fontSize: 11, color: '#444466', textAlign: 'center', margin: 0 }}>Powered by Claude (Anthropic) · 13 sources · pgvector</p>
+            <p style={{ fontSize: 11, color: '#444466', textAlign: 'center', margin: 0 }}>Powered by Claude · Built for emerging VC funds</p>
           </div>
         </div>
       </div>

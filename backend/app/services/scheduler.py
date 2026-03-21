@@ -350,8 +350,16 @@ async def job_run_sourcing(user_id: str = None):
 
 
 async def job_process_gmail_emails():
-    logger.info('Scheduler: Starting Gmail email processing')
     from app.models.gmail_connection import GmailConnection
+    # Quick pre-check: skip entirely if no active Gmail connections exist
+    async with AsyncSessionLocal() as db:
+        check = await db.execute(
+            select(GmailConnection.id).where(GmailConnection.is_active == True).limit(1)
+        )
+        if check.scalars().first() is None:
+            return
+
+    logger.info('Scheduler: Starting Gmail email processing')
     from app.services.gmail_service import process_new_emails
     async with AsyncSessionLocal() as db:
         try:

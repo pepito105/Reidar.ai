@@ -563,6 +563,7 @@ async def get_overnight_history(request: Request, db: AsyncSession = Depends(get
     runs_result = await db.execute(
         select(SchedulerRun)
         .where(SchedulerRun.started_at >= seven_days_ago)
+        .where(SchedulerRun.job_name.in_(["autonomous_sourcing", "signal_refresh", "weekly_summary"]))
         .order_by(SchedulerRun.started_at.desc())
     )
     runs = runs_result.scalars().all()
