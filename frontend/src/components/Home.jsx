@@ -248,7 +248,7 @@ export default function Home({ API, firmProfile, onNavigate }) {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {pipelineSignals.map(sig => (
-                      <div key={sig.id} onClick={() => onNavigate('coverage', { id: sig.startup_id })} style={{
+                      <div key={sig.id} onClick={() => onNavigate('pipeline', { id: sig.startup_id }, 'company_signal')} style={{
                         display: 'flex', gap: 10, alignItems: 'flex-start',
                         padding: '10px 12px', borderRadius: 8,
                         background: '#0a0a14', border: '1px solid #1a1a2e', cursor: 'pointer'
@@ -263,7 +263,7 @@ export default function Home({ API, firmProfile, onNavigate }) {
                       </div>
                     ))}
                   </div>
-                  <button onClick={() => onNavigate('coverage')} style={{ marginTop: 10, fontSize: 11, color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  <button onClick={() => onNavigate('pipeline')} style={{ marginTop: 10, fontSize: 11, color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                     View full activity feed →
                   </button>
                 </div>

@@ -5,12 +5,13 @@ from typing import Optional
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from sqlalchemy import select, text
+from sqlalchemy import select, update, text
 
 from app.core.database import AsyncSessionLocal
 from app.models.company import Company
 from app.models.firm_company_score import FirmCompanyScore
 from app.models.firm_profile import FirmProfile
+from app.models.scheduler_run import SchedulerRun
 
 logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler(timezone='America/New_York')
@@ -50,6 +51,7 @@ async def job_refresh_signals():
                     .order_by(FirmCompanyScore.fit_score.desc())
                 )
                 scores = result.scalars().all()
+                logger.info(f"Signal refresh: found {len(scores)} pipeline companies for {firm_name}")
                 refreshed = 0
                 new_signals = 0
                 diligence_alerts = []
@@ -90,6 +92,10 @@ async def job_refresh_signals():
                         notification_emails=notify_emails,
                     )
                     logger.info(f'Diligence batch alert sent for {len(diligence_alerts)} companies ({firm_name})')
+                elif not diligence_alerts:
+                    logger.info(f"Diligence alert skipped — no diligence companies with new signals ({firm_name})")
+                elif not should_notify_diligence:
+                    logger.info(f"Diligence alert skipped — notify_diligence_signal is disabled ({firm_name})")
 
                 total_refreshed += refreshed
                 total_signals += new_signals
@@ -232,6 +238,30 @@ async def job_run_sourcing():
     from app.services.sourcing_service import run_autonomous_sourcing
     from app.services.research_service import run_research_batch
     async with AsyncSessionLocal() as db:
+        # ── Distributed lock: prevent double-firing across Railway instances ──
+        stale_cutoff = datetime.utcnow() - timedelta(hours=2)
+        existing_result = await db.execute(
+            select(SchedulerRun)
+            .where(SchedulerRun.job_name == "autonomous_sourcing")
+            .where(SchedulerRun.status == "running")
+            .order_by(SchedulerRun.started_at.desc())
+            .limit(1)
+        )
+        existing_run = existing_result.scalars().first()
+        if existing_run:
+            if existing_run.started_at > stale_cutoff:
+                logger.info("Job already running on another instance, skipping")
+                return
+            else:
+                logger.warning(f"Clearing stale lock for autonomous_sourcing (run_id={existing_run.id}, started={existing_run.started_at})")
+                await db.execute(
+                    update(SchedulerRun)
+                    .where(SchedulerRun.id == existing_run.id)
+                    .values(status="failure", error_message="stale lock cleared", completed_at=datetime.utcnow())
+                )
+                await db.commit()
+        # ─────────────────────────────────────────────────────────────────────
+
         run = None
         try:
             from app.services.job_health import start_job_run, complete_job_run, fail_job_run

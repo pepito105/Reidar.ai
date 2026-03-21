@@ -13,7 +13,7 @@ const QUICK_ACTIONS = [
 export default function ChatPanel({ API, onClose }) {
   const { getToken } = useAuth()
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: "I'm Radar Associate — I know your pipeline, past decisions, and firm thesis. Ask me what needs your attention, who to follow up with, or for a quick pipeline review." }
+    { role: 'assistant', content: "I'm Reidar Associate — I know your pipeline, past decisions, and firm thesis. Ask me what needs your attention, who to follow up with, or for a quick pipeline review." }
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -113,7 +113,7 @@ export default function ChatPanel({ API, onClose }) {
       }}>
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 18, cursor: 'pointer', flexShrink: 0 }}>✕</button>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 16, color: '#f0f0ff' }}>Radar Associate</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: '#f0f0ff' }}>Reidar Associate</div>
         </div>
       </div>
 

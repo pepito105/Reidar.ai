@@ -233,7 +233,7 @@ export default function FirmSettings({ API, onSaved, onClose, onToast }) {
             Notification Preferences
           </div>
           <div style={{ fontSize: 12, color: '#555577', marginBottom: 24 }}>
-            Choose which alerts Radar sends and where to send them.
+            Choose which alerts Reidar sends and where to send them.
           </div>
 
           {/* Alert Toggles */}

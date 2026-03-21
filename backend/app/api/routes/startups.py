@@ -467,7 +467,7 @@ async def portfolio_import(payload: PortfolioImportRequest, request: Request, db
         score = FirmCompanyScore(
             company_id=company.id,
             user_id=user_id,
-            pipeline_status="none",
+            pipeline_status="invested",
             is_portfolio=True,
             portfolio_status=item.get("portfolio_status") or "active",
             investment_date=(
@@ -1106,6 +1106,11 @@ async def update_startup(startup_id: str, data: StartupUpdate, request: Request,
     for key, value in update_data.items():
         if key in _SCORE_UPDATE_FIELDS:
             setattr(score, key, value)
+
+    if data.pipeline_status == "invested":
+        score.is_portfolio = True
+    elif data.pipeline_status is not None and data.pipeline_status != "invested":
+        score.is_portfolio = False
 
     if data.investment_date is not None:
         try:

@@ -138,7 +138,7 @@ export default function PortfolioImportModal({ API, onClose, onImported }) {
                     {importedCount > 0 ? `${importedCount} companies imported` : 'Already in your database'}
                   </div>
                   <div style={{ color: '#8888aa', fontSize: 13, marginBottom: 12 }}>
-                    Your portfolio is loaded. Radar will use these as sourcing context.
+                    Your portfolio is loaded. Reidar will use these as sourcing context.
                   </div>
                   {importedNames.length > 0 && (
                     <div style={{ textAlign: 'left', maxHeight: 104, overflowY: 'auto', background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: '8px 12px', marginTop: 12 }}>

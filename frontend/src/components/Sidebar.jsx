@@ -25,7 +25,7 @@ export default function Sidebar({ screen, setScreen, firmProfile, setShowSignals
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 32, height: 32, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>◈</div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 16, letterSpacing: '-0.3px', color: '#f0f0ff' }}>Radar</div>
+              <div style={{ fontWeight: 700, fontSize: 16, letterSpacing: '-0.3px', color: '#f0f0ff' }}>Reidar</div>
               <div style={{ fontSize: 10, color: '#6366f1', fontWeight: 500, letterSpacing: '0.5px' }}>AI ASSOCIATE</div>
             </div>
           </div>

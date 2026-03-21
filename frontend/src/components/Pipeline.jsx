@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@clerk/clerk-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
@@ -165,7 +165,7 @@ function PipelineListView({ board, selectedCompany, onSelectCompany, FIT_BADGES,
   )
 }
 
-export default function Pipeline({ API }) {
+export default function Pipeline({ API, selectedCompany: incomingCompany, selectedEventType, onCompanyViewed }) {
   const { getToken } = useAuth()
   const queryClient = useQueryClient()
   const { data: board = {}, isLoading: loading, refetch: fetchPipeline } = useQuery({
@@ -181,7 +181,21 @@ export default function Pipeline({ API }) {
   const [dragging, setDragging] = useState(null)
   const [dragOverStage, setDragOverStage] = useState(null)
   const [selectedCompany, setSelectedCompany] = useState(null)
+  const [selectedTab, setSelectedTab] = useState(null)
   const [viewMode, setViewMode] = useState('kanban') // 'kanban' | 'list'
+
+  useEffect(() => {
+    if (incomingCompany) {
+      setSelectedCompany(incomingCompany)
+      setSelectedTab(
+        selectedEventType === 'company_signal' ? 'signals'
+        : selectedEventType === 'stale_deal' ? 'activity'
+        : selectedEventType === 'research_complete' ? 'research'
+        : 'overview'
+      )
+      onCompanyViewed?.()
+    }
+  }, [incomingCompany])
 
   const onDragStart = (company, fromStage) => setDragging({ company, fromStage })
 
@@ -278,19 +292,19 @@ export default function Pipeline({ API }) {
                 icon: '📡',
                 stage: 'Watching',
                 color: '#6366f1',
-                description: 'Radar monitors news, funding rounds, and product launches. You\'ll be notified of any meaningful signals.',
+                description: 'Reidar monitors news, funding rounds, and product launches. You\'ll be notified of any meaningful signals.',
               },
               {
                 icon: '📤',
                 stage: 'Outreach',
                 color: '#f59e0b',
-                description: 'Track companies you\'ve contacted. Radar flags deals that have gone quiet after 21 days.',
+                description: 'Track companies you\'ve contacted. Reidar flags deals that have gone quiet after 21 days.',
               },
               {
                 icon: '🔍',
                 stage: 'Diligence',
                 color: '#10b981',
-                description: 'Active evaluation. Radar surfaces new signals daily and alerts you to anything that changes the thesis.',
+                description: 'Active evaluation. Reidar surfaces new signals daily and alerts you to anything that changes the thesis.',
               },
               {
                 icon: '✓',
@@ -454,7 +468,8 @@ export default function Pipeline({ API }) {
         <CompanyDetail
           API={API}
           startup={selectedCompany}
-          onClose={() => setSelectedCompany(null)}
+          initialTab={selectedTab}
+          onClose={() => { setSelectedCompany(null); setSelectedTab(null) }}
           onUpdate={(updatedCompany) => {
             setSelectedCompany(updatedCompany)
             queryClient.invalidateQueries({ queryKey: ['pipeline'] })

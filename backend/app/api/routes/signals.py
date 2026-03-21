@@ -250,6 +250,7 @@ async def get_activity_feed(
             "icon": ICONS.get(signal.signal_type, "📡"),
             "title": signal.title,
             "summary": signal.summary,
+            "source_url": signal.source_url,
             "is_seen": signal.is_seen,
             "detected_at": (signal.detected_at.isoformat() + "Z") if signal.detected_at else None,
         })
@@ -359,6 +360,7 @@ async def get_company_signals(
                 "icon": ICONS.get(s.signal_type, "📡"),
                 "title": s.title,
                 "summary": s.summary,
+                "source_url": s.source_url,
                 "is_seen": s.is_seen,
                 "detected_at": (s.detected_at.isoformat() + "Z") if s.detected_at else None,
             }

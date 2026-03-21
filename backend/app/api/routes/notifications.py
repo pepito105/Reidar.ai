@@ -41,7 +41,7 @@ def _serialize(n: Notification) -> dict:
         "icon": ICONS.get(n.event_type, "📡"),
         "title": n.title,
         "body": n.body,
-        "startup_id": n.startup_id,
+        "startup_id": str(n.company_id) if n.company_id else None,
         "startup_name": n.startup_name,
         "fit_score": n.fit_score,
         "is_seen": n.is_seen,

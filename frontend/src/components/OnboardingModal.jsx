@@ -46,7 +46,7 @@ const LEFT_PANELS = {
       {
         icon: '🎯',
         title: 'Mandate-first, not database-first',
-        desc: 'Most tools are databases you search. Radar works for you — every company it finds is scored against your exact thesis before it ever surfaces.',
+        desc: 'Most tools are databases you search. Reidar works for you — every company it finds is scored against your exact thesis before it ever surfaces.',
       },
       {
         icon: '🤖',
@@ -67,7 +67,7 @@ const LEFT_PANELS = {
       {
         icon: '📡',
         title: 'Always-on sourcing',
-        desc: 'While you sleep, Radar scans YC batches, ProductHunt launches, funding announcements, and 10+ news feeds — all filtered through your mandate.',
+        desc: 'While you sleep, Reidar scans YC batches, ProductHunt launches, funding announcements, and 10+ news feeds — all filtered through your mandate.',
       },
       {
         icon: '⚡',
@@ -77,7 +77,7 @@ const LEFT_PANELS = {
       {
         icon: '🌍',
         title: 'Geography-aware',
-        desc: 'Set your focus regions. Radar weights companies in your target markets higher and filters out noise from geographies you don\'t cover.',
+        desc: 'Set your focus regions. Reidar weights companies in your target markets higher and filters out noise from geographies you don\'t cover.',
       },
     ],
     sources: ['YC Batches','ProductHunt','TechCrunch AI','VentureBeat','Hacker News','The Information','StrictlyVC','Axios Pro Rata','MIT Tech Review','Wired Business','Forbes AI','Fortune Term Sheet','Bloomberg Tech'],
@@ -88,7 +88,7 @@ const LEFT_PANELS = {
       {
         icon: '🚫',
         title: 'Hard excludes',
-        desc: 'Tell Radar what to never surface. Crypto, hardware, defense — whatever falls outside your mandate gets filtered before it reaches you.',
+        desc: 'Tell Reidar what to never surface. Crypto, hardware, defense — whatever falls outside your mandate gets filtered before it reaches you.',
       },
       {
         icon: '📊',
@@ -107,7 +107,7 @@ const LEFT_PANELS = {
     body: [
       {
         icon: '🗂️',
-        title: 'Seed Radar with what you know',
+        title: 'Seed Reidar with what you know',
         desc: 'Importing your portfolio gives the AI analyst instant context. It knows what you\'ve backed, what you like, and what to find more of.',
       },
       {
@@ -124,7 +124,7 @@ const LEFT_PANELS = {
     format: 'CSV format: Name, Website, Description, Stage — or one company per line.',
   },
   5: {
-    headline: 'Radar works\nwhile you sleep.',
+    headline: 'Reidar works\nwhile you sleep.',
     body: [
       {
         icon: '🌅',
@@ -134,7 +134,7 @@ const LEFT_PANELS = {
       {
         icon: '🔬',
         title: 'Diligence signals',
-        desc: 'When a company in your pipeline gets a major signal — new funding, key hire, press mention — Radar flags it so you never miss a reason to move.',
+        desc: 'When a company in your pipeline gets a major signal — new funding, key hire, press mention — Reidar flags it so you never miss a reason to move.',
       },
       {
         icon: '📬',
@@ -426,14 +426,14 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
               <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#e8e8f0', marginBottom: 8 }}>Sourcing Incomplete</div>
               <div style={{ fontSize: 14, color: '#8888aa', marginBottom: 28 }}>{sourcingError}</div>
-              <button onClick={() => window.location.href = '/app'} style={{ padding: '11px 28px', borderRadius: 8, border: 'none', background: '#8b5cf6', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Open Radar →</button>
+              <button onClick={() => window.location.href = '/app'} style={{ padding: '11px 28px', borderRadius: 8, border: 'none', background: '#8b5cf6', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Open Reidar →</button>
             </div>
           ) : (
             <>
               <div style={{ textAlign: 'center', marginBottom: 24 }}>
                 <div style={{ width: 56, height: 56, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 26, marginBottom: 16 }}>◈</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: '#e8e8f0', marginBottom: 6 }}>{isFirstRun ? 'Setting Up Your Feed' : 'Sourcing New Companies'}</div>
-                <div style={{ fontSize: 14, color: '#8888aa' }}>Radar is searching the web and evaluating each company against your mandate.</div>
+                <div style={{ fontSize: 14, color: '#8888aa' }}>Reidar is searching the web and evaluating each company against your mandate.</div>
               </div>
               <div style={{ height: 3, background: '#1a1a2e', borderRadius: 999, overflow: 'hidden', marginBottom: 20 }}>
                 {!sourcingComplete
@@ -445,7 +445,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
                 {activityFeed.length === 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 120, color: '#8888aa', fontSize: 14 }}>
                     <div style={{ width: 32, height: 32, border: '3px solid #2a2a3d', borderTopColor: '#8b5cf6', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: 12 }} />
-                    Connecting to Radar...
+                    Connecting to Reidar...
                   </div>
                 ) : activityFeed.map((item, i) => (
                   <div key={i} style={{ padding: '10px 16px', borderBottom: i < activityFeed.length - 1 ? '1px solid #1a1a2e' : 'none', display: 'flex', gap: 10 }}>
@@ -468,9 +468,9 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
               </div>
               {sourcingComplete && !sourcingError && (
                 <div style={{ background: '#0d2010', border: '1px solid #065f46', borderRadius: 12, padding: 24, textAlign: 'center', marginTop: 16 }}>
-                  <div style={{ color: '#34d399', fontSize: 20, fontWeight: 700, marginBottom: 8 }}>✓ Radar is Ready</div>
+                  <div style={{ color: '#34d399', fontSize: 20, fontWeight: 700, marginBottom: 8 }}>✓ Reidar is Ready</div>
                   <div style={{ color: '#8888aa', fontSize: 14, marginBottom: 16 }}>{sourcingCount} new companies added to your feed.</div>
-                  <button onClick={() => window.location.href = '/app'} style={{ width: '100%', padding: 12, borderRadius: 8, border: 'none', background: '#8b5cf6', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Enter Radar →</button>
+                  <button onClick={() => window.location.href = '/app'} style={{ width: '100%', padding: 12, borderRadius: 8, border: 'none', background: '#8b5cf6', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Enter Reidar →</button>
                 </div>
               )}
             </>
@@ -492,7 +492,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
             {/* Logo */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32 }}>
               <div style={{ width: 40, height: 40, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>◈</div>
-              <span style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}>Radar</span>
+              <span style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}>Reidar</span>
             </div>
 
             <div style={{ fontSize: 11, color: '#555577', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: 10 }}>Step {step} of {STEPS.length}</div>
@@ -577,7 +577,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
           {step === 1 && (
             <div>
               <h2 style={{ fontSize: 26, fontWeight: 700, color: '#e8e8f0', margin: '0 0 6px' }}>Let's set up your firm</h2>
-              <p style={{ fontSize: 14, color: '#8888aa', marginBottom: 32, lineHeight: 1.6 }}>Radar uses your thesis to score every company it finds. The more specific, the better the signal.</p>
+              <p style={{ fontSize: 14, color: '#8888aa', marginBottom: 32, lineHeight: 1.6 }}>Reidar uses your thesis to score every company it finds. The more specific, the better the signal.</p>
 
               <div style={{ marginBottom: 20 }}>
                 <label style={{ fontSize: 12, fontWeight: 600, color: '#8888aa', display: 'block', marginBottom: 8, letterSpacing: '0.5px' }}>FIRM NAME</label>
@@ -608,7 +608,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
           {step === 2 && (
             <div>
               <h2 style={{ fontSize: 26, fontWeight: 700, color: '#e8e8f0', margin: '0 0 6px' }}>Your investment parameters</h2>
-              <p style={{ fontSize: 14, color: '#8888aa', marginBottom: 32, lineHeight: 1.6 }}>These help Radar prioritize the right companies in the right markets at the right stage.</p>
+              <p style={{ fontSize: 14, color: '#8888aa', marginBottom: 32, lineHeight: 1.6 }}>These help Reidar prioritize the right companies in the right markets at the right stage.</p>
 
               <div style={{ marginBottom: 24 }}>
                 <label style={{ fontSize: 12, fontWeight: 600, color: '#8888aa', display: 'block', marginBottom: 12, letterSpacing: '0.5px' }}>INVESTMENT STAGES</label>
@@ -649,7 +649,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
           {step === 3 && (
             <div>
               <h2 style={{ fontSize: 26, fontWeight: 700, color: '#e8e8f0', margin: '0 0 6px' }}>Configure your filters</h2>
-              <p style={{ fontSize: 14, color: '#8888aa', marginBottom: 32, lineHeight: 1.6 }}>Control exactly what appears in your feed. Radar enforces these on every company before it surfaces.</p>
+              <p style={{ fontSize: 14, color: '#8888aa', marginBottom: 32, lineHeight: 1.6 }}>Control exactly what appears in your feed. Reidar enforces these on every company before it surfaces.</p>
 
               <div style={{ marginBottom: 28 }}>
                 <label style={{ fontSize: 12, fontWeight: 600, color: '#8888aa', display: 'block', marginBottom: 12, letterSpacing: '0.5px' }}>EXCLUDED SECTORS</label>
@@ -679,7 +679,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
                     {fitThreshold === 5 && 'Top Matches only (5)'}
                   </div>
                   <div style={{ fontSize: 12, color: '#555577' }}>
-                    {fitThreshold === 1 && 'Every company Radar finds will appear in your feed.'}
+                    {fitThreshold === 1 && 'Every company Reidar finds will appear in your feed.'}
                     {fitThreshold === 2 && 'Reduces noise — only companies with some thesis alignment.'}
                     {fitThreshold === 3 && 'Recommended. Good balance of volume and quality.'}
                     {fitThreshold === 4 && 'High conviction only. Expect fewer but stronger matches.'}
@@ -703,7 +703,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
                   <div style={{ background: '#0d2010', border: '1px solid #065f46', borderRadius: 12, padding: 24, textAlign: 'center' }}>
                     <div style={{ fontSize: 36, marginBottom: 10 }}>✓</div>
                     <div style={{ color: '#34d399', fontSize: 18, fontWeight: 700, marginBottom: 6 }}>{portfolioImported > 0 ? `${portfolioImported} companies imported` : 'Already in your database'}</div>
-                    <div style={{ color: '#8888aa', fontSize: 13, marginBottom: 12 }}>Your portfolio is loaded. Radar will use these as sourcing context.</div>
+                    <div style={{ color: '#8888aa', fontSize: 13, marginBottom: 12 }}>Your portfolio is loaded. Reidar will use these as sourcing context.</div>
                     {portfolioImportedNames.length > 0 && (
                       <div style={{ textAlign: 'left', maxHeight: 104, overflowY: 'auto', background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: '8px 12px', marginTop: 12 }}>
                         {portfolioImportedNames.map((name, i) => (
@@ -759,7 +759,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
           {step === 5 && (
             <div>
               <h2 style={{ fontSize: 26, fontWeight: 700, color: '#e8e8f0', margin: '0 0 6px' }}>Set up notifications</h2>
-              <p style={{ fontSize: 14, color: '#8888aa', marginBottom: 28, lineHeight: 1.6 }}>Radar works while you sleep. Choose what to get notified about so you never miss a deal.</p>
+              <p style={{ fontSize: 14, color: '#8888aa', marginBottom: 28, lineHeight: 1.6 }}>Reidar works while you sleep. Choose what to get notified about so you never miss a deal.</p>
 
               <div style={{ marginBottom: 20 }}>
                 <label style={{ fontSize: 12, fontWeight: 600, color: '#8888aa', display: 'block', marginBottom: 8, letterSpacing: '0.5px' }}>NOTIFICATION EMAIL</label>
@@ -805,7 +805,7 @@ export default function OnboardingModal({ API, onSaved, onClose }) {
 
               <button onClick={saveAndLaunch} disabled={saving}
                 style={{ width: '100%', padding: 16, borderRadius: 8, border: 'none', background: saving ? '#2a2a3d' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: saving ? '#555577' : '#fff', fontSize: 16, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', boxShadow: saving ? 'none' : '0 4px 20px rgba(139,92,246,0.3)' }}>
-                {saving ? 'Saving...' : '🚀 Launch Radar'}
+                {saving ? 'Saving...' : '🚀 Launch Reidar'}
               </button>
               <p style={{ fontSize: 12, color: '#444466', textAlign: 'center', marginTop: 10 }}>You can change all of this later in Settings</p>
             </div>

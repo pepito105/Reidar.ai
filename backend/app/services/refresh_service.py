@@ -30,6 +30,7 @@ async def refresh_company(score, db: AsyncSession) -> list:
             one_liner=company.one_liner or company.ai_summary or "",
             website=company.website,
             funding_stage=company.funding_stage,
+            company_id=company.id,
             db=db,
         )
         added = []
@@ -48,6 +49,12 @@ async def refresh_company(score, db: AsyncSession) -> list:
                 is_seen=False,
                 detected_at=datetime.utcnow(),
             )
+            if not signal.company_id:
+                logger.warning(f"Signal for {company.name} has no company_id — skipping")
+                continue
+            if signal.company_id != company.id:
+                logger.warning(f"company_id mismatch on signal for {company.name} — skipping")
+                continue
             db.add(signal)
             try:
                 from app.services.notification_writer import write_company_signal_notification

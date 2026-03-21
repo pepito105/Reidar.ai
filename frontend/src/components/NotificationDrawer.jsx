@@ -105,7 +105,7 @@ export default function NotificationDrawer({ API, onSelectCompany }) {
       } catch (e) {}
     }
     setOpen(false)
-    onSelectCompany && onSelectCompany(notif.startup_id)
+    onSelectCompany && onSelectCompany(notif.company_id, notif.event_type)
   }
 
   const markAllSeen = async () => {
@@ -139,7 +139,7 @@ export default function NotificationDrawer({ API, onSelectCompany }) {
               key={toast.toastId}
               onClick={() => {
                 dismissToast(toast.toastId)
-                if (toast.startup_id) {
+                if (toast.company_id) {
                   handleSelectCompany(toast)
                 }
               }}
@@ -151,7 +151,7 @@ export default function NotificationDrawer({ API, onSelectCompany }) {
                 padding: '12px 14px',
                 width: 300,
                 boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                cursor: toast.startup_id ? 'pointer' : 'default',
+                cursor: toast.company_id ? 'pointer' : 'default',
                 pointerEvents: 'all',
                 animation: 'slideInRight 0.3s ease',
                 display: 'flex', gap: 10, alignItems: 'flex-start',
@@ -290,7 +290,7 @@ export default function NotificationDrawer({ API, onSelectCompany }) {
                     </div>
                   )}
                   <div
-                    onClick={() => item.startup_id && handleSelectCompany(item)}
+                    onClick={() => item.company_id && handleSelectCompany(item)}
                     style={{
                       padding: '12px 20px',
                       borderLeft: `3px solid ${item.is_seen ? 'transparent' : style.color}`,

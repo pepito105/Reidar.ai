@@ -34,6 +34,7 @@ export default function App() {
   const [showSignals, setShowSignals] = useState(false)
   const [coverageKey, setCoverageKey] = useState(0)
   const [selectedCompany, setSelectedCompany] = useState(null)
+  const [selectedEventType, setSelectedEventType] = useState(null)
   const [toast, setToast] = useState({ message: '', submessage: '', visible: false })
   const queryClient = useQueryClient()
 
@@ -169,17 +170,21 @@ export default function App() {
       <main style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
         {screen === 'home' && (
           <>
-            <Home API={API} firmProfile={firmProfile} onNavigate={(screen, company) => { setScreen(screen); setSelectedCompany(company ?? null); }} />
+            <Home API={API} firmProfile={firmProfile} onNavigate={(screen, company, eventType) => { setScreen(screen); setSelectedCompany(company ?? null); setSelectedEventType(eventType ?? null) }} />
             <NotificationDrawer
               API={API}
-              onSelectCompany={async (startupId) => {
+              onSelectCompany={async (companyId, eventType) => {
                 try {
                   const token = await getToken().catch(() => null)
                   const headers = token ? { Authorization: `Bearer ${token}` } : {}
-                  const res = await axios.get(`${API}/startups/${startupId}`, { headers })
-                  await axios.post(`${API}/signals/mark-seen/${startupId}`, null, { headers })
+                  const res = await axios.get(`${API}/startups/${companyId}`, { headers })
+                  await axios.post(`${API}/signals/mark-seen/${companyId}`, null, { headers })
                   setSelectedCompany(res.data)
-                  setScreen('coverage')
+                  setSelectedEventType(eventType || null)
+                  const targetScreen = (eventType === 'company_signal' || eventType === 'stale_deal')
+                    ? 'pipeline'
+                    : 'coverage'
+                  setScreen(targetScreen)
                 } catch (e) {
                   setScreen('coverage')
                 }
@@ -191,10 +196,18 @@ export default function App() {
           <Coverage
             API={API}
             selectedCompany={selectedCompany}
-            onCompanyViewed={() => setSelectedCompany(null)}
+            selectedEventType={selectedEventType}
+            onCompanyViewed={() => { setSelectedCompany(null); setSelectedEventType(null) }}
           />
         )}
-        {screen === 'pipeline' && <Pipeline API={API} />}
+        {screen === 'pipeline' && (
+          <Pipeline
+            API={API}
+            selectedCompany={selectedCompany}
+            selectedEventType={selectedEventType}
+            onCompanyViewed={() => { setSelectedCompany(null); setSelectedEventType(null) }}
+          />
+        )}
         {screen === 'marketmap' && <MarketMap API={API} />}
         {screen === 'portfolio' && <Portfolio API={API} />}
       </main>

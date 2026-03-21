@@ -117,10 +117,11 @@ function groupBySector(companies) {
   })
 }
 
-export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
+export default function Coverage({ API, selectedCompany, selectedEventType, onCompanyViewed }) {
   const { getToken } = useAuth()
   const queryClient = useQueryClient()
   const [selected, setSelected] = useState(null)
+  const [selectedTab, setSelectedTab] = useState(null)
   const [seenIds, setSeenIds] = useState(() => loadSeenIds())
   const [filters, setFilters] = useState({ stage: '', fit_level: '', sector: '', sort: 'fit_score' })
   const [inboxCollapsed, setInboxCollapsed] = useState(false)
@@ -149,6 +150,11 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
     if (selectedCompany) {
       markSeen(selectedCompany)
       setSelected(selectedCompany)
+      setSelectedTab(
+        selectedEventType === 'company_signal' ? 'signals'
+        : selectedEventType === 'research_complete' ? 'research'
+        : 'overview'
+      )
       onCompanyViewed?.()
       const id = setTimeout(() => {
         cardRefs.current[selectedCompany.id]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
@@ -517,7 +523,8 @@ export default function Coverage({ API, selectedCompany, onCompanyViewed }) {
           <CompanyDetail
             API={API}
             startup={selected}
-            onClose={() => setSelected(null)}
+            initialTab={selectedTab}
+            onClose={() => { setSelected(null); setSelectedTab(null) }}
             onUpdate={(updatedCompany) => {
               setSelected(updatedCompany)
               queryClient.setQueryData(['startups', filters], prev =>

@@ -514,6 +514,7 @@ async def detect_signals(
     one_liner: str,
     website: Optional[str],
     funding_stage: Optional[str],
+    company_id=None,
     db=None,
 ) -> list:
     """
@@ -522,16 +523,25 @@ async def detect_signals(
     Never fabricates signals.
     """
     from app.services.research_service import brave_search, firecrawl_scrape
+    from urllib.parse import urlparse
 
     if not settings.BRAVE_API_KEY:
         logger.warning(f"No BRAVE_API_KEY — skipping signal detection for {company_name}")
         return []
 
-    # Search for recent news about the company
+    # Extract bare domain for post-fetch filtering (e.g. "dianaHR.com")
+    domain = ""
+    if website:
+        try:
+            domain = urlparse(website).netloc.lower().lstrip("www.")
+        except Exception:
+            pass
+
+    # Search for recent news — exact company name match via quotes
     queries = [
-        f"{company_name} funding round 2025 2026",
-        f"{company_name} product launch news",
-        f"{company_name} startup announcement",
+        f'"{company_name}" funding round 2025 2026',
+        f'"{company_name}" product launch news',
+        f'"{company_name}" startup announcement',
     ]
 
     all_results = []
@@ -543,13 +553,54 @@ async def detect_signals(
         logger.info(f"No search results for {company_name} — no signals generated")
         return []
 
-    # Deduplicate URLs
+    # Deduplicate URLs within this run
     seen_urls = set()
     unique_results = []
     for r in all_results:
         if r["url"] not in seen_urls:
             seen_urls.add(r["url"])
             unique_results.append(r)
+
+    # Relevance filter: drop results that don't mention the company
+    name_lower = company_name.lower()
+    relevant_results = []
+    for r in unique_results:
+        url_matches = domain and domain in r["url"].lower()
+        text_matches = (
+            name_lower in r.get("title", "").lower()
+            or name_lower in r.get("description", "").lower()
+        )
+        if url_matches or text_matches:
+            relevant_results.append(r)
+        else:
+            logger.info(
+                f"Dropping signal result — does not match company {company_name}: {r['url']}"
+            )
+    unique_results = relevant_results
+
+    # URL dedup against DB: skip URLs already saved for this company
+    if db is not None and company_id is not None:
+        from sqlalchemy import select
+        from app.models.signal import CompanySignal
+        filtered_results = []
+        for r in unique_results:
+            try:
+                existing = await db.execute(
+                    select(CompanySignal.id)
+                    .where(CompanySignal.source_url == r["url"])
+                    .where(CompanySignal.company_id == company_id)
+                    .limit(1)
+                )
+                if existing.scalars().first() is not None:
+                    logger.info(
+                        f"Skipping signal — URL already saved for {company_name}: {r['url']}"
+                    )
+                else:
+                    filtered_results.append(r)
+            except Exception as e:
+                logger.warning(f"URL dedup check failed for {company_name}: {e}")
+                filtered_results.append(r)
+        unique_results = filtered_results
 
     # Scrape top 3 results for full content
     scraped = []

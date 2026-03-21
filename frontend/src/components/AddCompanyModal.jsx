@@ -65,7 +65,7 @@ export default function AddCompanyModal({ API, onClose, onAdded }) {
           <div>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 3 }}>ADD COMPANY</div>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#f0f0ff' }}>
-              {step === 'classifying' ? 'Analyzing with AI...' : step === 'done' ? 'Company Added' : 'Add a Company to Radar'}
+              {step === 'classifying' ? 'Analyzing with AI...' : step === 'done' ? 'Company Added' : 'Add a Company to Reidar'}
             </div>
           </div>
           <button onClick={onClose} style={{
@@ -79,7 +79,7 @@ export default function AddCompanyModal({ API, onClose, onAdded }) {
           <div style={{ padding: '60px 28px', textAlign: 'center' }}>
             <div style={{ fontSize: 32, marginBottom: 16 }}>◈</div>
             <div style={{ fontSize: 14, color: '#f0f0ff', fontWeight: 600, marginBottom: 8 }}>
-              Radar is analyzing {form.name}
+              Reidar is analyzing {form.name}
             </div>
             <div style={{ fontSize: 13, color: '#555577', lineHeight: 1.6 }}>
               Scoring against Failup's mandate, generating thesis fit reasoning, and writing an investment summary...
@@ -252,7 +252,7 @@ export default function AddCompanyModal({ API, onClose, onAdded }) {
                     transition: 'all 0.15s'
                   }}
                 >
-                  ◈ Add to Radar
+                  ◈ Add to Reidar
                 </button>
                 <button onClick={onClose} style={{
                   padding: '11px 18px', borderRadius: 8,

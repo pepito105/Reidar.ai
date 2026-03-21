@@ -978,18 +978,18 @@ const ORBIT_SVGS = [
 ];
 
 const HERO_PHRASES = [
-  "every night.",
-  "without prompting.",
-  "before you wake up.",
-  "across 100+ sources.",
-  "precisely as written.",
+  "Working while you sleep.",
+  "Knows your mandate cold.",
+  "Never drops a deal.",
+  "Gets smarter every week.",
+  "Built for how you invest.",
 ];
 
 const TRAITS = [
-  { tag: "01 / READS YOUR FIRM", title: "Knows your mandate cold", desc: "Reidar reads your firm website, loads your portfolio automatically, and internalizes your thesis. He knows what you've backed, what you avoid, and what a 5/5 looks like for your mandate — before you brief him on anything." },
-  { tag: "02 / NEVER FORGETS", title: "Every company stays in play", desc: "Reidar remembers every company you've ever seen, passed on, or noted. When a company that was too early six months ago closes a round or hits a milestone — he brings it back. Not everything. Just the right thing at the right moment." },
-  { tag: "03 / CONVERSATION INTELLIGENCE", title: "Turns calls into deal flow", desc: "Drop in meeting notes or a rough transcript after a founder call. Reidar extracts the company context, scores it against your mandate, flags portfolio conflicts, and surfaces similar companies you've already seen. Thirty calls a week — none of them wasted." },
-  { tag: "04 / LEARNS YOUR FIRM", title: "Gets sharper every deal", desc: "Every company you move through the pipeline, every pass, every note — Reidar is calibrating. Over time his sourcing reflects not just your written thesis, but your actual pattern of judgment. The longer you use it, the harder it is to replicate." },
+  { tag: "01 / READS YOUR FIRM", title: "Knows your mandate cold", desc: "Tell Reidar your thesis once. He reads your firm website, loads your portfolio, and never asks you to repeat yourself. Every company scored against what you actually care about — not a generic algorithm." },
+  { tag: "02 / NEVER FORGETS", title: "Every company stays in play", desc: "The company you saw six months ago and marked too early? Reidar is watching. When they close a round, make a key hire, or hit a milestone — he brings it back. You focus on the meeting. Reidar handles the memory." },
+  { tag: "03 / CONVERSATION INTELLIGENCE", title: "Turns calls into deal flow", desc: "You have 30 founder calls a week. Drop in rough notes after each one. Reidar extracts the context, scores against your mandate, flags conflicts, and surfaces similar deals you've already seen. None of that time gets wasted." },
+  { tag: "04 / LEARNS YOUR FIRM", title: "Gets sharper every deal", desc: "Every pass, every move to diligence, every note — Reidar is learning your firm's actual pattern of judgment. Not just your written thesis. Over time, the sourcing gets sharper. The longer you use it, the harder it is to replicate." },
 ];
 
 /* ─── COMPETITOR GRID ─── */
@@ -1470,10 +1470,10 @@ const { isSignedIn } = useAuth();
         <div className="hero-fade" />
         <div className="hero-content">
           <div style={{ display: 'inline-block', border: '1px solid rgba(107,71,245,0.3)', background: 'rgba(107,71,245,0.08)', padding: '4px 12px', borderRadius: 20, fontSize: 12, fontFamily: "'Space Mono',monospace", color: 'rgba(255,255,255,0.6)', letterSpacing: '0.1em', marginBottom: 20 }}>
-            Built for venture capital
+            Intelligence layer for VC
           </div>
-          <h1 className="hero-h1">Your mandate,<br />deployed. <span className="acc">{heroDisplayed}<span className="typewriter-cursor">|</span></span></h1>
-          <p className="hero-sub">Reidar knows your mandate, sources every night, and never forgets a company. Every deal you've ever touched is always in play — surfaced at the right moment, with full context. Not a tool you use. An associate that works for you.</p>
+          <h1 className="hero-h1">Meet Reidar.<br />Your AI associate. <span className="acc">{heroDisplayed}<span className="typewriter-cursor">|</span></span></h1>
+          <p className="hero-sub">The intelligence layer for VC. Every deal you've ever touched — always in play, surfaced at the right moment.</p>
           <div className="hero-cta">
             <button className="btn-lg" onClick={() => window.location.href = SIGN_UP_URL}>Start for free →</button>
             <button className="btn-out" onClick={() => window.location.href = '/how-it-works'}>
@@ -1537,7 +1537,7 @@ const { isSignedIn } = useAuth();
         <section id="why" className="sec">
           <div className="s-tag sr">The problem</div>
           <h2 className="s-h2 sr d1">Every tool makes you <em>go to it.</em> Then forgets what you found.</h2>
-          <p className="s-p sr d2">Harmonic, PitchBook, Crunchbase — databases you search when you remember to look. None know your mandate. None track what you've already seen. None tell you when the moment on a company has arrived.</p>
+          <p className="s-p sr d2">The best deal isn't the one nobody's heard of. It's the one you heard of eight months ago, forgot to follow up on, and just watched someone else close. Every existing tool makes you go to it. None of them work for you.</p>
           <div className="sr d3">
             <CompetitorGrid />
           </div>

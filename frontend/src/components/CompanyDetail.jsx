@@ -49,7 +49,7 @@ function formatRelativeTime(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSelectCompany }) {
+export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSelectCompany, initialTab }) {
   const { getToken } = useAuth()
   const [startup, setStartup] = useState(s)
   const [similarCompanies, setSimilarCompanies] = useState([])
@@ -57,7 +57,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
   const [pipelineStatus, setPipelineStatus] = useState(s.pipeline_status || 'new')
   const [signals, setSignals] = useState([])
   const [expanded, setExpanded] = useState(false)
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState(initialTab || 'overview')
   const [ddQuestions, setDdQuestions] = useState(null)
   const [ddLoading, setDdLoading] = useState(false)
   const [convictionScore, setConvictionScore] = useState(null)
@@ -604,7 +604,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
             <div style={{ fontSize: 18 }}>🔍</div>
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#6366f1', marginBottom: 2 }}>Research agents deployed</div>
-              <div style={{ fontSize: 11, color: '#3a3a5a' }}>Radar is analyzing this company now. You'll receive a notification when the brief is ready — usually within 2-3 minutes.</div>
+              <div style={{ fontSize: 11, color: '#3a3a5a' }}>Reidar is analyzing this company now. You'll receive a notification when the brief is ready — usually within 2-3 minutes.</div>
             </div>
           </div>
         )}
@@ -671,6 +671,9 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
                 <div style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.5, paddingLeft: 22 }}>
                   {signal.summary}
                 </div>
+                {signal.source_url && (
+                  <a href={signal.source_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 6, paddingLeft: 22, fontSize: 11, color: '#6b6b8a', textDecoration: 'none' }}>↗ Source</a>
+                )}
               </div>
             ))}
           </div>
@@ -991,6 +994,9 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
                             </span>
                           </div>
                           <div style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.5, paddingLeft: 22 }}>{signal.summary}</div>
+                          {signal.source_url && (
+                            <a href={signal.source_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 6, paddingLeft: 22, fontSize: 11, color: '#6b6b8a', textDecoration: 'none' }}>↗ Source</a>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1276,6 +1282,9 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
                           </span>
                         </div>
                         <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.5, paddingLeft: 24 }}>{signal.summary}</div>
+                        {signal.source_url && (
+                          <a href={signal.source_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 6, paddingLeft: 24, fontSize: 11, color: '#6b6b8a', textDecoration: 'none' }}>↗ Source</a>
+                        )}
                       </div>
                     ))}
                   </div>
