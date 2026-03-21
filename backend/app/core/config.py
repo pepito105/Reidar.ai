@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     APP_URL: str = "http://localhost:5173"
     FIRECRAWL_API_KEY: Optional[str] = None
     BRAVE_API_KEY: Optional[str] = None
+    GOOGLE_CLIENT_ID: Optional[str] = None
+    GOOGLE_CLIENT_SECRET: Optional[str] = None
+    BACKEND_URL: str = "http://localhost:8000"
 
     class Config:
         env_file = ".env"

@@ -64,6 +64,8 @@ from app.api.routes.waitlist import router as waitlist_router
 app.include_router(waitlist_router, prefix="/api")
 from app.api.routes.intelligence import router as intelligence_router
 app.include_router(intelligence_router, prefix="/api")
+from app.api.routes.gmail import router as gmail_router
+app.include_router(gmail_router, prefix="/api")
 
 
 @app.get("/health")

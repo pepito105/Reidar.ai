@@ -25,6 +25,8 @@ export default function FirmSettings({ API, onSaved, onClose, onToast }) {
   const [notifyMinFitScore, setNotifyMinFitScore] = useState(4)
   const [notificationEmails, setNotificationEmails] = useState(['remi@balassanian.com', '', ''])
   const [saving, setSaving] = useState(false)
+  const [gmailStatus, setGmailStatus] = useState({ connected: false, email: null, last_checked_at: null })
+  const [gmailConnecting, setGmailConnecting] = useState(false)
 
   useEffect(() => {
     const fn = async () => {
@@ -54,6 +56,39 @@ export default function FirmSettings({ API, onSaved, onClose, onToast }) {
     }
     fn()
   }, [API, getToken])
+
+  useEffect(() => {
+    const fn = async () => {
+      const token = await getToken().catch(() => null)
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      try {
+        const res = await axios.get(`${API}/gmail/status`, { headers })
+        setGmailStatus(res.data)
+      } catch (_) {}
+    }
+    fn()
+  }, [API, getToken])
+
+  const handleConnectGmail = async () => {
+    setGmailConnecting(true)
+    try {
+      const token = await getToken().catch(() => null)
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      const res = await axios.get(`${API}/gmail/auth-url`, { headers })
+      window.location.href = res.data.url
+    } catch (_) {
+      setGmailConnecting(false)
+    }
+  }
+
+  const handleDisconnectGmail = async () => {
+    const token = await getToken().catch(() => null)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
+    try {
+      await axios.delete(`${API}/gmail/disconnect`, { headers })
+      setGmailStatus({ connected: false, email: null, last_checked_at: null })
+    } catch (_) {}
+  }
 
   const toggleArray = (setter, value) => {
     setter(prev => prev.includes(value) ? prev.filter(x => x !== value) : [...prev, value])
@@ -334,6 +369,67 @@ export default function FirmSettings({ API, onSaved, onClose, onToast }) {
                 />
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* INTEGRATIONS */}
+        <div style={{ marginTop: 40, paddingTop: 32, borderTop: '1px solid #1e1e2e' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#6366f1', letterSpacing: 1, marginBottom: 16, fontFamily: "'DM Mono', monospace" }}>
+            INTEGRATIONS
+          </div>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '16px', background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 10,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              {/* Gmail icon */}
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: '#1e1e2e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
+                  <path d="M6 10h36l-18 13L6 10z" fill="#EA4335"/>
+                  <path d="M6 10v28h36V10L24 23 6 10z" fill="#FBBC05"/>
+                  <path d="M6 38V10l18 13 18-13v28H6z" fill="#34A853" opacity=".3"/>
+                  <path d="M42 10v28H6V10l18 13 18-13z" fill="none" stroke="#4285F4" strokeWidth="0"/>
+                  <rect x="6" y="10" width="36" height="28" rx="2" fill="none" stroke="#1e1e2e" strokeWidth="0"/>
+                  <path d="M6 10l18 13 18-13" stroke="#fff" strokeWidth="1.5" fill="none"/>
+                </svg>
+              </div>
+              <div>
+                {gmailStatus.connected ? (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#f0f0ff' }}>{gmailStatus.email}</span>
+                      <span style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: '#10b981', background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.2)', borderRadius: 4, padding: '1px 6px' }}>Connected</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#555577' }}>
+                      {gmailStatus.last_checked_at
+                        ? `Last checked ${Math.round((Date.now() - new Date(gmailStatus.last_checked_at)) / 60000)} min ago`
+                        : 'Not yet checked'}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#f0f0ff', marginBottom: 2 }}>Connect Gmail</div>
+                    <div style={{ fontSize: 11, color: '#555577' }}>Monitor your inbox for inbound pitches, meeting transcripts, and founder updates</div>
+                  </>
+                )}
+              </div>
+            </div>
+            {gmailStatus.connected ? (
+              <button
+                onClick={handleDisconnectGmail}
+                style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid #2a2a4a', background: 'transparent', color: '#555577', fontSize: 12, cursor: 'pointer', flexShrink: 0, marginLeft: 12 }}
+              >
+                Disconnect
+              </button>
+            ) : (
+              <button
+                onClick={handleConnectGmail}
+                disabled={gmailConnecting}
+                style={{ padding: '7px 14px', borderRadius: 7, border: 'none', background: gmailConnecting ? '#2a2a4a' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: gmailConnecting ? '#555577' : '#fff', fontSize: 12, fontWeight: 600, cursor: gmailConnecting ? 'not-allowed' : 'pointer', flexShrink: 0, marginLeft: 12 }}
+              >
+                {gmailConnecting ? 'Redirecting…' : 'Connect Gmail →'}
+              </button>
+            )}
           </div>
         </div>
 

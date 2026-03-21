@@ -349,6 +349,41 @@ async def job_run_sourcing(user_id: str = None):
                     pass
 
 
+async def job_process_gmail_emails():
+    logger.info('Scheduler: Starting Gmail email processing')
+    from app.models.gmail_connection import GmailConnection
+    from app.services.gmail_service import process_new_emails
+    async with AsyncSessionLocal() as db:
+        try:
+            from app.services.job_health import start_job_run, complete_job_run, fail_job_run
+            run = await start_job_run(db, "gmail_polling")
+
+            result = await db.execute(
+                select(GmailConnection)
+                .where(GmailConnection.is_active == True)
+            )
+            connections = result.scalars().all()
+            logger.info(f'Gmail polling: {len(connections)} active connections')
+
+            total_processed = 0
+            for conn in connections:
+                try:
+                    result = await process_new_emails(conn.user_id, db)
+                    count = result.get("processed", 0)
+                    total_processed += count
+                    logger.info(f'Gmail: processed {count} emails for user {conn.user_id}')
+                except Exception as e:
+                    logger.error(f'Gmail processing failed for {conn.user_id}: {e}')
+
+            await complete_job_run(db, run.id, stats={"total_processed": total_processed, "connections": len(connections)})
+        except Exception as e:
+            logger.error(f'Gmail polling job failed: {e}', exc_info=True)
+            try:
+                await fail_job_run(db, run.id, error=str(e), job_name="gmail_polling")
+            except Exception:
+                pass
+
+
 async def run_startup_check():
     """Startup check — logging only, no automatic scrapes."""
     async with AsyncSessionLocal() as db:
@@ -380,5 +415,12 @@ def start_scheduler():
         replace_existing=True,
         misfire_grace_time=3600,
     )
+    scheduler.add_job(
+        job_process_gmail_emails,
+        CronTrigger(minute="*/15"),
+        id='gmail_polling',
+        replace_existing=True,
+        misfire_grace_time=300,
+    )
     scheduler.start()
-    logger.info('Scheduler started - signal refresh 3AM, deep sourcing 4AM ET, weekly summary Monday 8AM ET')
+    logger.info('Scheduler started - signal refresh 3AM, deep sourcing 4AM ET, weekly summary Monday 8AM ET, Gmail polling every 15min')

@@ -47,6 +47,10 @@ export default function App() {
     if (params.get('onboarding') === 'true') {
       window.history.replaceState({}, '', window.location.pathname)
     }
+    if (params.get('gmail_connected') === 'true') {
+      window.history.replaceState({}, '', window.location.pathname)
+      setToast({ message: 'Gmail connected', submessage: 'Reidar will now monitor your inbox', visible: true })
+    }
     const fn = async () => {
       const token = await getToken().catch(() => null)
       const headers = token ? { Authorization: `Bearer ${token}` } : {}

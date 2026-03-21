@@ -9,3 +9,4 @@ from app.models.scheduler_run import SchedulerRun
 from app.models.activity_event import ActivityEvent
 from app.models.sourcing_history import SourcingHistory
 from app.models.waitlist import WaitlistEntry
+from app.models.gmail_connection import GmailConnection
