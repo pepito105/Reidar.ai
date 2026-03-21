@@ -28,9 +28,10 @@ def upgrade() -> None:
         sa.Column('history_id', sa.String(100), nullable=True),
         sa.Column('is_active', sa.Boolean(), nullable=False, server_default='true'),
         sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
+        if_not_exists=True,
     )
-    op.create_index('ix_gmail_connections_user_id', 'gmail_connections', ['user_id'])
-    op.create_unique_constraint('uq_gmail_connections_user_id', 'gmail_connections', ['user_id'])
+    op.create_index('ix_gmail_connections_user_id', 'gmail_connections', ['user_id'], if_not_exists=True)
+    op.create_unique_constraint('uq_gmail_connections_user_id', 'gmail_connections', ['user_id'], if_not_exists=True)
 
 
 def downgrade() -> None:
