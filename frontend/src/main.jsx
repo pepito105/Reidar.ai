@@ -24,8 +24,7 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ClerkProvider 
       publishableKey={PUBLISHABLE_KEY}
-      afterSignInUrl="/app"
-      afterSignUpUrl="/app"
+      fallbackRedirectUrl="/app"
     >
       <QueryClientProvider client={queryClient}>
       <BrowserRouter>
@@ -41,7 +40,7 @@ createRoot(document.getElementById('root')).render(
                   ← Back to Reidar
                 </button>
               </div>
-              <SignIn routing="path" path="/sign-in" afterSignInUrl="/app" signUpUrl="/sign-up" appearance={{
+              <SignIn routing="path" path="/sign-in" fallbackRedirectUrl="/app" signUpUrl="/sign-up" appearance={{
                 variables: {
                   colorPrimary: '#6B47F5',
                   colorBackground: '#0a0a0f',
