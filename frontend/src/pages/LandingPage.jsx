@@ -813,6 +813,7 @@ const TABS = [
   { n: "04", name: "Market Map",  desc: "Sector & stage intelligence",           url: "reidar.ai/market",    Component: MockMarketMap },
   { n: "05", name: "Hot Signals", desc: "Weekly AI brief for your firm",         url: "reidar.ai/signals",   Component: MockSignals },
   { n: "06", name: "AI Analyst",  desc: "Chat with your full database",          url: "reidar.ai/chat",      Component: MockChat },
+  { n: "07", name: "Autopilot",  desc: "What Reidar did while you slept",        url: "reidar.ai/autopilot", Component: MockAutopilot },
 ];
 
 const CYCLE_MS = 5000;
@@ -985,13 +986,6 @@ const HERO_PHRASES = [
   "Built for how you invest.",
 ];
 
-const TRAITS = [
-  { tag: "01 / READS YOUR FIRM", title: "Knows your mandate cold", desc: "Tell Reidar your thesis once. He reads your firm website, loads your portfolio, and never asks you to repeat yourself. Every company scored against what you actually care about — not a generic algorithm." },
-  { tag: "02 / NEVER FORGETS", title: "Every company stays in play", desc: "The company you saw six months ago and marked too early? Reidar is watching. When they close a round, make a key hire, or hit a milestone — he brings it back. You focus on the meeting. Reidar handles the memory." },
-  { tag: "03 / CONVERSATION INTELLIGENCE", title: "Turns calls into deal flow", desc: "You have 30 founder calls a week. Drop in rough notes after each one. Reidar extracts the context, scores against your mandate, flags conflicts, and surfaces similar deals you've already seen. None of that time gets wasted." },
-  { tag: "04 / LEARNS YOUR FIRM", title: "Gets sharper every deal", desc: "Every pass, every move to diligence, every note — Reidar is learning your firm's actual pattern of judgment. Not just your written thesis. Over time, the sourcing gets sharper. The longer you use it, the harder it is to replicate." },
-];
-
 /* ─── COMPETITOR GRID ─── */
 
 function CompetitorGrid() {
@@ -1028,8 +1022,189 @@ function CompetitorGrid() {
 
 /* ─── INTEGRATIONS ORBIT ─── */
 
-/* ─── MOCK INTELLIGENCE DASHBOARD ─── */
-function MockIntelligence() {
+/* ─── MOCK INTELLIGENCE LAYER ─── */
+
+function MILStage1() {
+  const [briefVis, setBriefVis] = useState(false);
+  const [rowsVis, setRowsVis] = useState(0);
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setBriefVis(true), 600);
+    const t2 = setTimeout(() => setRowsVis(1), 900);
+    const t3 = setTimeout(() => setRowsVis(2), 1200);
+    const t4 = setTimeout(() => setRowsVis(3), 1500);
+    const t5 = setTimeout(() => setRowsVis(4), 1800);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearTimeout(t5); };
+  }, []);
+
+  const rows = [
+    { color: 'rgba(235,235,235,.35)', text: 'Last contact 47 days ago — you said: too early, revisit at seed' },
+    { color: '#4ade80',               text: '$2.1M seed closed last week · Benchmark co-investing' },
+    { color: '#f59e0b',               text: 'Portfolio overlap — Synthos is in the same workflow layer' },
+    { color: '#6B47F5',               text: 'Suggested angle: ask about technical architecture at scale' },
+  ];
+
+  return (
+    <div style={{ padding: 20, background: '#0C0C10', minHeight: 360 }}>
+      {/* Calendar card */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(255,255,255,.025)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
+        <div style={{ width: 30, height: 30, borderRadius: 8, background: '#6B47F5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>📅</div>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 500, color: '#EBEBEB' }}>9:00 AM — Founder call · NovaMed</div>
+          <div style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: '#f59e0b', marginTop: 2 }}>Starting in 12 minutes</div>
+        </div>
+      </div>
+      {/* Brief card */}
+      {briefVis && (
+        <div style={{ background: 'rgba(107,71,245,.06)', border: '1px solid rgba(107,71,245,.15)', borderRadius: 8, padding: '14px 16px', animation: 'dyn-panel-in .35s ease' }}>
+          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: '#6B47F5', letterSpacing: '.1em', marginBottom: 12 }}>REIDAR BRIEF</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {rows.map((row, i) => i < rowsVis && (
+              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, lineHeight: 1.6, animation: 'dyn-panel-in .25s ease' }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: row.color, flexShrink: 0, marginTop: 5 }} />
+                <span style={{ color: i === 0 ? 'rgba(235,235,235,.5)' : 'rgba(235,235,235,.65)' }}>{row.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MILStage2() {
+  const [barW, setBarW] = useState(0);
+  const [readVis, setReadVis] = useState(false);
+  const [cardVis, setCardVis] = useState(false);
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setBarW(100), 800);
+    const t2 = setTimeout(() => setReadVis(true), 2200);
+    const t3 = setTimeout(() => setCardVis(true), 2400);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, []);
+
+  return (
+    <div style={{ padding: 20, background: '#0C0C10', minHeight: 360, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignContent: 'start' }}>
+      {/* Left — inbox */}
+      <div>
+        <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: '#6B47F5', letterSpacing: '.1em', marginBottom: 10 }}>INBOX</div>
+        <div style={{ position: 'relative', background: 'rgba(255,255,255,.025)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 8, padding: 14, overflow: 'hidden' }}>
+          <div style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: 'rgba(235,235,235,.4)', marginBottom: 4 }}>Michael Torres · General Catalyst</div>
+          <div style={{ fontSize: 13, fontWeight: 500, color: '#EBEBEB', marginBottom: 6 }}>Intro: Sarah Chen / Heliix — surgical workflow AI</div>
+          <div style={{ fontSize: 11, color: 'rgba(235,235,235,.35)', lineHeight: 1.5 }}>Hi — wanted to connect you with Sarah, she's building...</div>
+          <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: 'rgba(235,235,235,.25)', marginTop: 8 }}>2 minutes ago</div>
+          {/* Processing bar */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'rgba(255,255,255,.05)', borderRadius: '0 0 8px 8px' }}>
+            <div style={{ height: '100%', background: '#6B47F5', width: `${barW}%`, transition: 'width 1.2s ease', borderRadius: '0 0 8px 8px' }} />
+          </div>
+        </div>
+        {readVis && (
+          <div style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: '#4ade80', marginTop: 8, animation: 'dyn-panel-in .3s ease' }}>✓ Reidar read this</div>
+        )}
+      </div>
+      {/* Right — coverage card */}
+      {cardVis && (
+        <div style={{ animation: 'dyn-panel-in .4s ease' }}>
+          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: '#4ade80', letterSpacing: '.1em', marginBottom: 10 }}>ADDED TO COVERAGE</div>
+          <div style={{ background: 'rgba(255,255,255,.025)', border: '1px solid rgba(107,71,245,.2)', borderRadius: 8, padding: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: '#EBEBEB' }}>Heliix</span>
+              <FitBadge level="Strong Fit" />
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(235,235,235,.4)', marginBottom: 10 }}>AI-assisted surgical workflow automation</div>
+            <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+              <Tag label="pre-seed" />
+              <Tag label="MedTech" />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#6B47F5', animation: 'pulse 2s infinite', flexShrink: 0 }} />
+              <span style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: '#A992FA' }}>NEW · 4/5 thesis fit</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MILStage3() {
+  return (
+    <div style={{ padding: 20, background: '#0C0C10', minHeight: 360 }}>
+      {/* Amber banner */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.2)', borderRadius: 8, padding: '12px 16px', marginBottom: 16, animation: 'dyn-slide-down .4s ease' }}>
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', animation: 'pulse 2s infinite', flexShrink: 0 }} />
+        <span style={{ fontSize: 12, color: 'rgba(235,235,235,.7)' }}>Company you passed on 8 months ago just hit a milestone</span>
+      </div>
+      <div style={{ fontSize: 16, fontWeight: 600, color: '#EBEBEB', marginBottom: 12 }}>Meridian Health</div>
+      {/* THEN / NOW grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+        {/* THEN */}
+        <div>
+          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: 'rgba(235,235,235,.3)', letterSpacing: '.1em', marginBottom: 8 }}>THEN</div>
+          <div style={{ background: 'rgba(239,68,68,.05)', border: '1px solid rgba(239,68,68,.12)', borderRadius: 8, padding: 14 }}>
+            <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: 'rgba(239,68,68,.6)', marginBottom: 6 }}>Passed · Aug 2025</div>
+            <div style={{ fontSize: 12, color: 'rgba(235,235,235,.5)', lineHeight: 1.6 }}>Too early — no revenue, pre-product. Revisit if they close a round.</div>
+          </div>
+        </div>
+        {/* NOW */}
+        <div>
+          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: '#4ade80', letterSpacing: '.1em', marginBottom: 8 }}>NOW</div>
+          <div style={{ background: 'rgba(74,222,128,.05)', border: '1px solid rgba(74,222,128,.15)', borderRadius: 8, padding: 14 }}>
+            <div style={{ fontSize: 12, color: '#4ade80', marginBottom: 5 }}>↑ $500K ARR announced</div>
+            <div style={{ fontSize: 12, color: '#4ade80', marginBottom: 5 }}>↑ 3 enterprise pilots signed</div>
+            <div style={{ fontSize: 12, color: '#4ade80' }}>↑ Seed round opening — $2M target</div>
+          </div>
+        </div>
+      </div>
+      {/* CTA button */}
+      <button style={{ width: '100%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: 'white', fontSize: 13, fontWeight: 600, padding: '11px 20px', borderRadius: 8, border: 'none', cursor: 'pointer' }}>
+        Re-evaluate Meridian Health →
+      </button>
+    </div>
+  );
+}
+
+function MockIntelligenceLayer() {
+  const STAGE_MS = 6000;
+  const FADE_MS = 600;
+  const [stage, setStage] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setStage(s => (s + 1) % 3);
+        setVisible(true);
+      }, FADE_MS);
+    }, STAGE_MS);
+    return () => clearTimeout(t);
+  }, [stage]);
+
+  return (
+    <div style={{ border: '1px solid rgba(255,255,255,.06)', borderRadius: 14, overflow: 'hidden', marginTop: 44 }}>
+      {/* chrome */}
+      <div className="prod-chrome">
+        <div className="chrome-dot" style={{ background: '#FF5F57' }} />
+        <div className="chrome-dot" style={{ background: '#FFBD2E' }} />
+        <div className="chrome-dot" style={{ background: '#28C840' }} />
+        <div className="chrome-bar">
+          <span className="chrome-url">reidar.ai/intelligence</span>
+        </div>
+      </div>
+      {/* content */}
+      <div style={{ opacity: visible ? 1 : 0, transition: `opacity ${FADE_MS}ms ease` }}>
+        {stage === 0 && <MILStage1 />}
+        {stage === 1 && <MILStage2 />}
+        {stage === 2 && <MILStage3 />}
+      </div>
+    </div>
+  );
+}
+
+/* ─── MOCK AUTOPILOT DASHBOARD ─── */
+function MockAutopilot() {
   const STAGE_MS = 3500;
   const FADE_MS = 400;
   const [stage, setStage] = useState(0);
@@ -1047,25 +1222,10 @@ function MockIntelligence() {
   }, [stage]);
 
   return (
-    <div style={{ border: '1px solid rgba(255,255,255,.06)', borderRadius: 14, overflow: 'hidden', marginTop: 44, minHeight: 420, display: 'flex', flexDirection: 'column' }}>
-      {/* chrome */}
-      <div className="prod-chrome">
-        <div className="chrome-dot" style={{ background: '#FF5F57' }} />
-        <div className="chrome-dot" style={{ background: '#FFBD2E' }} />
-        <div className="chrome-dot" style={{ background: '#28C840' }} />
-        <div className="chrome-bar">
-          <span className="chrome-url">reidar.ai/intelligence</span>
-        </div>
-      </div>
-      {/* content */}
-      <div style={{
-        flex: 1, background: '#0C0C10', padding: 28, overflow: 'hidden',
-        opacity: visible ? 1 : 0, transition: `opacity ${FADE_MS}ms ease`,
-      }}>
-        {stage === 0 && <MIStage1 />}
-        {stage === 1 && <MIStage2 />}
-        {stage === 2 && <MIStage3 />}
-      </div>
+    <div style={{ padding: 28, opacity: visible ? 1 : 0, transition: `opacity ${FADE_MS}ms ease` }}>
+      {stage === 0 && <MIStage1 />}
+      {stage === 1 && <MIStage2 />}
+      {stage === 2 && <MIStage3 />}
     </div>
   );
 }
@@ -1396,252 +1556,6 @@ function IntegrationsOrbit() {
   );
 }
 
-/* ─── MEET REIDAR PANELS ─── */
-
-function TraitPanel1() {
-  const [loopKey, setLoopKey] = useState(0);
-  const [stage, setStage] = useState(0);
-  const [pillsVis, setPillsVis] = useState(0);
-  const portfolioCos = ["Synthos", "Waymark AI", "Corpora", "Viven"];
-  useEffect(() => {
-    setStage(0); setPillsVis(0);
-    const t1 = setTimeout(() => setStage(1), 1200);
-    const t2 = setTimeout(() => setStage(2), 2500);
-    const t3 = setTimeout(() => setPillsVis(1), 2700);
-    const t4 = setTimeout(() => setPillsVis(2), 3000);
-    const t5 = setTimeout(() => setPillsVis(3), 3300);
-    const t6 = setTimeout(() => setPillsVis(4), 3600);
-    const t7 = setTimeout(() => setLoopKey(k => k + 1), 6000);
-    return () => [t1,t2,t3,t4,t5,t6,t7].forEach(clearTimeout);
-  }, [loopKey]);
-  return (
-    <div className="dyn-panel-inner">
-      <div style={{ background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",borderRadius:7,padding:"8px 12px",display:"flex",alignItems:"center",gap:8,marginBottom:18 }}>
-        <div style={{ width:6,height:6,borderRadius:"50%",flexShrink:0,background:stage===0?"#facc15":"#4ade80",animation:stage===0?"pulse 1.2s infinite":"none",transition:"background .5s" }} />
-        <span style={{ fontFamily:"'DM Mono',monospace",fontSize:11,color:"rgba(235,235,235,.4)" }}>failupventures.com</span>
-        {stage===0 && <span style={{ marginLeft:"auto",fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(235,235,235,.2)" }}>reading...</span>}
-        {stage>=1 && <span style={{ marginLeft:"auto",fontFamily:"'DM Mono',monospace",fontSize:9,color:"#4ade80",animation:"dyn-fade-in .4s ease" }}>✓ parsed</span>}
-      </div>
-      {stage>=1 && (
-        <div style={{ background:"rgba(107,71,245,.07)",border:"1px solid rgba(107,71,245,.18)",borderRadius:8,padding:"14px 16px",marginBottom:18,animation:"dyn-panel-in .35s ease" }}>
-          <div style={{ fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(107,71,245,.6)",letterSpacing:".1em",marginBottom:8 }}>THESIS EXTRACTED</div>
-          <div style={{ fontSize:12,color:"rgba(235,235,235,.65)",lineHeight:1.6 }}>AI-native B2B SaaS · regulated verticals · pre-seed / seed</div>
-        </div>
-      )}
-      {stage>=2 && (
-        <div style={{ animation:"dyn-panel-in .3s ease" }}>
-          <div style={{ fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(235,235,235,.25)",letterSpacing:".1em",marginBottom:10 }}>PORTFOLIO LOADED</div>
-          <div style={{ display:"flex",flexWrap:"wrap",gap:6 }}>
-            {portfolioCos.map((co, i) => i < pillsVis && (
-              <div key={co} style={{ padding:"5px 12px",borderRadius:20,background:"rgba(107,71,245,.1)",border:"1px solid rgba(107,71,245,.22)",fontSize:11,color:"#A992FA",animation:"dyn-panel-in .3s ease" }}>{co}</div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function TraitPanel2() {
-  const [loopKey, setLoopKey] = useState(0);
-  const [stage, setStage] = useState(0);
-  useEffect(() => {
-    setStage(0);
-    const t1 = setTimeout(() => setStage(1), 1500);
-    const t2 = setTimeout(() => setStage(2), 2900);
-    const t3 = setTimeout(() => setLoopKey(k => k + 1), 5800);
-    return () => [t1,t2,t3].forEach(clearTimeout);
-  }, [loopKey]);
-  return (
-    <div className="dyn-panel-inner">
-      {stage>=1 && (
-        <div style={{ background:"rgba(34,197,94,.08)",border:"1px solid rgba(34,197,94,.2)",borderRadius:8,padding:"12px 14px",marginBottom:16,display:"flex",gap:10,alignItems:"flex-start",animation:"dyn-slide-down .35s ease" }}>
-          <div style={{ width:22,height:22,borderRadius:6,background:"rgba(34,197,94,.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:13,color:"#4ade80" }}>↗</div>
-          <div>
-            <div style={{ fontSize:12,fontWeight:500,color:"#4ade80",marginBottom:3 }}>New signal — Meridian Health</div>
-            <div style={{ fontSize:11,color:"rgba(235,235,235,.5)",lineHeight:1.5 }}>Closed a $3.2M seed round. Worth another look?</div>
-          </div>
-        </div>
-      )}
-      <div style={{ background:stage>=2?"rgba(34,197,94,.04)":"rgba(239,68,68,.04)",border:`1px solid ${stage>=2?"rgba(34,197,94,.2)":"rgba(239,68,68,.15)"}`,borderRadius:10,padding:"16px 18px",transition:"background .6s,border-color .6s" }}>
-        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10 }}>
-          <div>
-            <div style={{ fontSize:14,fontWeight:500,color:"#EBEBEB",marginBottom:3 }}>Meridian Health</div>
-            <div style={{ fontSize:11,color:"rgba(235,235,235,.4)" }}>AI-native patient intake platform</div>
-          </div>
-          <div style={{ padding:"3px 9px",borderRadius:4,fontSize:10,fontFamily:"'DM Mono',monospace",background:stage>=2?"rgba(34,197,94,.12)":"rgba(239,68,68,.1)",color:stage>=2?"#4ade80":"#fca5a5",border:`1px solid ${stage>=2?"rgba(34,197,94,.2)":"rgba(239,68,68,.2)"}`,transition:"all .6s ease",whiteSpace:"nowrap" }}>
-            {stage>=2?"Active signal":"Passed · 6mo ago"}
-          </div>
-        </div>
-        <div style={{ fontSize:11,color:"rgba(235,235,235,.35)",lineHeight:1.55 }}>Pre-seed · HealthTech · $3.2M seed closed</div>
-        {stage>=2 && (
-          <div style={{ marginTop:12,animation:"dyn-panel-in .4s ease" }}>
-            <div style={{ display:"inline-flex",padding:"7px 14px",borderRadius:6,background:"#4ade80",color:"#07070A",fontSize:11,fontWeight:600,cursor:"pointer" }}>Re-evaluate →</div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-const P3_TEXT = "Spoke to Riya at NovaMed. AI for prior auth. Pre-seed, raising $1.5M. Ex-Stripe founder. Benchmark might be in.";
-const P3_LINES = [
-  { text: "NovaMed — Top Match · 5/5", color: "#4ade80" },
-  { text: "AI-native, regulated vertical, pre-seed ✓", color: "rgba(235,235,235,.55)" },
-  { text: "⚠ Overlaps with Synthos in your pipeline", color: "#facc15" },
-  { text: "Benchmark signal → priority flag", color: "#A992FA" },
-];
-
-function TraitPanel3() {
-  const [loopKey, setLoopKey] = useState(0);
-  const [charIdx, setCharIdx] = useState(0);
-  const [phase, setPhase] = useState(0);
-  const [linesVis, setLinesVis] = useState(0);
-  useEffect(() => {
-    setCharIdx(0); setPhase(0); setLinesVis(0);
-    let localChar = 0;
-    const timers = [];
-    const typeChar = () => {
-      localChar++;
-      setCharIdx(localChar);
-      if (localChar >= P3_TEXT.length) {
-        timers.push(setTimeout(() => {
-          setPhase(1);
-          timers.push(setTimeout(() => setLinesVis(1), 200));
-          timers.push(setTimeout(() => setLinesVis(2), 420));
-          timers.push(setTimeout(() => setLinesVis(3), 640));
-          timers.push(setTimeout(() => setLinesVis(4), 860));
-          timers.push(setTimeout(() => setLoopKey(k => k + 1), 4500));
-        }, 400));
-        return;
-      }
-      timers.push(setTimeout(typeChar, 28));
-    };
-    timers.push(setTimeout(typeChar, 28));
-    return () => timers.forEach(clearTimeout);
-  }, [loopKey]);
-  return (
-    <div className="dyn-panel-inner">
-      {phase===0 && (
-        <div>
-          <div style={{ fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(235,235,235,.25)",letterSpacing:".1em",marginBottom:8 }}>CALL NOTES</div>
-          <div style={{ background:"rgba(255,255,255,.03)",border:"1px solid rgba(255,255,255,.08)",borderRadius:8,padding:14,minHeight:90 }}>
-            <span style={{ fontSize:12,color:"rgba(235,235,235,.6)",lineHeight:1.65,fontFamily:"'DM Mono',monospace" }}>
-              {P3_TEXT.slice(0,charIdx)}<span className="typewriter-cursor">|</span>
-            </span>
-          </div>
-        </div>
-      )}
-      {phase>=1 && (
-        <div style={{ animation:"dyn-panel-in .25s ease" }}>
-          <div style={{ fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(107,71,245,.6)",letterSpacing:".1em",marginBottom:12 }}>STRUCTURED EXTRACTION</div>
-          <div style={{ display:"flex",flexDirection:"column",gap:9 }}>
-            {P3_LINES.map((line, i) => i<linesVis && (
-              <div key={i} style={{ display:"flex",gap:8,alignItems:"flex-start",animation:"dyn-panel-in .25s ease" }}>
-                <span style={{ color:line.color,flexShrink:0,marginTop:2,fontSize:13 }}>›</span>
-                <span style={{ fontSize:12,color:line.color,lineHeight:1.5 }}>{line.text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-const P4_INSIGHTS = [
-  "Last 4 diligences: technical co-founder, enterprise background",
-  "3 passes in InsurTech this month — sector fatigue signal",
-  "Strongest pattern: pre-seed, 2-person team, ex-operator",
-];
-
-function TraitPanel4() {
-  const [loopKey, setLoopKey] = useState(0);
-  const [cardsVis, setCardsVis] = useState(0);
-  const [fading, setFading] = useState(false);
-  useEffect(() => {
-    setCardsVis(0); setFading(false);
-    const t1 = setTimeout(() => setCardsVis(1), 300);
-    const t2 = setTimeout(() => setCardsVis(2), 1200);
-    const t3 = setTimeout(() => setCardsVis(3), 2100);
-    const t4 = setTimeout(() => setFading(true), 4200);
-    const t5 = setTimeout(() => setLoopKey(k => k + 1), 4800);
-    return () => [t1,t2,t3,t4,t5].forEach(clearTimeout);
-  }, [loopKey]);
-  return (
-    <div className="dyn-panel-inner" style={{ opacity:fading?0:1,transition:"opacity .5s ease" }}>
-      <div style={{ fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(107,71,245,.5)",letterSpacing:".1em",marginBottom:16 }}>PATTERN LEARNED · THIS WEEK</div>
-      <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
-        {P4_INSIGHTS.map((insight, i) => i<cardsVis && (
-          <div key={i} style={{ background:"rgba(255,255,255,.025)",border:"1px solid rgba(255,255,255,.07)",borderRadius:8,padding:"14px 16px",animation:"dyn-panel-in .4s ease" }}>
-            <div style={{ display:"flex",gap:10,alignItems:"flex-start" }}>
-              <div style={{ width:20,height:20,borderRadius:4,background:"rgba(107,71,245,.15)",border:"1px solid rgba(107,71,245,.25)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-                <span style={{ fontSize:8,color:"#A992FA" }}>{String(i+1).padStart(2,'0')}</span>
-              </div>
-              <span style={{ fontSize:12,color:"rgba(235,235,235,.55)",lineHeight:1.55 }}>{insight}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const MEET_CYCLE_MS = 5000;
-
-function MeetReidarTabs() {
-  const [active, setActive] = useState(0);
-  const [panelKey, setPanelKey] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const startRef = useRef(Date.now());
-  useEffect(() => {
-    const fn = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', fn, { passive: true });
-    return () => window.removeEventListener('resize', fn);
-  }, []);
-  useEffect(() => {
-    if (paused) return;
-    startRef.current = Date.now();
-    setProgress(0);
-    const iv = setInterval(() => {
-      setProgress(Math.min(100, ((Date.now() - startRef.current) / MEET_CYCLE_MS) * 100));
-    }, 50);
-    const t = setTimeout(() => {
-      setActive(a => (a + 1) % TRAITS.length);
-      setPanelKey(k => k + 1);
-    }, MEET_CYCLE_MS);
-    return () => { clearInterval(iv); clearTimeout(t); };
-  }, [active, paused]);
-  const select = (i) => {
-    setActive(i);
-    setPanelKey(k => k + 1);
-    setProgress(0);
-    startRef.current = Date.now();
-    setPaused(false);
-  };
-  const Panels = [TraitPanel1, TraitPanel2, TraitPanel3, TraitPanel4];
-  const Panel = Panels[active];
-  return (
-    <div className="dyn-shell" style={isMobile ? { minHeight: 480, overflow: 'hidden' } : {}} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-      <div className="dyn-tabs">
-        {TRAITS.map((t, i) => (
-          <div key={t.tag} className={`dyn-tab${active===i?" dyn-active":""}`} onClick={() => select(i)}>
-            <div className="dyn-tab-tag">{t.tag}</div>
-            <div className="dyn-tab-title">{t.title}</div>
-            <div className="dyn-tab-prog">
-              <div className="dyn-tab-prog-bar" style={{ width:active===i?`${progress}%`:"0%" }} />
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="dyn-panel">
-        <Panel key={panelKey} />
-      </div>
-    </div>
-  );
-}
 
 /* ─── MAIN ─── */
 export default function LandingPage() {
@@ -1736,7 +1650,7 @@ const { isSignedIn } = useAuth();
             </button>
           </div>
           <div className="hero-stats">
-            {[["Nightly", "AI sourcing"], ["< 5 min", "to set up"], ["1–5", "thesis scoring"]].map(([n, l]) => (
+            {[["5 min", "to setup your profile"], ["Every deal", "you've touched, always in play"], ["24 / 7", "working while you sleep"]].map(([n, l]) => (
               <div key={l}><div className="stat-n">{n}</div><div className="stat-l">{l}</div></div>
             ))}
           </div>
@@ -1757,9 +1671,9 @@ const { isSignedIn } = useAuth();
         <section className="sec">
           <div className="s-tag sr">Meet Reidar</div>
           <h2 className="s-h2 sr d1">Not a database. <em>An associate.</em></h2>
-          <p className="s-p sr d2">Reidar lives inside your firm's context. He knows your portfolio, your thesis, what you've passed on and why. By the time you open your coverage feed, he's already been working for hours.</p>
+          <p className="s-p sr d2">Reidar reads your inbox, watches your calendar, and remembers every founder you've ever met. Every interaction your firm has ever had — structured, scored, and surfaced at exactly the right moment.</p>
           <div className="sr d3">
-            <MeetReidarTabs />
+            <MockIntelligenceLayer />
           </div>
         </section>
       </div>
@@ -1805,24 +1719,10 @@ const { isSignedIn } = useAuth();
       <div className="wrap">
         <section id="product" className="sec">
           <div className="s-tag sr">The product</div>
-          <h2 className="s-h2 sr d1">Six screens. <em>One associate.</em></h2>
+          <h2 className="s-h2 sr d1">Every screen. <em>One associate.</em></h2>
           <p className="s-p sr d2">Everything a VC analyst does — built around your mandate. Hover to pause, click to explore.</p>
           <div className="sr d3">
             <ProductPreview />
-          </div>
-        </section>
-      </div>
-
-      <div className="divider" />
-
-      {/* INTELLIGENCE LAYER */}
-      <div className="wrap">
-        <section className="sec">
-          <div className="s-tag sr">The intelligence layer</div>
-          <h2 className="s-h2 sr d1">See inside your associate's brain. <em>And direct it in real time.</em></h2>
-          <p className="s-p sr d2">Most tools are black boxes. Reidar shows you exactly what it's learning, what it ran last night, and where it's hunting next — and lets you shape it with one click.</p>
-          <div className="sr d3">
-            <MockIntelligence />
           </div>
         </section>
       </div>
