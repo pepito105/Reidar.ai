@@ -93,7 +93,7 @@ async def gmail_callback(
     db: AsyncSession = Depends(get_db),
 ):
     """No-auth endpoint — Google redirects here after consent."""
-    frontend_url = settings.APP_URL
+    frontend_url = settings.FRONTEND_URL
 
     if error or not code or not state:
         logger.warning(f"Gmail callback error: {error}")
