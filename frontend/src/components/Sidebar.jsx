@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useClerk } from '@clerk/clerk-react'
-import { Home, Zap, LayoutList, Trophy, Map, Flame, MessageSquare, LogOut, Settings } from 'lucide-react'
+import { Home, Zap, LayoutList, Trophy, Map, Brain, Flame, MessageSquare, LogOut, Settings } from 'lucide-react'
 
 export default function Sidebar({ screen, setScreen, firmProfile, setShowSignals, setShowChat, setShowOnboarding, setShowFirmSettings }) {
   const { signOut } = useClerk()
@@ -12,6 +12,7 @@ export default function Sidebar({ screen, setScreen, firmProfile, setShowSignals
     { id: 'pipeline', label: 'Pipeline', icon: LayoutList },
     { id: 'portfolio', label: 'Portfolio', icon: Trophy },
     { id: 'marketmap', label: 'Market Map', icon: Map },
+    { id: 'intelligence', label: 'Intelligence', icon: Brain },
   ]
 
   const w = collapsed ? 56 : 220

@@ -233,7 +233,7 @@ async def job_run_research():
                 pass
 
 
-async def job_run_sourcing():
+async def job_run_sourcing(user_id: str = None):
     logger.info('Scheduler: Starting nightly autonomous sourcing (deep mode)')
     from app.services.sourcing_service import run_autonomous_sourcing
     from app.services.research_service import run_research_batch
@@ -267,9 +267,10 @@ async def job_run_sourcing():
             from app.services.job_health import start_job_run, complete_job_run, fail_job_run
             run = await start_job_run(db, "autonomous_sourcing")
 
-            profiles_result = await db.execute(
-                select(FirmProfile).where(FirmProfile.is_active == True)
-            )
+            profile_query = select(FirmProfile).where(FirmProfile.is_active == True)
+            if user_id is not None:
+                profile_query = profile_query.where(FirmProfile.user_id == user_id)
+            profiles_result = await db.execute(profile_query)
             profiles = profiles_result.scalars().all()
             if not profiles:
                 logger.info('No active firm profiles — skipping nightly sourcing')

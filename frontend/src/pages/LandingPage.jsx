@@ -1028,6 +1028,260 @@ function CompetitorGrid() {
 
 /* ─── INTEGRATIONS ORBIT ─── */
 
+/* ─── MOCK INTELLIGENCE DASHBOARD ─── */
+function MockIntelligence() {
+  const STAGE_MS = 3500;
+  const FADE_MS = 400;
+  const [stage, setStage] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setStage(s => (s + 1) % 3);
+        setVisible(true);
+      }, FADE_MS);
+    }, STAGE_MS);
+    return () => clearTimeout(t);
+  }, [stage]);
+
+  return (
+    <div style={{ border: '1px solid rgba(255,255,255,.06)', borderRadius: 14, overflow: 'hidden', marginTop: 44, minHeight: 420, display: 'flex', flexDirection: 'column' }}>
+      {/* chrome */}
+      <div className="prod-chrome">
+        <div className="chrome-dot" style={{ background: '#FF5F57' }} />
+        <div className="chrome-dot" style={{ background: '#FFBD2E' }} />
+        <div className="chrome-dot" style={{ background: '#28C840' }} />
+        <div className="chrome-bar">
+          <span className="chrome-url">reidar.ai/intelligence</span>
+        </div>
+      </div>
+      {/* content */}
+      <div style={{
+        flex: 1, background: '#0C0C10', padding: 28, overflow: 'hidden',
+        opacity: visible ? 1 : 0, transition: `opacity ${FADE_MS}ms ease`,
+      }}>
+        {stage === 0 && <MIStage1 />}
+        {stage === 1 && <MIStage2 />}
+        {stage === 2 && <MIStage3 />}
+      </div>
+    </div>
+  );
+}
+
+/* Stage 1 — Learning Loop */
+function MIStage1() {
+  const [badge, setBadge] = useState('COLD START');
+  const [barW, setBarW] = useState(0);
+  const [queryVis, setQueryVis] = useState(false);
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setBadge('LEARNING'), 1200);
+    const t2 = setTimeout(() => setBarW(20), 300);
+    const t3 = setTimeout(() => setQueryVis(true), 1600);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, []);
+
+  const isLearning = badge === 'LEARNING';
+
+  return (
+    <div>
+      <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: '.12em', color: '#6B47F5', textTransform: 'uppercase', marginBottom: 20 }}>
+        Learning Loop
+      </div>
+      {/* Status badge */}
+      <div style={{ textAlign: 'center', marginBottom: 20 }}>
+        <div style={{
+          display: 'inline-block', padding: '6px 18px', borderRadius: 20,
+          fontFamily: "'DM Mono',monospace", fontSize: 11, fontWeight: 700, letterSpacing: '.08em',
+          background: isLearning ? 'rgba(245,158,11,.12)' : 'rgba(239,68,68,.12)',
+          border: `1px solid ${isLearning ? 'rgba(245,158,11,.35)' : 'rgba(239,68,68,.35)'}`,
+          color: isLearning ? '#FCD34D' : '#FCA5A5',
+          transition: 'all 0.6s ease',
+        }}>
+          {badge}
+        </div>
+        <div style={{ fontSize: 11, color: 'rgba(235,235,235,.32)', marginTop: 10 }}>
+          2 of 10 high-quality runs needed for self-optimization
+        </div>
+      </div>
+      {/* Progress bar */}
+      <div style={{ background: 'rgba(255,255,255,.06)', borderRadius: 3, height: 5, overflow: 'hidden', marginBottom: 20 }}>
+        <div style={{
+          height: '100%', borderRadius: 3, background: '#6B47F5',
+          width: `${barW}%`, transition: 'width 1.5s cubic-bezier(.16,1,.3,1)',
+        }} />
+      </div>
+      {/* Queries */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, opacity: queryVis ? 1 : 0, transition: 'opacity 0.5s ease' }}>
+        <div style={{ fontSize: 10, color: 'rgba(235,235,235,.3)', letterSpacing: '.06em', fontFamily: "'DM Mono',monospace", marginBottom: 2 }}>WORKING WELL</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
+          <span style={{ fontSize: 11, color: 'rgba(235,235,235,.6)' }}>accounts payable AI pre-seed</span>
+        </div>
+        <div style={{ fontSize: 10, color: 'rgba(235,235,235,.3)', letterSpacing: '.06em', fontFamily: "'DM Mono',monospace", marginTop: 6, marginBottom: 2 }}>PATTERNS AVOIDING</div>
+        {['AI knowledge worker ops', 'fleet operations AI software'].map(q => (
+          <div key={q} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', flexShrink: 0 }} />
+            <span style={{ fontSize: 11, color: 'rgba(235,235,235,.3)', textDecoration: 'line-through' }}>{q}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* Stage 2 — Overnight Log */
+function MIStage2() {
+  const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const JOBS = [
+    { time: '3:00 AM', name: 'Signal Refresh', desc: 'Checked 4 companies — 2 new signals detected for DianaHR and Convr' },
+    { time: '4:00 AM', name: 'Sourcing', desc: 'Ran 8 queries — 18 companies found, 6 matched your mandate' },
+    { time: '4:08 AM', name: 'Email Alert', desc: 'Top match notification sent to remi@balassanian.com' },
+  ];
+  const [shown, setShown] = useState(0);
+
+  useEffect(() => {
+    const timers = JOBS.map((_, i) =>
+      setTimeout(() => setShown(i + 1), 200 + i * 400)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  return (
+    <div>
+      <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: '.12em', color: '#6B47F5', textTransform: 'uppercase', marginBottom: 20 }}>
+        Overnight Log
+      </div>
+      {/* Day pills */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
+        {DAYS.map(d => (
+          <div key={d} style={{
+            padding: '3px 10px', borderRadius: 20, fontSize: 10, fontFamily: "'DM Mono',monospace",
+            background: d === 'Sat' ? 'rgba(245,158,11,.15)' : 'rgba(255,255,255,.04)',
+            border: `1px solid ${d === 'Sat' ? 'rgba(245,158,11,.4)' : 'rgba(255,255,255,.08)'}`,
+            color: d === 'Sat' ? '#FCD34D' : 'rgba(235,235,235,.3)',
+          }}>{d}</div>
+        ))}
+      </div>
+      {/* Job cards */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {JOBS.map((job, i) => (
+          <div key={i} style={{
+            background: 'rgba(255,255,255,.025)', border: '1px solid rgba(255,255,255,.06)',
+            borderLeft: '3px solid #10b981', borderRadius: 8, padding: '10px 14px',
+            opacity: shown > i ? 1 : 0, transform: shown > i ? 'none' : 'translateY(6px)',
+            transition: 'opacity 0.35s ease, transform 0.35s ease',
+          }}>
+            <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: 'rgba(235,235,235,.3)', marginBottom: 4 }}>
+              {job.time} · <span style={{ color: 'rgba(235,235,235,.55)' }}>{job.name}</span>
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(235,235,235,.5)', lineHeight: 1.5 }}>{job.desc}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* Stage 3 — Sourcing Engine */
+function MIStage3() {
+  const QUERIES = [
+    { q: 'AI field service dispatch automation 2025', bar: '#10b981', pct: 80, added: 2 },
+    { q: 'AI underwriting workflow seed', bar: '#10b981', pct: 75, added: 4 },
+    { q: 'accounts payable AI pre-seed', bar: '#f59e0b', pct: 45, added: 3 },
+    { q: 'AI knowledge worker ops', bar: '#ef4444', pct: 10, added: 0 },
+  ];
+  const [shown, setShown] = useState(0);
+  const [lineLen, setLineLen] = useState(0);
+
+  // Sparkline path (8 points, slight upward trend)
+  const pts = [8, 22, 14, 28, 18, 24, 16, 32];
+  const W = 220, H = 44;
+  const xs = pts.map((_, i) => (i / (pts.length - 1)) * W);
+  const min = Math.min(...pts), max = Math.max(...pts);
+  const ys = pts.map(v => H - ((v - min) / (max - min + 1)) * (H - 8) - 4);
+  const pathD = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ');
+  const totalLen = 240; // approximate stroke length
+
+  useEffect(() => {
+    const t0 = setTimeout(() => setLineLen(totalLen), 100);
+    const timers = QUERIES.map((_, i) =>
+      setTimeout(() => setShown(i + 1), 600 + i * 300)
+    );
+    return () => { clearTimeout(t0); timers.forEach(clearTimeout); };
+  }, []);
+
+  return (
+    <div>
+      <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: '.12em', color: '#6B47F5', textTransform: 'uppercase', marginBottom: 16 }}>
+        Sourcing Engine
+      </div>
+      <div style={{ fontSize: 11, color: 'rgba(235,235,235,.35)', marginBottom: 16, lineHeight: 1.6 }}>
+        Last run Mar 20, 2026 — 8 queries,{' '}
+        <span style={{ color: '#A992FA' }}>18</span> companies added,{' '}
+        <span style={{ color: '#A992FA' }}>6</span> matched mandate
+      </div>
+      {/* Sparkline */}
+      <div style={{ marginBottom: 18 }}>
+        <svg width={W} height={H} style={{ display: 'block', overflow: 'visible' }}>
+          <defs>
+            <linearGradient id="mi-spark-grad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#10b981" stopOpacity="1" />
+            </linearGradient>
+          </defs>
+          <path
+            d={pathD}
+            fill="none"
+            stroke="url(#mi-spark-grad)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray={totalLen}
+            strokeDashoffset={totalLen - lineLen}
+            style={{ transition: 'stroke-dashoffset 1.5s cubic-bezier(.16,1,.3,1)' }}
+          />
+          {pts.map((_, i) => (
+            <circle
+              key={i}
+              cx={xs[i]}
+              cy={ys[i]}
+              r="2.5"
+              fill="#10b981"
+              opacity={lineLen > 0 ? 1 : 0}
+              style={{ transition: `opacity 0.3s ease ${0.8 + i * 0.1}s` }}
+            />
+          ))}
+        </svg>
+      </div>
+      {/* Query rows */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {QUERIES.map((q, i) => (
+          <div key={i} style={{
+            opacity: shown > i ? 1 : 0, transform: shown > i ? 'none' : 'translateY(4px)',
+            transition: 'opacity 0.3s ease, transform 0.3s ease',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11, color: 'rgba(235,235,235,.55)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 3 }}>
+                {q.q}
+              </div>
+              <div style={{ background: 'rgba(255,255,255,.06)', borderRadius: 2, height: 4, overflow: 'hidden' }}>
+                <div style={{ height: '100%', borderRadius: 2, background: q.bar, width: `${q.pct}%`, transition: `width 0.8s cubic-bezier(.16,1,.3,1) ${0.7 + i * 0.15}s` }} />
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(235,235,235,.35)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+              <span style={{ color: 'rgba(235,235,235,.6)', fontWeight: 500 }}>{q.added}</span> added
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function IntegrationsOrbit() {
   const containerRef = useRef(null);
   const frameRef = useRef(null);
@@ -1555,6 +1809,20 @@ const { isSignedIn } = useAuth();
           <p className="s-p sr d2">Everything a VC analyst does — built around your mandate. Hover to pause, click to explore.</p>
           <div className="sr d3">
             <ProductPreview />
+          </div>
+        </section>
+      </div>
+
+      <div className="divider" />
+
+      {/* INTELLIGENCE LAYER */}
+      <div className="wrap">
+        <section className="sec">
+          <div className="s-tag sr">The intelligence layer</div>
+          <h2 className="s-h2 sr d1">See inside your associate's brain. <em>And direct it in real time.</em></h2>
+          <p className="s-p sr d2">Most tools are black boxes. Reidar shows you exactly what it's learning, what it ran last night, and where it's hunting next — and lets you shape it with one click.</p>
+          <div className="sr d3">
+            <MockIntelligence />
           </div>
         </section>
       </div>

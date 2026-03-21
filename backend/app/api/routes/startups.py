@@ -75,7 +75,6 @@ class StartupResponse(BaseModel):
     funding_stage: Optional[str]
     funding_amount_usd: Optional[float]
     top_investors: Optional[List[Any]]
-    ai_score: Optional[int] = None   # removed from platform, kept for backward compat
     fit_score: Optional[int]
     fit_reasoning: Optional[str]
     thesis_tags: Optional[List[Any]]
@@ -179,7 +178,6 @@ def _startup_to_card(company: Company, score: FirmCompanyScore) -> Dict[str, Any
         "research_status": company.research_status,
         "research_completed_at": _utc_isoformat(company.research_completed_at),
         # FirmCompanyScore (per-tenant / mandate) fields
-        "ai_score": None,          # removed from platform; kept for backward compat
         "fit_score": score.fit_score,
         "fit_reasoning": score.fit_reasoning,
         "thesis_tags": score.thesis_tags,
@@ -265,8 +263,6 @@ async def get_startups(
         query = query.where(FirmCompanyScore.fit_score == 3)
 
     if sort == "fit_score":
-        query = query.order_by(FirmCompanyScore.fit_score.desc().nulls_last())
-    elif sort == "ai_score":
         query = query.order_by(FirmCompanyScore.fit_score.desc().nulls_last())
     elif sort == "newest":
         query = query.order_by(Company.scraped_at.desc())

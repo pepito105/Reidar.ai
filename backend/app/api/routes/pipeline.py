@@ -84,7 +84,6 @@ async def get_pipeline(request: Request, db: AsyncSession = Depends(get_db)):
                 "ai_summary": company.ai_summary,
                 "website": company.website,
                 "fit_score": score.fit_score,
-                "ai_score": None,
                 "fit_reasoning": score.fit_reasoning,
                 "funding_stage": company.funding_stage,
                 "funding_amount_usd": company.funding_amount_usd,

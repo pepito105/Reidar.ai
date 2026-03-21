@@ -140,11 +140,6 @@ export default function AddCompanyModal({ API, onClose, onAdded }) {
                   {result.funding_stage}
                 </span>
               )}
-              {result.ai_score && (
-                <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, background: '#1a0a2e', color: '#a78bfa', border: '1px solid #3730a3' }}>
-                  AI {result.ai_score}/5
-                </span>
-              )}
               {(result.thesis_tags || []).slice(0, 3).map(tag => (
                 <span key={tag} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, background: '#0d1a2e', color: '#6366f1', border: '1px solid #1e3a5f' }}>
                   {tag}

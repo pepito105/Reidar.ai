@@ -69,6 +69,8 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
   const [newNote, setNewNote] = useState('')
   const [activityLog, setActivityLog] = useState([])
   const [toast, setToast] = useState(false)
+  const [statusSaved, setStatusSaved] = useState(false)
+  const [statusError, setStatusError] = useState(false)
   const [memo, setMemo] = useState(null)
   const [memoFiles, setMemoFiles] = useState([])
   const [memoGeneratedAt, setMemoGeneratedAt] = useState(null)
@@ -246,14 +248,31 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
     fetchActivity()
   }, [activeTab, startup.id])
 
+  const saveStatus = async (newStatus) => {
+    const prev = pipelineStatus
+    setPipelineStatus(newStatus)
+    const token = await getToken().catch(() => null)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
+    try {
+      await axios.patch(`${API}/startups/${startup.id}`, { pipeline_status: newStatus }, { headers })
+      onUpdate?.({ ...startup, pipeline_status: newStatus })
+      setStatusSaved(true)
+      setTimeout(() => setStatusSaved(false), 1500)
+    } catch (e) {
+      setPipelineStatus(prev)
+      setStatusError(true)
+      setTimeout(() => setStatusError(false), 1500)
+    }
+  }
+
   const save = async () => {
     const token = await getToken().catch(() => null)
     const headers = token ? { Authorization: `Bearer ${token}` } : {}
     try {
-      await axios.patch(`${API}/startups/${startup.id}`, { notes, pipeline_status: pipelineStatus }, { headers })
+      await axios.patch(`${API}/startups/${startup.id}`, { notes }, { headers })
       setToast(true)
       setTimeout(() => setToast(false), 2000)
-      onUpdate?.({ ...startup, notes, pipeline_status: pipelineStatus })
+      onUpdate?.({ ...startup, notes })
     } catch (e) {
       console.error(e)
     }
@@ -280,7 +299,6 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
         })
       }
       await axios.patch(`${API}/startups/${startup.id}`, {
-        pipeline_status: pipelineStatus,
         notes,
         conviction_score: convictionScore,
         next_action: nextAction,
@@ -684,10 +702,14 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
 
         <Section title="VC Tracking">
           <div style={{ marginBottom: 12 }}>
-            <label style={{ fontSize: 11, color: '#555577', fontWeight: 600, display: 'block', marginBottom: 6 }}>PIPELINE STATUS</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <label style={{ fontSize: 11, color: '#555577', fontWeight: 600 }}>PIPELINE STATUS</label>
+              {statusSaved && <span style={{ fontSize: 11, color: '#10b981', fontWeight: 500 }}>✓ Saved</span>}
+              {statusError && <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 500 }}>Failed to save</span>}
+            </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {['new', ...PIPELINE_STAGES].map(stage => (
-                <button key={stage} onClick={() => setPipelineStatus(stage)} style={{
+                <button key={stage} onClick={() => saveStatus(stage)} style={{
                   padding: '5px 12px', borderRadius: 6, fontSize: 12, cursor: 'pointer', border: '1px solid',
                   borderColor: pipelineStatus === stage ? '#6366f1' : '#2a2a4a',
                   background: pipelineStatus === stage ? '#1e1b4b' : 'transparent',
@@ -717,7 +739,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
             background: '#4f46e5', color: '#fff',
             fontSize: 13, fontWeight: 600, cursor: 'pointer'
           }}>
-            Save Changes
+            Save Note
           </button>
         </Section>
         </div>
@@ -1016,7 +1038,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
                     cursor: 'pointer'
                   }}
                 >
-                  Save Changes
+                  Save Note
                 </button>
               </div>
               {/* Right column */}

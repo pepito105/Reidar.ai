@@ -104,8 +104,8 @@ If the company doesn't map cleanly, return "Other".
 Firm thesis for reference: {firm.investment_thesis}"""
 
 
-def _build_scoring_guide(firm) -> str:
-    """Returns the appropriate scoring guide based on whether firm has a thesis."""
+def _build_scoring_guide_deep(firm) -> str:
+    """Scoring guide for classify_startup (deep research — full data available)."""
     if not firm or not _has_meaningful_thesis(firm):
         return """SCORING MODE: Quality-based (no thesis filter)
 Score companies purely on objective quality signals:
@@ -116,13 +116,6 @@ fit_score (1-5) — overall company quality:
   3 = Interesting — promising but early or incomplete signal
   2 = Weak — generic product, crowded market, low differentiation
   1 = Poor — no clear value proposition or outside any reasonable investment scope
-
-ai_score (1-5) — how AI-native is this company:
-  5 = AI is the core product, not a feature
-  4 = AI is central and differentiating
-  3 = AI used meaningfully
-  2 = Some AI/ML elements
-  1 = No meaningful AI
 
 Score generously — use the full 1-5 range. A truly exceptional company should score 5."""
     else:
@@ -138,20 +131,43 @@ fit_score (1-5) — thesis fit + quality combined:
   2 = WEAK FIT — tangentially related but missing key thesis criteria
   1 = NO FIT — clearly outside thesis or in excluded sectors
 
-ai_score (1-5) — how AI-native is this company:
-  5 = AI is the core product
-  4 = AI is central and differentiating
-  3 = AI used meaningfully
-  2 = Some AI/ML elements
-  1 = No meaningful AI
-
 IMPORTANT: Be generous. If a company clearly addresses the firm's thesis with strong founder signal and market evidence — that is a 5. Do not anchor on 3 or 4. Use the full range."""
+
+
+def _build_scoring_guide_batch(firm) -> str:
+    """Scoring guide for classify_batch (surface data only — description and homepage excerpt)."""
+    if not firm or not _has_meaningful_thesis(firm):
+        return """SCORING MODE: Quality-based (no thesis filter)
+Score companies purely on objective quality signals:
+
+fit_score (1-5) — overall company quality:
+  5 = Exceptional — strong founder signal, large clear market, differentiated product with evidence of early traction
+  4 = Strong — compelling product, good market, solid team indicators
+  3 = Interesting — promising but early or incomplete signal
+  2 = Weak — generic product, crowded market, low differentiation
+  1 = Poor — no clear value proposition or outside any reasonable investment scope
+
+Score generously — use the full 1-5 range. A truly exceptional company should score 5."""
+    else:
+        return f"""SCORING MODE: Thesis-fit (firm has a defined mandate)
+The firm thesis is: {firm.investment_thesis}
+
+Score companies on how well they match this specific thesis AND their quality:
+
+fit_score (1-5) — thesis fit + quality combined:
+  5 = PERFECT MATCH — directly addresses every element of the thesis, clear technical founder, specific wedge, evidence of early traction. Reserve for genuinely exceptional fits.
+  4 = STRONG FIT — meets most thesis criteria, one element missing or unclear
+  3 = POSSIBLE FIT — relevant sector or adjacent, worth monitoring
+  2 = WEAK FIT — tangentially related but missing key thesis criteria
+  1 = NO FIT — clearly outside thesis or in excluded sectors
+
+IMPORTANT: You are scoring from limited surface data — a description and homepage excerpt only. When in doubt, score conservatively. A 4 means this company looks strong enough to warrant deep research. A 5 should be rare — only when every thesis criterion is clearly met from surface data alone. Most companies should score 2 or 3."""
 
 
 async def classify_startup(name: str, description: str, website: Optional[str], source: str, firm, custom_focus: str = None) -> dict:
     firm_context = _build_firm_context(firm)
     mandate_category_guide = _build_mandate_category_guide(firm)
-    scoring_guide = _build_scoring_guide(firm)
+    scoring_guide = _build_scoring_guide_deep(firm)
     focus_line = f'ANALYST FOCUS: The analyst has a specific question — make sure your analysis directly addresses this: {custom_focus}\n\n' if custom_focus else ''
 
     prompt = f"""{firm_context}
@@ -203,7 +219,6 @@ Respond with ONLY a JSON object, no markdown:
   "name": "actual company name only, or null if input is a headline/description and you cannot extract a clean name",
   "one_liner": "We help [customer] [solve problem] by [mechanism] — max 15 words",
   "ai_summary": "2-3 sentence investment overview",
-  "ai_score": <integer 1-5>,
   "fit_score": <integer 1-5>,
   "fit_reasoning": "Bullet points with • [dimension]: [reasoning] — High/Medium/Low confidence",
   "business_model": "how they make money",
@@ -237,7 +252,6 @@ Respond with ONLY a JSON object, no markdown:
             "name": None,
             "one_liner": description[:100] if description else name,
             "ai_summary": description[:300] if description else "",
-            "ai_score": None,
             "fit_score": None,
             "fit_reasoning": f"Classification failed: {str(e)}",
             "business_model": None,
@@ -700,11 +714,11 @@ Respond with ONLY a JSON array. If no real signals are found, return [].
 
 
 async def classify_batch(companies: list[dict], firm) -> list[dict]:
-    """Scoring-only batch: 20 companies per call. Returns id, fit_score, ai_score, one_liner, sector, mandate_category, thesis_tags, funding_stage, business_model, target_customer, name."""
+    """Scoring-only batch: 20 companies per call. Returns id, fit_score, one_liner, sector, mandate_category, thesis_tags, funding_stage, business_model, target_customer, name."""
     if not companies:
         return []
     firm_context = _build_firm_context(firm)
-    scoring_guide = _build_scoring_guide(firm)
+    scoring_guide = _build_scoring_guide_batch(firm)
     mandate_category_guide = _build_mandate_category_guide(firm)
 
     def _company_block(i: int, c: dict) -> str:
@@ -752,7 +766,6 @@ COMPANIES TO EVALUATE (score each one). Return ONLY these fields per company:
 Per company, output only:
 - id (integer, must match the input ID)
 - fit_score (1-5)
-- ai_score (1-5)
 - one_liner ("We help [customer] [solve problem] by [mechanism]" — max 15 words)
 - sector (exactly one value from the fixed sector list above)
 - mandate_category (firm's own thesis bucket label, or null)
@@ -765,7 +778,7 @@ Per company, output only:
 Respond with ONLY a JSON array of objects, one per company, in the same order as the list above. No markdown.
 Example:
 [
-  {{ "id": 1, "fit_score": 4, "ai_score": 5, "one_liner": "We help ...", "sector": "Enterprise SaaS", "mandate_category": "AI for Work", "thesis_tags": ["AI", "B2B"], "funding_stage": "seed", "business_model": "SaaS per seat.", "target_customer": "Mid-size law firms.", "name": "CompanyName" }},
+  {{ "id": 1, "fit_score": 4, "one_liner": "We help ...", "sector": "Enterprise SaaS", "mandate_category": "AI for Work", "thesis_tags": ["AI", "B2B"], "funding_stage": "seed", "business_model": "SaaS per seat.", "target_customer": "Mid-size law firms.", "name": "CompanyName" }},
   ...
 ]"""
     try:

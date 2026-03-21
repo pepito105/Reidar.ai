@@ -7,6 +7,7 @@ import Coverage from './components/Coverage.jsx'
 import Pipeline from './components/Pipeline.jsx'
 import MarketMap from './components/MarketMap.jsx'
 import Portfolio from './components/Portfolio'
+import Intelligence from './components/Intelligence.jsx'
 import HotSignals from './components/HotSignals.jsx'
 import OnboardingModal from './components/OnboardingModal.jsx'
 import FirmSettings from './components/FirmSettings.jsx'
@@ -210,6 +211,7 @@ export default function App() {
         )}
         {screen === 'marketmap' && <MarketMap API={API} />}
         {screen === 'portfolio' && <Portfolio API={API} />}
+        {screen === 'intelligence' && <Intelligence API={API} />}
       </main>
 
       {showOnboarding && (

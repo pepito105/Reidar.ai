@@ -20,7 +20,6 @@ class Startup(Base):
     funding_stage = Column(String(50))
     funding_amount_usd = Column(Float)
     top_investors = Column(JSON, default=list)
-    ai_score = Column(Integer)
     fit_score = Column(Integer)
     fit_reasoning = Column(Text)
     thesis_tags = Column(JSON, default=list)
