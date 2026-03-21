@@ -5,12 +5,13 @@ from app.models.scheduler_run import SchedulerRun
 
 logger = logging.getLogger(__name__)
 
-async def start_job_run(db: AsyncSession, job_name: str) -> SchedulerRun:
+async def start_job_run(db: AsyncSession, job_name: str, user_id: str = None) -> SchedulerRun:
     """Call at the start of every scheduler job."""
     run = SchedulerRun(
         job_name=job_name,
         started_at=datetime.utcnow(),
         status="running",
+        user_id=user_id,
     )
     db.add(run)
     await db.commit()

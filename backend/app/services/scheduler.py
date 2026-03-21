@@ -21,28 +21,29 @@ async def job_refresh_signals():
     logger.info('Scheduler: Starting nightly signal refresh')
     from app.services.refresh_service import refresh_company
     from app.services.notification_service import send_diligence_batch_alert
+    from app.services.job_health import start_job_run, complete_job_run, fail_job_run
     async with AsyncSessionLocal() as db:
         try:
-            from app.services.job_health import start_job_run, complete_job_run, fail_job_run
-            run = await start_job_run(db, "signal_refresh")
-
             profiles_result = await db.execute(select(FirmProfile).where(FirmProfile.is_active == True))
             profiles = profiles_result.scalars().all()
+        except Exception as e:
+            logger.error(f'Signal refresh: failed to load profiles: {e}', exc_info=True)
+            return
 
-            cutoff = datetime.utcnow() - timedelta(hours=23)
-            total_refreshed = 0
-            total_signals = 0
+        cutoff = datetime.utcnow() - timedelta(hours=23)
 
-            for profile in profiles:
-                user_id = profile.user_id
-                firm_name = profile.firm_name or "your firm"
-                thesis = profile.investment_thesis or ""
-                notify_emails = profile.notification_emails
-                should_notify_diligence = profile.notify_diligence_signal
+        for profile in profiles:
+            firm_user_id = profile.user_id
+            firm_name = profile.firm_name or "your firm"
+            thesis = profile.investment_thesis or ""
+            notify_emails = profile.notification_emails
+            should_notify_diligence = profile.notify_diligence_signal
 
+            run = await start_job_run(db, "signal_refresh", user_id=firm_user_id)
+            try:
                 result = await db.execute(
                     select(FirmCompanyScore)
-                    .where(FirmCompanyScore.user_id == user_id)
+                    .where(FirmCompanyScore.user_id == firm_user_id)
                     .where(FirmCompanyScore.pipeline_status.in_(["watching", "outreach", "diligence"]))
                     .where(
                         (FirmCompanyScore.last_refreshed_at == None) |
@@ -70,7 +71,6 @@ async def job_refresh_signals():
                                 }
                                 for s in sigs
                             ]
-                            # Get company name for the alert
                             company_result = await db.execute(
                                 select(Company.name).where(Company.id == score.company_id)
                             )
@@ -97,17 +97,14 @@ async def job_refresh_signals():
                 elif not should_notify_diligence:
                     logger.info(f"Diligence alert skipped — notify_diligence_signal is disabled ({firm_name})")
 
-                total_refreshed += refreshed
-                total_signals += new_signals
-
-            logger.info(f'Signal refresh complete: {total_refreshed} companies, {total_signals} signals')
-            await complete_job_run(db, run.id, stats={"total_refreshed": total_refreshed, "total_signals": total_signals, "firms_processed": len(profiles)}, firm_count=len(profiles))
-        except Exception as e:
-            logger.error(f'Signal refresh failed: {e}', exc_info=True)
-            try:
-                await fail_job_run(db, run.id, error=str(e), job_name="signal_refresh")
-            except Exception:
-                pass
+                logger.info(f'Signal refresh complete for {firm_name}: {refreshed} companies, {new_signals} signals')
+                await complete_job_run(db, run.id, stats={"total_refreshed": refreshed, "total_signals": new_signals}, firm_count=1)
+            except Exception as e:
+                logger.error(f'Signal refresh failed for {firm_name}: {e}', exc_info=True)
+                try:
+                    await fail_job_run(db, run.id, error=str(e), job_name="signal_refresh")
+                except Exception:
+                    pass
 
 
 async def job_weekly_summary():
@@ -237,63 +234,68 @@ async def job_run_sourcing(user_id: str = None):
     logger.info('Scheduler: Starting nightly autonomous sourcing (deep mode)')
     from app.services.sourcing_service import run_autonomous_sourcing
     from app.services.research_service import run_research_batch
+    from app.services.job_health import start_job_run, complete_job_run, fail_job_run
     async with AsyncSessionLocal() as db:
-        # ── Distributed lock: prevent double-firing across Railway instances ──
-        stale_cutoff = datetime.utcnow() - timedelta(hours=2)
-        existing_result = await db.execute(
-            select(SchedulerRun)
-            .where(SchedulerRun.job_name == "autonomous_sourcing")
-            .where(SchedulerRun.status == "running")
-            .order_by(SchedulerRun.started_at.desc())
-            .limit(1)
-        )
-        existing_run = existing_result.scalars().first()
-        if existing_run:
-            if existing_run.started_at > stale_cutoff:
-                logger.info("Job already running on another instance, skipping")
-                return
-            else:
-                logger.warning(f"Clearing stale lock for autonomous_sourcing (run_id={existing_run.id}, started={existing_run.started_at})")
-                await db.execute(
-                    update(SchedulerRun)
-                    .where(SchedulerRun.id == existing_run.id)
-                    .values(status="failure", error_message="stale lock cleared", completed_at=datetime.utcnow())
-                )
-                await db.commit()
-        # ─────────────────────────────────────────────────────────────────────
-
-        run = None
         try:
-            from app.services.job_health import start_job_run, complete_job_run, fail_job_run
-            run = await start_job_run(db, "autonomous_sourcing")
-
             profile_query = select(FirmProfile).where(FirmProfile.is_active == True)
             if user_id is not None:
                 profile_query = profile_query.where(FirmProfile.user_id == user_id)
             profiles_result = await db.execute(profile_query)
             profiles = profiles_result.scalars().all()
-            if not profiles:
-                logger.info('No active firm profiles — skipping nightly sourcing')
-                await complete_job_run(db, run.id, stats={"firms_processed": 0}, firm_count=0)
-                return
-            for profile in profiles:
-                firm_name = profile.firm_name or 'Unknown'
-                user_id = profile.user_id
-                thesis = profile.investment_thesis or ""
-                logger.info(f'Nightly sourcing for: {firm_name}')
+        except Exception as e:
+            logger.error(f'Nightly sourcing: failed to load profiles: {e}', exc_info=True)
+            return
 
+        if not profiles:
+            logger.info('No active firm profiles — skipping nightly sourcing')
+            return
+
+        stale_cutoff = datetime.utcnow() - timedelta(hours=2)
+
+        for profile in profiles:
+            firm_user_id = profile.user_id
+            firm_name = profile.firm_name or 'Unknown'
+            thesis = profile.investment_thesis or ""
+
+            # ── Per-firm distributed lock ─────────────────────────────────────
+            existing_result = await db.execute(
+                select(SchedulerRun)
+                .where(SchedulerRun.job_name == "autonomous_sourcing")
+                .where(SchedulerRun.user_id == firm_user_id)
+                .where(SchedulerRun.status == "running")
+                .order_by(SchedulerRun.started_at.desc())
+                .limit(1)
+            )
+            existing_run = existing_result.scalars().first()
+            if existing_run:
+                if existing_run.started_at > stale_cutoff:
+                    logger.info(f"Sourcing already running for {firm_name} — skipping")
+                    continue
+                else:
+                    logger.warning(f"Clearing stale lock for {firm_name} (run_id={existing_run.id})")
+                    await db.execute(
+                        update(SchedulerRun)
+                        .where(SchedulerRun.id == existing_run.id)
+                        .values(status="failure", error_message="stale lock cleared", completed_at=datetime.utcnow())
+                    )
+                    await db.commit()
+            # ─────────────────────────────────────────────────────────────────
+
+            run = await start_job_run(db, "autonomous_sourcing", user_id=firm_user_id)
+            try:
+                logger.info(f'Nightly sourcing for: {firm_name}')
                 run_started_at = datetime.utcnow()
 
                 # Step 2: Deep autonomous sourcing
                 try:
-                    stats = await run_autonomous_sourcing(db, user_id=user_id, nightly=True)
+                    stats = await run_autonomous_sourcing(db, user_id=firm_user_id, nightly=True)
                     logger.info(f'Nightly sourcing complete for {firm_name}: {stats}')
                 except Exception as e:
                     logger.error(f'Nightly sourcing failed for {firm_name}: {e}', exc_info=True)
 
                 # Step 3: Auto-research top new matches
                 try:
-                    research_stats = await run_research_batch(db, limit=20, user_id=user_id, min_fit_score=4)
+                    research_stats = await run_research_batch(db, limit=20, user_id=firm_user_id, min_fit_score=4)
                     logger.info(f'Auto-research complete for {firm_name}: {research_stats}')
                 except Exception as e:
                     logger.error(f'Auto-research failed for {firm_name}: {e}')
@@ -301,7 +303,7 @@ async def job_run_sourcing(user_id: str = None):
                 # Write stale deal notifications
                 try:
                     from app.services.notification_writer import write_stale_deal_notifications
-                    await write_stale_deal_notifications(db, user_id=user_id)
+                    await write_stale_deal_notifications(db, user_id=firm_user_id)
                     logger.info(f'Stale deal notifications written for {firm_name}')
                 except Exception as e:
                     logger.error(f'Stale deal notifications failed for {firm_name}: {e}')
@@ -314,7 +316,7 @@ async def job_run_sourcing(user_id: str = None):
                         new_matches_result = await db.execute(
                             select(Company, FirmCompanyScore)
                             .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
-                            .where(FirmCompanyScore.user_id == user_id)
+                            .where(FirmCompanyScore.user_id == firm_user_id)
                             .where(Company.scraped_at >= run_started_at)
                             .where(FirmCompanyScore.fit_score >= min_score)
                             .order_by(FirmCompanyScore.fit_score.desc())
@@ -339,10 +341,9 @@ async def job_run_sourcing(user_id: str = None):
                 except Exception as e:
                     logger.error(f'Sourcing alert failed for {firm_name}: {e}')
 
-            await complete_job_run(db, run.id, stats={"firms_processed": len(profiles)}, firm_count=len(profiles))
-        except Exception as e:
-            logger.error(f'Nightly sourcing job failed: {e}', exc_info=True)
-            if run:
+                await complete_job_run(db, run.id, stats={"firms_processed": 1}, firm_count=1)
+            except Exception as e:
+                logger.error(f'Nightly sourcing failed for {firm_name}: {e}', exc_info=True)
                 try:
                     await fail_job_run(db, run.id, error=str(e), job_name="autonomous_sourcing")
                 except Exception:

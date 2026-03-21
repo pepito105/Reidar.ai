@@ -15,3 +15,4 @@ class SchedulerRun(Base):
     error_message = Column(Text, nullable=True)
     stats = Column(JSON, nullable=True)
     firm_count = Column(Integer, nullable=True)
+    user_id = Column(String(255), nullable=True, index=True)

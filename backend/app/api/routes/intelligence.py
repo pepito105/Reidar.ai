@@ -5,7 +5,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, delete, update, distinct
+from sqlalchemy import select, func, delete, update, distinct, or_
 
 from app.core.database import get_db
 from app.models.company import Company
@@ -558,12 +558,14 @@ _JOB_DISPLAY_NAMES = {
 
 @router.get("/overnight")
 async def get_overnight_history(request: Request, db: AsyncSession = Depends(get_db)):
+    user_id = _user_id_from_request(request)
     seven_days_ago = datetime.utcnow() - timedelta(days=7)
 
     runs_result = await db.execute(
         select(SchedulerRun)
         .where(SchedulerRun.started_at >= seven_days_ago)
         .where(SchedulerRun.job_name.in_(["autonomous_sourcing", "signal_refresh", "weekly_summary"]))
+        .where(or_(SchedulerRun.user_id == user_id, SchedulerRun.user_id.is_(None)))
         .order_by(SchedulerRun.started_at.desc())
     )
     runs = runs_result.scalars().all()
