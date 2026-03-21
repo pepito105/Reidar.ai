@@ -556,8 +556,8 @@ export default function Intelligence({ API }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0,
         }}>◈</div>
         <div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: C.text, lineHeight: 1.2 }}>Reidar Intelligence</div>
-          <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>How Reidar thinks and works for you</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: C.text, lineHeight: 1.2 }}>Reidar Autopilot</div>
+          <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>What Reidar is doing for you — and what's coming next</div>
         </div>
       </div>
 
@@ -875,6 +875,124 @@ export default function Intelligence({ API }) {
               </div>
             </>
           )}
+        </div>
+
+        {/* ── PANEL 7: TONIGHT'S PLAN ──────────────────────────────────────── */}
+        <div style={{ ...panelStyle, gridColumn: '1 / -1' }}>
+          <div style={panelLabel}>Tonight's Plan</div>
+          <div style={{ display: 'flex', gap: 0 }}>
+
+            {/* Column 1 — Sourcing */}
+            <div style={{ flex: 1, paddingRight: 32 }}>
+              <div style={{
+                fontSize: 9, fontFamily: "'DM Mono', monospace", color: C.accent,
+                letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: 14,
+              }}>Sourcing · 4:00 AM</div>
+              <div style={{ fontSize: 12, color: C.textSec, fontWeight: 600, marginBottom: 12 }}>4:00 AM — Sourcing run</div>
+
+              {/* Thin mandate buckets */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 10, color: C.dim, marginBottom: 7 }}>Prioritising thin buckets</div>
+                {(() => {
+                  const thin = (coverage?.by_mandate_bucket || []).filter(b => b.status === 'thin')
+                  if (!coverage) return <div style={{ fontSize: 11, color: C.dim, fontStyle: 'italic' }}>Loading…</div>
+                  if (thin.length === 0) return <div style={{ fontSize: 11, color: C.dim, fontStyle: 'italic' }}>All buckets have moderate or better coverage</div>
+                  return (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                      {thin.map((b, i) => (
+                        <span key={i} style={{
+                          fontSize: 11, padding: '2px 9px', borderRadius: 20,
+                          background: `${C.warning}15`, border: `1px solid ${C.warning}30`, color: C.warning,
+                        }}>{b.bucket}</span>
+                      ))}
+                    </div>
+                  )
+                })()}
+              </div>
+
+              {/* Static run config */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: C.accent, flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, color: C.muted }}>8 search queries</span>
+                </div>
+                <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.6, fontStyle: 'italic' }}>
+                  Queries are generated based on your mandate, thin coverage areas, and what's worked in past runs.
+                </div>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div style={{ width: 1, background: C.border, flexShrink: 0 }} />
+
+            {/* Column 2 — Signals */}
+            <div style={{ flex: 1, paddingLeft: 32, paddingRight: 32 }}>
+              <div style={{
+                fontSize: 9, fontFamily: "'DM Mono', monospace", color: C.accent,
+                letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: 14,
+              }}>Signals · 3:00 AM</div>
+              <div style={{ fontSize: 12, color: C.textSec, fontWeight: 600, marginBottom: 12 }}>3:00 AM — Signal refresh</div>
+
+              {!signals ? (
+                <div style={{ fontSize: 11, color: C.dim, fontStyle: 'italic' }}>Loading…</div>
+              ) : signals.monitored_companies?.length === 0 ? (
+                <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.6 }}>
+                  No companies in pipeline yet — add companies to Watching or Diligence to enable signal monitoring
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 160, overflowY: 'auto' }}>
+                  {signals.monitored_companies.map(co => (
+                    <div key={co.company_id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: C.success, flexShrink: 0 }} />
+                      <span style={{ fontSize: 11, color: C.textSec, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{co.company_name}</span>
+                      <span style={{
+                        fontSize: 9, padding: '1px 7px', borderRadius: 10, flexShrink: 0,
+                        background: C.surface, color: C.dim, border: `1px solid ${C.border2}`,
+                      }}>{co.pipeline_status}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Divider */}
+            <div style={{ width: 1, background: C.border, flexShrink: 0 }} />
+
+            {/* Column 3 — Alerts */}
+            <div style={{ flex: 1, paddingLeft: 32 }}>
+              <div style={{
+                fontSize: 9, fontFamily: "'DM Mono', monospace", color: C.accent,
+                letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: 14,
+              }}>Alerts · Morning</div>
+              <div style={{ fontSize: 12, color: C.textSec, fontWeight: 600, marginBottom: 12 }}>Morning digest</div>
+
+              {!firmProfile ? (
+                <div style={{ fontSize: 11, color: C.dim, fontStyle: 'italic' }}>Loading…</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[
+                    { key: 'notify_top_match', label: 'Top match alerts' },
+                    { key: 'notify_diligence_signal', label: 'Diligence signal emails' },
+                    { key: 'notify_weekly_summary', label: 'Weekly digest' },
+                  ].map(({ key, label }) => {
+                    const on = !!firmProfile[key]
+                    return (
+                      <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                        <span style={{ fontSize: 13, color: on ? C.success : C.dim, fontWeight: 700, flexShrink: 0 }}>
+                          {on ? '✓' : '–'}
+                        </span>
+                        <span style={{ fontSize: 11, color: on ? C.textSec : C.dim }}>{label}</span>
+                      </div>
+                    )
+                  })}
+                  <div style={{ marginTop: 6, fontSize: 10, color: C.dim, fontStyle: 'italic', lineHeight: 1.5 }}>
+                    Change alert settings in Firm Settings
+                  </div>
+                </div>
+              )}
+            </div>
+
+          </div>
         </div>
 
         {/* ── PANEL 4: COVERAGE MAP ────────────────────────────────────────── */}

@@ -5,7 +5,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, delete, update, distinct, or_
+from sqlalchemy import select, func, delete, update, distinct, or_, and_
 
 from app.core.database import get_db
 from app.models.company import Company
@@ -565,7 +565,10 @@ async def get_overnight_history(request: Request, db: AsyncSession = Depends(get
         select(SchedulerRun)
         .where(SchedulerRun.started_at >= seven_days_ago)
         .where(SchedulerRun.job_name.in_(["autonomous_sourcing", "signal_refresh", "weekly_summary"]))
-        .where(or_(SchedulerRun.user_id == user_id, SchedulerRun.user_id.is_(None)))
+        .where(or_(
+            SchedulerRun.user_id == user_id,
+            and_(SchedulerRun.user_id.is_(None), SchedulerRun.started_at >= seven_days_ago),
+        ))
         .order_by(SchedulerRun.started_at.desc())
     )
     runs = runs_result.scalars().all()
