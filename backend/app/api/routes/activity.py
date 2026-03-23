@@ -33,6 +33,7 @@ EVENT_ICONS = {
     "meeting_note_added": "💬",
     "research_complete":  "⚡",
     "signal_detected":    "📡",
+    "email_sent":         "✉️",
 }
 
 

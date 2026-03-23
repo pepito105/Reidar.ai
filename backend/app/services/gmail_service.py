@@ -384,6 +384,23 @@ async def handle_transcript(
     existing_notes = score.meeting_notes or []
     score.meeting_notes = existing_notes + [notes_entry]
 
+    # Write to ActivityEvent so the Activity tab shows transcripts
+    try:
+        from app.services.activity_writer import write_activity
+        key_points = email_data.get("key_points", [])
+        detail = key_points[0] if key_points else "Notes imported from AI notetaker"
+        await write_activity(
+            db=db,
+            company_id=company.id,
+            startup_name=company_name,
+            event_type="meeting_note_added",
+            title=f"Meeting transcript added — {company_name}",
+            detail=detail,
+            user_id=user_id,
+        )
+    except Exception as e:
+        logger.warning(f"Failed to write transcript activity for {company_name}: {e}")
+
     notif = Notification(
         user_id=user_id,
         event_type="research_complete",
@@ -592,6 +609,113 @@ async def process_new_emails(user_id: str, db: AsyncSession) -> dict:
 
     await _update_connection(conn, db, list_data.get("historyId"))
     return {"processed": processed, "results": results}
+
+
+async def scan_sent_mail(user_id: str, db: AsyncSession) -> dict:
+    """Scan sent mail and log outbound emails to known portfolio/pipeline companies."""
+    result = await db.execute(
+        select(GmailConnection)
+        .where(GmailConnection.user_id == user_id)
+        .where(GmailConnection.is_active == True)
+    )
+    conn = result.scalars().first()
+    if not conn:
+        return {"logged": 0, "error": "No active Gmail connection"}
+
+    if _token_is_expired(conn):
+        ok = await _refresh_access_token(conn, db)
+        if not ok:
+            return {"logged": 0, "error": "Token refresh failed"}
+
+    from app.services.activity_writer import write_activity
+    from app.models.activity_event import ActivityEvent
+
+    headers = _auth_headers(conn.access_token)
+    logged = 0
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            list_resp = await client.get(
+                f"{GMAIL_BASE}/messages",
+                headers=headers,
+                params={"q": "in:sent newer_than:1d", "maxResults": 50},
+            )
+        list_data = list_resp.json()
+    except Exception as e:
+        logger.error(f"scan_sent_mail list failed for {user_id}: {e}")
+        return {"logged": 0, "error": str(e)}
+
+    messages = list_data.get("messages", [])
+    if not messages:
+        return {"logged": 0}
+
+    for msg_ref in messages:
+        msg_id = msg_ref.get("id")
+        if not msg_id:
+            continue
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                msg_resp = await client.get(
+                    f"{GMAIL_BASE}/messages/{msg_id}",
+                    headers=headers,
+                    params={"format": "metadata", "metadataHeaders": ["To", "Subject"]},
+                )
+            msg = msg_resp.json()
+            msg_headers = (msg.get("payload") or {}).get("headers", [])
+            to_header = _extract_headers(msg_headers, "To")
+            subject = _extract_headers(msg_headers, "Subject") or "(no subject)"
+
+            # Extract domain from To: address
+            to_email = ""
+            m = re.search(r"[\w.\-+]+@([\w.\-]+)", to_header)
+            if not m:
+                continue
+            to_email = m.group(0)
+            domain = m.group(1).lower()
+
+            # Find a company whose website contains this domain, with a score for this user
+            company_result = await db.execute(
+                select(Company, FirmCompanyScore)
+                .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+                .where(FirmCompanyScore.user_id == user_id)
+                .where(Company.website.ilike(f"%{domain}%"))
+                .limit(1)
+            )
+            row = company_result.first()
+            if not row:
+                continue
+            company, score = row
+
+            # Dedup: check if this gmail message id was already logged in detail field
+            dedup_key = f"gmail_msg_id:{msg_id}"
+            existing = await db.execute(
+                select(ActivityEvent)
+                .where(ActivityEvent.company_id == company.id)
+                .where(ActivityEvent.user_id == user_id)
+                .where(ActivityEvent.event_type == "email_sent")
+                .where(ActivityEvent.detail.like(f"%{dedup_key}%"))
+                .limit(1)
+            )
+            if existing.scalars().first():
+                continue
+
+            await write_activity(
+                db=db,
+                company_id=company.id,
+                startup_name=company.name,
+                event_type="email_sent",
+                title=f"Email sent to {company.name}",
+                detail=f"{dedup_key} | {subject}",
+                user_id=user_id,
+            )
+            logged += 1
+
+        except Exception as e:
+            logger.warning(f"scan_sent_mail error for message {msg_id}: {e}")
+            continue
+
+    logger.info(f"scan_sent_mail: logged {logged} sent emails for user {user_id}")
+    return {"logged": logged}
 
 
 async def _update_connection(

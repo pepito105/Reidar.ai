@@ -376,7 +376,7 @@ async def job_process_gmail_emails():
             return
 
     logger.info('Scheduler: Starting Gmail email processing')
-    from app.services.gmail_service import process_new_emails
+    from app.services.gmail_service import process_new_emails, scan_sent_mail
     async with AsyncSessionLocal() as db:
         try:
             from app.services.job_health import start_job_run, complete_job_run, fail_job_run
@@ -396,6 +396,8 @@ async def job_process_gmail_emails():
                     count = result.get("processed", 0)
                     total_processed += count
                     logger.info(f'Gmail: processed {count} emails for user {conn.user_id}')
+                    sent_result = await scan_sent_mail(conn.user_id, db)
+                    logger.info(f'Gmail sent scan: logged {sent_result.get("logged", 0)} for user {conn.user_id}')
                 except Exception as e:
                     logger.error(f'Gmail processing failed for {conn.user_id}: {e}')
 

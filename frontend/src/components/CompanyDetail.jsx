@@ -1714,7 +1714,9 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
                                   fontSize: 12, color: '#8888aa', marginBottom: 4,
                                   lineHeight: 1.5
                                 }}>
-                                  {event.detail}
+                                  {event.event_type === 'email_sent' && event.detail.includes(' | ')
+                                    ? event.detail.slice(event.detail.indexOf(' | ') + 3)
+                                    : event.detail}
                                 </div>
                               )}
                               <div style={{ fontSize: 11, color: '#3a3a5a' }}>
