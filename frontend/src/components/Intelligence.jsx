@@ -144,7 +144,7 @@ function SectorBars({ sectors }) {
 }
 
 function StatusBadge({ status, label }) {
-  const colors = { self_optimizing: C.success, learning: C.warning, cold_start: C.danger }
+  const colors = { self_optimizing: C.success, learning: C.warning, cold_start: C.warning }
   const c = colors[status] || C.muted
   return (
     <span style={{
@@ -701,45 +701,42 @@ export default function Intelligence({ API }) {
               <div style={{ textAlign: 'center', marginBottom: 16 }}>
                 <StatusBadge
                   status={learning.loop_status}
-                  label={learning.loop_status === 'self_optimizing' ? 'SELF-OPTIMIZING' : learning.loop_status === 'learning' ? 'LEARNING' : 'COLD START'}
+                  label={learning.loop_status === 'self_optimizing' ? 'SELF-OPTIMIZING' : learning.loop_status === 'learning' ? 'LEARNING' : 'BUILDING PROFILE'}
                 />
               </div>
 
               {/* Progress */}
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>
-                  {learning.high_performing_count} of 10 high-quality runs needed for self-optimization
+                  {learning.runs_until_optimizing === 0
+                    ? 'Pattern recognition active'
+                    : `Run ${learning.total_runs} of 10 — ${learning.runs_until_optimizing} more until pattern recognition activates`}
                 </div>
                 <div style={{ background: C.border, borderRadius: 4, height: 8, overflow: 'hidden' }}>
                   <div style={{
-                    width: `${Math.min((learning.high_performing_count / 10) * 100, 100)}%`,
+                    width: `${Math.min(((learning.total_runs || 0) / 10) * 100, 100)}%`,
                     height: '100%', borderRadius: 4, transition: 'width 0.4s',
-                    background: learning.loop_status === 'self_optimizing' ? C.success : learning.loop_status === 'learning' ? C.warning : C.danger,
+                    background: learning.loop_status === 'self_optimizing' ? C.success : C.warning,
                   }} />
                 </div>
-                {learning.runs_until_optimizing > 0 && (
-                  <div style={{ fontSize: 11, color: C.dim, marginTop: 4 }}>
-                    {learning.runs_until_optimizing} more needed
-                  </div>
-                )}
               </div>
 
               {/* Cold start message */}
               {learning.loop_status === 'cold_start' && (
                 <div style={{ fontSize: 12, color: C.muted, background: C.surface, borderRadius: 8, padding: '10px 14px', marginBottom: 14, lineHeight: 1.6, border: `1px solid ${C.border}` }}>
-                  Reidar is still learning. Run sourcing a few more times to build up pattern recognition.
+                  Reidar sources companies every night. After 10 runs, it starts recognizing which search styles consistently find mandate-fit companies — and deprioritizes ones that don't.
                 </div>
               )}
 
               {/* High performing */}
               {learning.high_performing?.length > 0 && (
                 <div style={{ marginBottom: 12 }}>
-                  <div style={sectionLabel}>Working well</div>
+                  <div style={sectionLabel}>Repeating these patterns</div>
                   {learning.high_performing.slice(0, 5).map((q, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.success, flexShrink: 0 }} />
                       <span style={{ fontSize: 11, color: C.textSec, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.query}</span>
-                      <span style={{ fontSize: 11, color: C.success, flexShrink: 0 }}>{(q.quality_score * 100).toFixed(0)}%</span>
+                      <span style={{ fontSize: 10, color: '#4ade80', flexShrink: 0 }}>↑ effective</span>
                     </div>
                   ))}
                 </div>
@@ -748,11 +745,12 @@ export default function Intelligence({ API }) {
               {/* Low performing */}
               {learning.low_performing?.length > 0 && (
                 <div style={{ marginBottom: 12 }}>
-                  <div style={sectionLabel}>Patterns Reidar is avoiding</div>
+                  <div style={sectionLabel}>Avoiding these patterns</div>
                   {learning.low_performing.slice(0, 5).map((q, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.danger, flexShrink: 0 }} />
-                      <span style={{ fontSize: 11, color: C.dim, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: 'line-through' }}>{q.query}</span>
+                      <span style={{ fontSize: 11, color: C.dim, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.query}</span>
+                      <span style={{ fontSize: 10, color: '#ef4444', flexShrink: 0 }}>↓ low yield</span>
                     </div>
                   ))}
                 </div>
@@ -760,14 +758,14 @@ export default function Intelligence({ API }) {
 
               {/* Teach + reset */}
               <div style={{ marginTop: 'auto', ...divider }}>
-                <div style={sectionLabel}>Teach Reidar a query</div>
+                <div style={sectionLabel}>Add a search pattern</div>
                 {teachMsg && <div style={{ fontSize: 12, color: C.success, marginBottom: 8 }}>{teachMsg}</div>}
                 <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                   <input
                     value={teachQuery}
                     onChange={e => setTeachQuery(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleTeach()}
-                    placeholder='"AI contract review seed 2026"'
+                    placeholder='e.g. "vertical AI seed healthcare 2026"'
                     style={{
                       flex: 1, background: '#0f0f1a', border: `1px solid ${C.border2}`, borderRadius: 6,
                       color: C.text, fontSize: 12, padding: '7px 10px', outline: 'none',
@@ -798,7 +796,7 @@ export default function Intelligence({ API }) {
                     cursor: 'pointer', fontWeight: resetStep === 'confirming' ? 600 : 400, transition: 'all 0.15s',
                   }}
                 >
-                  {resetStep === 'idle' ? 'Reset Learning' : resetStep === 'confirming' ? '⚠ Confirm — clears all learned patterns' : 'Resetting…'}
+                  {resetStep === 'idle' ? 'Clear learned patterns' : resetStep === 'confirming' ? '⚠ Confirm — clears all learned patterns' : 'Resetting…'}
                 </button>
               </div>
             </>

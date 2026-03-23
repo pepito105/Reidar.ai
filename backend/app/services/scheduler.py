@@ -111,6 +111,21 @@ async def job_weekly_summary():
     logger.info('Scheduler: Sending weekly summary')
     from app.services.notification_service import send_weekly_summary
     async with AsyncSessionLocal() as db:
+        # ── Distributed lock: prevent double-firing across Railway instances ──
+        stale_cutoff = datetime.utcnow() - timedelta(hours=2)
+        existing_result = await db.execute(
+            select(SchedulerRun)
+            .where(SchedulerRun.job_name == "weekly_summary")
+            .where(SchedulerRun.status == "running")
+            .order_by(SchedulerRun.started_at.desc())
+            .limit(1)
+        )
+        existing_run = existing_result.scalars().first()
+        if existing_run and existing_run.started_at > stale_cutoff:
+            logger.info("Weekly summary already running on another instance — skipping")
+            return
+        # ─────────────────────────────────────────────────────────────────────
+
         try:
             from app.services.job_health import start_job_run, complete_job_run, fail_job_run
             run = await start_job_run(db, "weekly_summary")
@@ -412,7 +427,7 @@ def start_scheduler():
     )
     scheduler.add_job(
         job_weekly_summary,
-        CronTrigger(day_of_week='mon', hour=8, minute=0),
+        CronTrigger(day_of_week='mon', hour=8, minute=0, timezone='America/New_York'),
         id='weekly_summary',
         replace_existing=True,
         misfire_grace_time=3600,

@@ -354,10 +354,17 @@ async def get_learning_intelligence(request: Request, db: AsyncSession = Depends
         if r.quality_score is not None and r.quality_score < 0.2 and (r.results_count or 0) > 0
     ]
 
+    total_runs_result = await db.execute(
+        select(func.count(distinct(SourcingHistory.ran_at)))
+        .where(SourcingHistory.user_id == user_id)
+        .where(SourcingHistory.ran_at >= thirty_days_ago)
+    )
+    total_runs = total_runs_result.scalar() or 0
+
     hp_count = len(high_performing)
-    if hp_count == 0:
+    if total_runs == 0:
         loop_status = "cold_start"
-    elif hp_count < 10:
+    elif total_runs < 10:
         loop_status = "learning"
     else:
         loop_status = "self_optimizing"
@@ -367,7 +374,8 @@ async def get_learning_intelligence(request: Request, db: AsyncSession = Depends
         "low_performing": low_performing,
         "loop_status": loop_status,
         "high_performing_count": hp_count,
-        "runs_until_optimizing": max(0, 10 - hp_count),
+        "total_runs": total_runs,
+        "runs_until_optimizing": max(0, 10 - total_runs),
     }
 
 
