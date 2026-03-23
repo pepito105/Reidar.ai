@@ -134,13 +134,28 @@ export default function Coverage({ API, selectedCompany, selectedEventType, onCo
   const [addedFilter, setAddedFilter] = useState('') // '' | 'today' | 'week' | 'unseen'
   const [pipelineFilter, setPipelineFilter] = useState('') // '' | 'in_pipeline'
 
+  const { data: firmProfile } = useQuery({
+    queryKey: ['firmProfile'],
+    queryFn: async () => {
+      const token = await getToken().catch(() => null)
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      const res = await axios.get(`${API}/firm-profile`, { headers })
+      return res.data
+    },
+    staleTime: 1000 * 60 * 10,
+  })
+
+  const showAll = viewMode === 'flat'
+  const minFitScore = showAll ? 0 : (firmProfile?.fit_threshold ?? 3)
+  const threshold = firmProfile?.fit_threshold ?? 3
+
   const { data: startups = [], isLoading: loading } = useQuery({
-    queryKey: ['startups', filters],
+    queryKey: ['startups', filters, minFitScore],
     queryFn: async () => {
       const token = await getToken().catch(() => null)
       const headers = token ? { Authorization: `Bearer ${token}` } : {}
       const params = Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
-      const res = await axios.get(`${API}/startups/`, { params: { ...params, limit: 200, min_fit_score: 0 }, headers })
+      const res = await axios.get(`${API}/startups/`, { params: { ...params, limit: 200, min_fit_score: minFitScore }, headers })
       return res.data
     },
     staleTime: 1000 * 60 * 5,
@@ -256,7 +271,9 @@ export default function Coverage({ API, selectedCompany, selectedEventType, onCo
                   ? `${filteredCards.length} result${filteredCards.length !== 1 ? 's' : ''} for "${searchQuery}"`
                   : addedFilter || filters.stage || filters.fit_level || filters.sector || pipelineFilter
                   ? `${filteredCards.length} of ${startups.length} companies`
-                  : `${startups.length} companies in your universe`
+                  : showAll
+                  ? `${startups.length} companies in your universe — ${startups.filter(s => (s.fit_score ?? 0) >= threshold).length} match your mandate`
+                  : `${startups.length} companies match your mandate`
                 }
                 {inboxCards.length > 0 && !searchQuery && (
                   <span style={{ marginLeft: 10, color: '#10b981', fontWeight: 600 }}>
@@ -281,7 +298,7 @@ export default function Coverage({ API, selectedCompany, selectedEventType, onCo
                 cursor: 'pointer', border: 'none',
                 background: viewMode === 'flat' ? '#2a2a4a' : 'transparent',
                 color: viewMode === 'flat' ? '#f0f0ff' : '#6b7280',
-              }}>All</button>
+              }}>Show all</button>
             </div>
           </div>
 
@@ -421,6 +438,16 @@ export default function Coverage({ API, selectedCompany, selectedEventType, onCo
             )}
           </div>
         </div>
+
+        {showAll && (
+          <div style={{
+            marginBottom: 16, padding: '8px 14px', borderRadius: 7,
+            background: '#111120', border: '1px solid #2a2a4a',
+            fontSize: 11, color: '#555577', letterSpacing: '0.2px',
+          }}>
+            Showing all companies including below-threshold fits
+          </div>
+        )}
 
         {loading ? (
           <div style={{ textAlign: 'center', color: '#555577', padding: 80, fontSize: 14 }}>Loading companies...</div>

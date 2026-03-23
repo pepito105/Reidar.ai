@@ -112,6 +112,10 @@ class StartupResponse(BaseModel):
     co_investors: Optional[List[Any]] = []
     mandate_category: Optional[str] = None
     memo: Optional[str] = None
+    score_source: Optional[str] = None
+    email_subject: Optional[str] = None
+    introducer_name: Optional[str] = None
+    introducer_email: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -202,6 +206,11 @@ def _startup_to_card(company: Company, score: FirmCompanyScore) -> Dict[str, Any
         "investment_date": _utc_isoformat(score.investment_date),
         "check_size_usd": score.check_size_usd,
         "co_investors": score.co_investors or [],
+        # Email inbound provenance
+        "score_source": score.source,
+        "email_subject": score.email_subject,
+        "introducer_name": score.introducer_name,
+        "introducer_email": score.introducer_email,
     }
 
 
