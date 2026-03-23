@@ -64,6 +64,12 @@ class FirmCompanyScore(Base):
     source = Column(String(200), nullable=True)
     source_url = Column(String(500), nullable=True)
 
+    # Email inbound — raw provenance fields
+    email_subject = Column(String(500), nullable=True)
+    email_body_raw = Column(Text, nullable=True)          # truncated to 3000 chars
+    introducer_name = Column(String(255), nullable=True)  # warm intro: the connector
+    introducer_email = Column(String(255), nullable=True)
+
     # Portfolio tracking
     is_portfolio = Column(Boolean, default=False, nullable=True)
     portfolio_status = Column(String(50), nullable=True)  # active, acquired, exited, dead

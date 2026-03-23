@@ -208,6 +208,18 @@ function fmtDuration(secs) {
   return `${Math.floor(secs / 60)}m ${secs % 60}s`
 }
 
+function fmtAgo(dateStr) {
+  if (!dateStr) return '—'
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+  if (mins < 60) return `${mins}m ago`
+  if (hours < 24) return `${hours}h ago`
+  if (days === 1) return 'Yesterday'
+  return `${days}d ago`
+}
+
 function last7Days() {
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date()
@@ -223,7 +235,7 @@ function dayLabel(dateStr) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function Intelligence({ API }) {
+export default function Intelligence({ API, onNavigate }) {
   const { getToken } = useAuth()
 
   // Panel data
@@ -270,6 +282,13 @@ export default function Intelligence({ API }) {
   const [addSector, setAddSector] = useState('')
   const [sectorSaving, setSectorSaving] = useState(false)
   const [portfolioSearch, setPortfolioSearch] = useState('')
+
+  // Panel — Integrations & Inbound
+  const [gmailStatus, setGmailStatus] = useState(null)
+  const [gmailLoading, setGmailLoading] = useState(true)
+  const [gmailProcessing, setGmailProcessing] = useState(false)
+  const [gmailProcessDone, setGmailProcessDone] = useState(false)
+  const [inboundCompanies, setInboundCompanies] = useState([])
 
   // ── Auth fetch helper ───────────────────────────────────────────────────────
 
@@ -349,6 +368,25 @@ export default function Intelligence({ API }) {
     } catch (_) {}
   }
 
+  const fetchGmailStatus = async () => {
+    setGmailLoading(true)
+    try {
+      const res = await authFetch(`${API}/gmail/status`)
+      if (res.ok) setGmailStatus(await res.json())
+    } catch (_) {}
+    setGmailLoading(false)
+  }
+
+  const fetchInboundCompanies = async () => {
+    try {
+      const res = await authFetch(`${API}/startups/?sort=fit_score&limit=200&min_fit_score=1`)
+      if (res.ok) {
+        const data = await res.json()
+        setInboundCompanies(data.filter(s => ['email_pitch', 'email_intro'].includes(s.source)))
+      }
+    } catch (_) {}
+  }
+
   useEffect(() => {
     fetchSourcing()
     fetchLearning()
@@ -357,6 +395,8 @@ export default function Intelligence({ API }) {
     fetchSignals()
     fetchPortfolio()
     fetchFirmProfile()
+    fetchGmailStatus()
+    fetchInboundCompanies()
   }, [])
 
   // Default selected date once overnight data arrives
@@ -535,6 +575,37 @@ export default function Intelligence({ API }) {
     } catch (_) {}
     setSectorSaving(false)
   }
+
+  // ── Integrations handlers ───────────────────────────────────────────────────
+
+  const handleGmailProcess = async () => {
+    setGmailProcessing(true)
+    try {
+      await authFetch(`${API}/gmail/process`, { method: 'POST' })
+      setGmailProcessDone(true)
+      setTimeout(() => setGmailProcessDone(false), 2000)
+      fetchGmailStatus()
+      fetchInboundCompanies()
+    } catch (_) {}
+    setGmailProcessing(false)
+  }
+
+  const handleConnectGmail = async () => {
+    try {
+      const res = await authFetch(`${API}/gmail/auth-url`)
+      if (res.ok) {
+        const data = await res.json()
+        window.location.href = data.url
+      }
+    } catch (_) {}
+  }
+
+  // ── Inbound derived values ──────────────────────────────────────────────────
+  const inboundTotal = inboundCompanies.length
+  const inboundUnreviewed = inboundCompanies.filter(s => s.pipeline_status === 'new').length
+  const inboundRecent = [...inboundCompanies]
+    .sort((a, b) => new Date(b.scraped_at || 0) - new Date(a.scraped_at || 0))
+    .slice(0, 5)
 
   // ── Overnight helpers ───────────────────────────────────────────────────────
 
@@ -988,6 +1059,172 @@ export default function Intelligence({ API }) {
                   </div>
                 </div>
               )}
+            </div>
+
+          </div>
+        </div>
+
+        {/* ── PANEL: INTEGRATIONS & INBOUND ───────────────────────────────── */}
+        <div style={{ ...panelStyle, gridColumn: '1 / -1' }}>
+          <div style={panelLabel}>Integrations & Inbound</div>
+          <div style={{ fontSize: 12, color: C.muted, marginTop: -10, marginBottom: 20 }}>How Reidar connects to your world</div>
+
+          <div style={{ display: 'flex', gap: 0 }}>
+
+            {/* ── LEFT: Connected Sources ──────────────────────────────────── */}
+            <div style={{ flex: '0 0 40%', paddingRight: 28 }}>
+              <div style={{ ...sectionLabel, marginBottom: 14 }}>Connected Sources</div>
+
+              {/* Gmail card */}
+              <div style={{ background: C.surface, border: `1px solid ${C.border2}`, borderRadius: 10, padding: '14px 16px', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+                    background: `${C.accent}18`, border: `1px solid ${C.accent}30`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+                      <rect x="0.75" y="0.75" width="16.5" height="12.5" rx="1.25" stroke={C.accent} strokeWidth="1.25"/>
+                      <path d="M1 2l8 5.5L17 2" stroke={C.accent} strokeWidth="1.25" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>Gmail</div>
+                    <div style={{ fontSize: 12, color: C.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {gmailLoading ? '—' : gmailStatus?.email || 'Not connected'}
+                    </div>
+                  </div>
+                  {!gmailLoading && (
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, flexShrink: 0,
+                      background: gmailStatus?.connected ? `${C.success}20` : `${C.danger}20`,
+                      color: gmailStatus?.connected ? C.success : C.danger,
+                      border: `1px solid ${gmailStatus?.connected ? `${C.success}40` : `${C.danger}40`}`,
+                    }}>
+                      {gmailStatus?.connected ? 'Connected' : 'Not connected'}
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ fontSize: 11, color: C.dim, fontFamily: "'DM Mono', monospace", marginBottom: 8 }}>
+                  {inboundTotal} pitches received · {inboundUnreviewed} unreviewed
+                </div>
+
+                {gmailStatus?.connected && gmailStatus?.last_checked_at && (
+                  <div style={{ fontSize: 11, color: C.dim, marginBottom: 10 }}>
+                    Last checked {fmtAgo(gmailStatus.last_checked_at)}
+                  </div>
+                )}
+
+                {!gmailLoading && (
+                  gmailStatus?.connected ? (
+                    <button
+                      onClick={handleGmailProcess}
+                      disabled={gmailProcessing || gmailProcessDone}
+                      style={{
+                        padding: '7px 14px', borderRadius: 7, border: `1px solid ${C.border2}`,
+                        background: 'transparent', fontSize: 12, cursor: gmailProcessing || gmailProcessDone ? 'default' : 'pointer',
+                        color: gmailProcessDone ? C.success : C.muted,
+                        display: 'flex', alignItems: 'center', gap: 8,
+                      }}
+                    >
+                      {gmailProcessing ? <><Spinner /> Processing…</> : gmailProcessDone ? '✓ Done' : 'Process inbox now'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleConnectGmail}
+                      style={{
+                        padding: '7px 14px', borderRadius: 7, border: 'none',
+                        background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                        color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      }}
+                    >
+                      Connect Gmail →
+                    </button>
+                  )
+                )}
+              </div>
+
+              {/* Coming soon integrations */}
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[
+                  { name: 'Slack', icon: '#', desc: 'Deal alerts and weekly digest' },
+                  { name: 'Calendar', icon: '▦', desc: 'Auto-log founder meetings' },
+                  { name: 'LinkedIn', icon: 'in', desc: 'Founder background enrichment' },
+                ].map(int => (
+                  <div key={int.name} style={{
+                    flex: 1, background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{
+                          width: 28, height: 28, borderRadius: 6, background: C.border2,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 11, fontWeight: 700, color: C.muted,
+                        }}>{int.icon}</div>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: C.muted }}>{int.name}</span>
+                      </div>
+                      <span style={{ fontSize: 10, color: C.dim, padding: '2px 7px', borderRadius: 20, border: `1px solid ${C.border2}` }}>Soon</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.5 }}>{int.desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Vertical divider */}
+            <div style={{ width: 1, background: C.border, flexShrink: 0 }} />
+
+            {/* ── RIGHT: Inbound This Week ──────────────────────────────────── */}
+            <div style={{ flex: 1, paddingLeft: 28 }}>
+              <div style={{ ...sectionLabel, marginBottom: 14 }}>Inbound This Week</div>
+
+              {inboundRecent.length === 0 ? (
+                <div style={{ fontSize: 13, color: C.dim, lineHeight: 1.7 }}>
+                  No inbound pitches yet. Connect Gmail and Reidar will parse founder emails automatically.
+                </div>
+              ) : (
+                inboundRecent.map((s, i) => {
+                  const isUnreviewed = s.pipeline_status === 'new'
+                  const scoreColor = fitScoreColor(s.fit_score)
+                  const scoreLabel = s.fit_score === 5 ? 'Top Match' : s.fit_score === 4 ? 'Strong Fit' : s.fit_score === 3 ? 'Possible Fit' : `${s.fit_score || '?'}/5`
+                  return (
+                    <div
+                      key={s.id || i}
+                      onClick={() => onNavigate?.('coverage', s)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+                        padding: '10px 0',
+                        borderBottom: i < inboundRecent.length - 1 ? `1px solid ${C.border}` : 'none',
+                      }}
+                    >
+                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: isUnreviewed ? C.warning : C.border2, flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 2 }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{s.name}</span>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: scoreColor, background: `${scoreColor}18`, padding: '1px 6px', borderRadius: 4 }}>{scoreLabel}</span>
+                          <span style={{ fontSize: 11, color: C.dim, fontFamily: "'DM Mono', monospace" }}>
+                            {s.source === 'email_intro' ? 'founder intro' : 'email pitch'}
+                          </span>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 20, background: C.surface, color: C.muted, border: `1px solid ${C.border2}`, flexShrink: 0 }}>
+                        {s.pipeline_status}
+                      </span>
+                      <span style={{ fontSize: 11, color: C.dim, flexShrink: 0, whiteSpace: 'nowrap' }}>{fmtAgo(s.scraped_at)}</span>
+                    </div>
+                  )
+                })
+              )}
+
+              <div style={{ marginTop: 16 }}>
+                <button
+                  onClick={() => onNavigate?.('coverage')}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.accent, padding: 0 }}
+                >
+                  View all inbound in Coverage →
+                </button>
+              </div>
             </div>
 
           </div>

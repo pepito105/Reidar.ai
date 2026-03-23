@@ -215,7 +215,7 @@ export default function App() {
         )}
         {screen === 'marketmap' && <MarketMap API={API} />}
         {screen === 'portfolio' && <Portfolio API={API} />}
-        {screen === 'intelligence' && <Intelligence API={API} />}
+        {screen === 'intelligence' && <Intelligence API={API} onNavigate={setScreen} />}
       </main>
 
       {showOnboarding && (

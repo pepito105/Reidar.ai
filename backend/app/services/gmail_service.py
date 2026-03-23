@@ -191,6 +191,20 @@ Return ONLY valid JSON, no other text."""
         }
 
 
+# ── Sender parsing ────────────────────────────────────────────────────────────
+
+def _parse_sender(sender: str) -> tuple[str, str]:
+    """Parse a 'Display Name <email@example.com>' header into (name, email).
+    Falls back to (sender, sender) if the format is not recognisable."""
+    m = re.match(r'^"?([^"<]*)"?\s*<([^>]+)>', sender.strip())
+    if m:
+        return m.group(1).strip(), m.group(2).strip()
+    # Plain email address with no display name
+    if "@" in sender:
+        return "", sender.strip()
+    return sender.strip(), ""
+
+
 # ── Company / score helpers ───────────────────────────────────────────────────
 
 async def _find_or_create_company(name: str, email_data: dict, db: AsyncSession) -> Company:
@@ -221,6 +235,10 @@ async def _find_or_create_score(
     fit_reasoning: str = "",
     mandate_category: str = "",
     comparable_companies: list = None,
+    email_subject: str = None,
+    email_body_raw: str = None,
+    introducer_name: str = None,
+    introducer_email: str = None,
 ) -> FirmCompanyScore:
     result = await db.execute(
         select(FirmCompanyScore)
@@ -238,6 +256,10 @@ async def _find_or_create_score(
             comparable_companies=comparable_companies or [],
             pipeline_status="new",
             source=source,
+            email_subject=email_subject or None,
+            email_body_raw=email_body_raw or None,
+            introducer_name=introducer_name or None,
+            introducer_email=introducer_email or None,
         )
         db.add(score)
         await db.flush()
@@ -252,6 +274,10 @@ async def handle_pitch(
     firm_profile: FirmProfile,
     db: AsyncSession,
     source: str = "email_pitch",
+    email_subject: str = None,
+    email_body_raw: str = None,
+    introducer_name: str = None,
+    introducer_email: str = None,
 ) -> dict:
     company_name = email_data.get("company_name")
     founder_name = email_data.get("founder_name")
@@ -301,6 +327,10 @@ async def handle_pitch(
         fit_reasoning=fit_reasoning,
         mandate_category=mandate_category,
         comparable_companies=comparable_companies,
+        email_subject=email_subject,
+        email_body_raw=email_body_raw,
+        introducer_name=introducer_name,
+        introducer_email=introducer_email,
     )
     logger.info(f"Gmail pitch processed: company={company_name} added to pipeline for user {user_id}")
 
@@ -374,8 +404,19 @@ async def handle_intro(
     user_id: str,
     firm_profile: FirmProfile,
     db: AsyncSession,
+    email_subject: str = None,
+    email_body_raw: str = None,
+    raw_sender: str = None,
 ) -> dict:
-    return await handle_pitch(email_data, user_id, firm_profile, db, source="email_intro")
+    intro_name, intro_email = _parse_sender(raw_sender or "")
+    return await handle_pitch(
+        email_data, user_id, firm_profile, db,
+        source="email_intro",
+        email_subject=email_subject,
+        email_body_raw=email_body_raw,
+        introducer_name=intro_name or None,
+        introducer_email=intro_email or None,
+    )
 
 
 async def handle_portfolio_update(
@@ -504,12 +545,22 @@ async def process_new_emails(user_id: str, db: AsyncSession) -> dict:
             email_type = email_data.get("email_type", "irrelevant")
 
             # Route to handler
+            body_truncated = body[:3000] if body else None
             if email_type == "pitch":
-                action_result = await handle_pitch(email_data, user_id, firm_profile, db)
+                action_result = await handle_pitch(
+                    email_data, user_id, firm_profile, db,
+                    email_subject=subject or None,
+                    email_body_raw=body_truncated,
+                )
             elif email_type == "transcript":
                 action_result = await handle_transcript(email_data, user_id, firm_profile, db)
             elif email_type == "intro":
-                action_result = await handle_intro(email_data, user_id, firm_profile, db)
+                action_result = await handle_intro(
+                    email_data, user_id, firm_profile, db,
+                    email_subject=subject or None,
+                    email_body_raw=body_truncated,
+                    raw_sender=sender,
+                )
             elif email_type == "portfolio_update":
                 action_result = await handle_portfolio_update(email_data, user_id, firm_profile, db)
             else:

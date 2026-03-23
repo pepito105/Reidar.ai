@@ -2,8 +2,6 @@ import { useState } from 'react'
 import { useAuth } from '@clerk/clerk-react'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
-import Markdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 
 const STAGE_COLORS = {
   watching: '#6366f1', outreach: '#f59e0b', diligence: '#10b981', passed: '#6b7280', invested: '#8b5cf6'
@@ -54,11 +52,13 @@ function isNewThisWeek(scraped_at) {
   return new Date(scraped_at) >= sevenDaysAgo
 }
 
+const SECTION_LABEL = {
+  fontSize: 11, fontWeight: 700, color: '#6b7280',
+  textTransform: 'uppercase', letterSpacing: '0.8px',
+}
+
 export default function Home({ API, firmProfile, onNavigate }) {
   const { getToken } = useAuth()
-  const [brief, setBrief] = useState(null)
-  const [briefLoading, setBriefLoading] = useState(false)
-  const [briefError, setBriefError] = useState(null)
   const [digestExpanded, setDigestExpanded] = useState(true)
 
   const { data: topMatches = [], isLoading: loadingMatches } = useQuery({
@@ -121,40 +121,112 @@ export default function Home({ API, firmProfile, onNavigate }) {
   const newCompanies = lastScrape?.companies || []
   const lastScrapedAt = lastScrape?.last_scraped_at ?? null
   const digestLoading = pipelineLoading || feedLoading || lastScrapeLoading
-
-  const generateBrief = async () => {
-    setBriefLoading(true)
-    setBrief(null)
-    setBriefError(null)
-    const token = await getToken().catch(() => null)
-    const headers = token ? { Authorization: `Bearer ${token}` } : {}
-    try {
-      const res = await axios.post(`${API}/signals/hot-signals`, { days: 7 }, { headers, timeout: 120000 })
-      setBrief(res.data.brief ?? null)
-    } catch (e) {
-      const d = e.response?.data?.detail
-      setBriefError(Array.isArray(d) ? d[0] : d ?? e.message ?? 'Failed to generate brief')
-    }
-    setBriefLoading(false)
-  }
-
   const totalInPipeline = Object.values(pipeline).reduce((acc, arr) => acc + (arr?.length || 0), 0)
   const firmName = firmProfile?.firm_name || 'your firm'
   const newThisWeek = allCompanies.filter(s => isNewThisWeek(s.scraped_at) && s.fit_score >= 4).length
   const totalTopMatches = allCompanies.filter(s => s.fit_score === 5).length
   const hasDigestContent = newCompanies.length > 0 || pipelineSignals.length > 0
 
+  // TODAY'S AGENDA
+  const agendaItems = []
+
+  // Priority 1 — diligence companies with signals this week (high, red)
+  const diligenceNames = new Set((pipeline.diligence || []).map(c => c.name))
+  const seenDiligence = new Set()
+  ;(feedData.feed || []).filter(sig => diligenceNames.has(sig.company_name)).forEach(sig => {
+    if (!seenDiligence.has(sig.company_name)) {
+      seenDiligence.add(sig.company_name)
+      agendaItems.push({
+        label: `${sig.company_name} — new signal detected`,
+        urgencyColor: '#ef4444',
+        nav: () => onNavigate('pipeline', { id: sig.startup_id }, 'company_signal'),
+      })
+    }
+  })
+
+  // Priority 2 — stale pipeline deals (medium, amber)
+  const staleCutoff = Date.now() - 14 * 86400000
+  ;[...(pipeline.watching || []), ...(pipeline.outreach || []), ...(pipeline.diligence || [])].forEach(c => {
+    const lastActivity = c.updated_at || c.created_at
+    const isStale = !lastActivity || new Date(lastActivity).getTime() < staleCutoff
+    if (isStale) {
+      const daysOld = lastActivity ? Math.floor((Date.now() - new Date(lastActivity).getTime()) / 86400000) : null
+      agendaItems.push({
+        label: `${c.name} — ${daysOld ? `no activity in ${daysOld} days` : 'no activity recorded'}`,
+        urgencyColor: '#f59e0b',
+        nav: () => onNavigate('pipeline'),
+      })
+    }
+  })
+
+  // Priority 3 — unreviewed inbound pitches (low, purple)
+  allCompanies
+    .filter(s => ['email_pitch', 'email_intro'].includes(s.source) && s.pipeline_status === 'new')
+    .forEach(s => {
+      agendaItems.push({
+        label: `${s.name} — inbound pitch, unreviewed`,
+        urgencyColor: '#8b5cf6',
+        nav: () => onNavigate('coverage', s),
+      })
+    })
+
+  // Priority 4 — top untracked matches (fit_score >= 4, not in pipeline)
+  const pipelineCompanyNames = new Set([
+    ...(pipeline.watching || []),
+    ...(pipeline.outreach || []),
+    ...(pipeline.diligence || []),
+    ...(pipeline.passed || []),
+    ...(pipeline.invested || []),
+  ].map(c => c.name))
+  allCompanies
+    .filter(s => s.fit_score >= 4 && !pipelineCompanyNames.has(s.name))
+    .slice(0, 2)
+    .forEach(s => {
+      agendaItems.push({
+        label: `${s.name} — strong fit, not yet tracked`,
+        urgencyColor: '#6366f1',
+        nav: () => onNavigate('coverage', s),
+      })
+    })
+
+  const agendaTop = agendaItems.slice(0, 4)
+
   return (
     <div style={{ padding: '36px 40px', overflow: 'auto', height: '100%' }}>
 
+      {/* HEADER */}
       <div style={{ marginBottom: 28 }}>
-        <div style={{ fontSize: 13, color: '#555577', marginBottom: 6 }}>{formatDate()}</div>
+        <div style={{ fontSize: 12, color: '#555577', fontFamily: "'DM Mono', monospace", marginBottom: 8 }}>{formatDate()}</div>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#f0f0ff', margin: '0 0 6px', letterSpacing: '-0.5px' }}>
           {getGreeting()}, {firmName} ◈
         </h1>
         <p style={{ fontSize: 14, color: '#6b7280', margin: 0 }}>Here's what's happening in your deal flow today.</p>
       </div>
 
+      {/* TODAY'S AGENDA */}
+      {agendaTop.length > 0 && (
+        <div style={{ background: '#0f0f1a', border: '1px solid #1e1e2e', borderRadius: 12, padding: '18px 22px', marginBottom: 20 }}>
+          <div style={{ ...SECTION_LABEL, marginBottom: 14 }}>Today's Agenda</div>
+          {agendaTop.map((item, idx) => (
+            <div
+              key={idx}
+              onClick={item.nav}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '9px 0',
+                borderBottom: idx < agendaTop.length - 1 ? '1px solid #1a1a2e' : 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: item.urgencyColor, flexShrink: 0 }} />
+              <div style={{ fontSize: 13, color: '#d0d0e8', flex: 1 }}>{item.label}</div>
+              <span style={{ fontSize: 13, color: item.urgencyColor }}>→</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* STAT CARDS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
         <StatCard label="In Pipeline" value={totalInPipeline} sub="active deals" color="#6366f1" />
         <StatCard label="New This Week" value={newThisWeek} sub="top and strong fits added" color="#10b981" />
@@ -169,7 +241,7 @@ export default function Home({ API, firmProfile, onNavigate }) {
           style={{
             padding: '16px 24px', display: 'flex', alignItems: 'center',
             justifyContent: 'space-between', cursor: 'pointer',
-            borderBottom: digestExpanded ? '1px solid #1e1e2e' : 'none'
+            borderBottom: digestExpanded ? '1px solid #1e1e2e' : 'none',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -177,7 +249,7 @@ export default function Home({ API, firmProfile, onNavigate }) {
               width: 8, height: 8, borderRadius: '50%',
               background: hasDigestContent ? '#10b981' : '#3a3a5a',
               boxShadow: hasDigestContent ? '0 0 6px #10b981' : 'none',
-              flexShrink: 0
+              flexShrink: 0,
             }} />
             <span style={{ fontSize: 13, fontWeight: 700, color: '#f0f0ff' }}>What's New</span>
             <span style={{ fontSize: 12, color: '#555577' }}>
@@ -203,11 +275,11 @@ export default function Home({ API, firmProfile, onNavigate }) {
           ) : (
             <div style={{
               display: 'grid',
-              gridTemplateColumns: newCompanies.length > 0 && pipelineSignals.length > 0 ? '1fr 1fr' : '1fr'
+              gridTemplateColumns: newCompanies.length > 0 && pipelineSignals.length > 0 ? '1fr 1fr' : '1fr',
             }}>
               {newCompanies.length > 0 && (
                 <div style={{ padding: '16px 24px', borderRight: pipelineSignals.length > 0 ? '1px solid #1e1e2e' : 'none' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#10b981', letterSpacing: '0.5px', marginBottom: 12 }}>
+                  <div style={{ ...SECTION_LABEL, color: '#10b981', marginBottom: 12 }}>
                     🆕 {newCompanies.length} NEW {newCompanies.length === 1 ? 'COMPANY' : 'COMPANIES'} ADDED
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -218,7 +290,7 @@ export default function Home({ API, firmProfile, onNavigate }) {
                           display: 'flex', alignItems: 'flex-start', gap: 10,
                           padding: '10px 12px', borderRadius: 8,
                           background: '#0a0a14', border: '1px solid #1a1a2e',
-                          borderLeft: `3px solid ${badge.color}`, cursor: 'pointer'
+                          borderLeft: `3px solid ${badge.color}`, cursor: 'pointer',
                         }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
@@ -243,7 +315,7 @@ export default function Home({ API, firmProfile, onNavigate }) {
 
               {pipelineSignals.length > 0 && (
                 <div style={{ padding: '16px 24px' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', letterSpacing: '0.5px', marginBottom: 12 }}>
+                  <div style={{ ...SECTION_LABEL, color: '#f59e0b', marginBottom: 12 }}>
                     📡 {pipelineSignals.length} NEW {pipelineSignals.length === 1 ? 'SIGNAL' : 'SIGNALS'}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -251,7 +323,7 @@ export default function Home({ API, firmProfile, onNavigate }) {
                       <div key={sig.id} onClick={() => onNavigate('pipeline', { id: sig.startup_id }, 'company_signal')} style={{
                         display: 'flex', gap: 10, alignItems: 'flex-start',
                         padding: '10px 12px', borderRadius: 8,
-                        background: '#0a0a14', border: '1px solid #1a1a2e', cursor: 'pointer'
+                        background: '#0a0a14', border: '1px solid #1a1a2e', cursor: 'pointer',
                       }}>
                         <div style={{ fontSize: 16, flexShrink: 0 }}>{SIGNAL_ICONS[sig.signal_type] || '📡'}</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -273,106 +345,51 @@ export default function Home({ API, firmProfile, onNavigate }) {
         )}
       </div>
 
-      {/* Daily Brief + Pipeline */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
-        <div style={{ background: '#0f0f1a', border: '1px solid #1e1e2e', borderRadius: 12, padding: '22px 24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 3 }}>DAILY BRIEF</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#f0f0ff' }}>From latest scrape</div>
-            </div>
-            <button onClick={generateBrief} disabled={briefLoading} style={{
-              padding: '6px 14px', borderRadius: 7, border: 'none',
-              background: briefLoading ? '#2a2a4a' : 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-              color: briefLoading ? '#8888aa' : '#fff',
-              fontSize: 12, fontWeight: 600, cursor: briefLoading ? 'not-allowed' : 'pointer'
-            }}>
-              {briefLoading ? 'Generating...' : brief ? 'Regenerate' : '⚡ Generate'}
+      {/* PIPELINE */}
+      <div style={{ background: '#0f0f1a', border: '1px solid #1e1e2e', borderRadius: 12, padding: '22px 24px', marginBottom: 20 }}>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ ...SECTION_LABEL, marginBottom: 3 }}>Pipeline</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#f0f0ff' }}>{totalInPipeline} Active Deals</div>
+        </div>
+        {totalInPipeline === 0 ? (
+          <div style={{ textAlign: 'center', padding: '32px 0', color: '#555577' }}>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>📋</div>
+            <div style={{ fontSize: 13, marginBottom: 4 }}>No deals in pipeline yet</div>
+            <button onClick={() => onNavigate('coverage')} style={{ fontSize: 12, color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+              Browse Coverage to add deals →
             </button>
           </div>
-          {briefLoading && (
-            <div style={{ textAlign: 'center', padding: '32px 0' }}>
-              <div style={{ fontSize: 24, marginBottom: 8 }}>◈</div>
-              <div style={{ fontSize: 13, color: '#555577' }}>Analyzing your deal flow...</div>
-            </div>
-          )}
-          {brief && !briefLoading && (
-            <div style={{ fontSize: 13, color: '#a0a0cc', lineHeight: 1.7, maxHeight: 400, overflow: 'auto', contain: 'content' }}>
-              <Markdown remarkPlugins={[remarkGfm]} components={{
-                  h1: ({children}) => <div style={{ fontSize: 15, fontWeight: 700, color: '#f0f0ff', marginBottom: 12, marginTop: 4 }}>{children}</div>,
-                  h2: ({children}) => <div style={{ fontSize: 13, fontWeight: 700, color: '#c0c0e0', marginBottom: 8, marginTop: 14, borderBottom: '1px solid #1e1e2e', paddingBottom: 4 }}>{children}</div>,
-                  h3: ({children}) => <div style={{ fontSize: 12, fontWeight: 700, color: '#a0a0cc', marginBottom: 6, marginTop: 10 }}>{children}</div>,
-                  p: ({children}) => <p style={{ margin: '0 0 8px', color: '#a0a0cc', lineHeight: 1.7 }}>{children}</p>,
-                  strong: ({children}) => <strong style={{ color: '#e0e0ff', fontWeight: 600 }}>{children}</strong>,
-                  ul: ({children}) => <ul style={{ margin: '4px 0 8px', paddingLeft: 16 }}>{children}</ul>,
-                  li: ({children}) => <li style={{ margin: '3px 0', color: '#a0a0cc', lineHeight: 1.6 }}>{children}</li>,
-                  hr: () => <hr style={{ border: 'none', borderTop: '1px solid #1e1e2e', margin: '12px 0' }} />,
-                  table: ({children}) => <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 10, fontSize: 12 }}>{children}</table>,
-                  th: ({children}) => <th style={{ textAlign: 'left', padding: '5px 8px', color: '#6366f1', fontWeight: 600, borderBottom: '1px solid #2a2a4a', fontSize: 11 }}>{children}</th>,
-                  td: ({children}) => <td style={{ padding: '5px 8px', color: '#a0a0cc', borderBottom: '1px solid #1a1a2e', verticalAlign: 'top' }}>{children}</td>,
-                }}
-              >
-                {brief}
-              </Markdown>
-            </div>
-          )}
-          {briefError && !briefLoading && (
-            <div style={{ padding: '16px 0', fontSize: 13, color: '#f87171' }}>{briefError}</div>
-          )}
-          {!brief && !briefLoading && !briefError && (
-            <div style={{ textAlign: 'center', padding: '32px 0', color: '#555577' }}>
-              <div style={{ fontSize: 28, marginBottom: 8 }}>🔥</div>
-              <div style={{ fontSize: 13, marginBottom: 4 }}>Your brief is ready to generate</div>
-              <div style={{ fontSize: 12, color: '#3a3a5a' }}>New companies and signals from the latest data load, pipeline deals needing attention, plus a short AI summary</div>
-            </div>
-          )}
-        </div>
-
-        <div style={{ background: '#0f0f1a', border: '1px solid #1e1e2e', borderRadius: 12, padding: '22px 24px' }}>
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 3 }}>PIPELINE</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#f0f0ff' }}>{totalInPipeline} Active Deals</div>
-          </div>
-          {totalInPipeline === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px 0', color: '#555577' }}>
-              <div style={{ fontSize: 28, marginBottom: 8 }}>📋</div>
-              <div style={{ fontSize: 13, marginBottom: 4 }}>No deals in pipeline yet</div>
-              <button onClick={() => onNavigate('coverage')} style={{ fontSize: 12, color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
-                Browse Coverage to add deals →
-              </button>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {Object.entries(STAGE_COLORS).map(([stage, color]) => {
-                const count = pipeline[stage]?.length || 0
-                const max = Math.max(...Object.values(pipeline).map(arr => arr?.length || 0), 1)
-                return (
-                  <div key={stage} onClick={() => onNavigate('pipeline')} style={{ cursor: 'pointer' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontSize: 12, color: '#8888aa', textTransform: 'capitalize' }}>{stage}</span>
-                      <span style={{ fontSize: 12, color: count > 0 ? color : '#3a3a5a', fontWeight: 600 }}>{count}</span>
-                    </div>
-                    <div style={{ height: 4, background: '#1e1e2e', borderRadius: 2, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${(count / max) * 100}%`, background: color, borderRadius: 2, transition: 'width 0.5s ease' }} />
-                    </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {Object.entries(STAGE_COLORS).map(([stage, color]) => {
+              const count = pipeline[stage]?.length || 0
+              const max = Math.max(...Object.values(pipeline).map(arr => arr?.length || 0), 1)
+              return (
+                <div key={stage} onClick={() => onNavigate('pipeline')} style={{ cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontSize: 12, color: '#8888aa', textTransform: 'capitalize' }}>{stage}</span>
+                    <span style={{ fontSize: 12, color: count > 0 ? color : '#3a3a5a', fontWeight: 600 }}>{count}</span>
                   </div>
-                )
-              })}
-            </div>
-          )}
-          {totalInPipeline > 0 && (
-            <button onClick={() => onNavigate('pipeline')} style={{ marginTop: 16, width: '100%', padding: '8px', borderRadius: 7, border: '1px solid #2a2a4a', background: 'transparent', color: '#6366f1', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-              View Full Pipeline →
-            </button>
-          )}
-        </div>
+                  <div style={{ height: 4, background: '#1e1e2e', borderRadius: 2, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${(count / max) * 100}%`, background: color, borderRadius: 2, transition: 'width 0.5s ease' }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+        {totalInPipeline > 0 && (
+          <button onClick={() => onNavigate('pipeline')} style={{ marginTop: 16, width: '100%', padding: '8px', borderRadius: 7, border: '1px solid #2a2a4a', background: 'transparent', color: '#6366f1', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+            View Full Pipeline →
+          </button>
+        )}
       </div>
 
-      {/* Top Matches */}
+      {/* TOP MATCHES */}
       <div style={{ background: '#0f0f1a', border: '1px solid #1e1e2e', borderRadius: 12, padding: '22px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#6366f1', letterSpacing: '0.5px', marginBottom: 3 }}>TOP MATCHES</div>
+            <div style={{ ...SECTION_LABEL, marginBottom: 3 }}>Top Matches</div>
             <div style={{ fontSize: 14, fontWeight: 600, color: '#f0f0ff' }}>Highest conviction companies in your mandate</div>
           </div>
           <button onClick={() => onNavigate('coverage')} style={{ fontSize: 12, color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>View all →</button>
@@ -387,7 +404,7 @@ export default function Home({ API, firmProfile, onNavigate }) {
               return (
                 <div key={s.id} onClick={() => onNavigate('coverage', s)} style={{
                   background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 9,
-                  padding: '14px', cursor: 'pointer', borderTop: `2px solid ${badge.color}`
+                  padding: '14px', cursor: 'pointer', borderTop: `2px solid ${badge.color}`,
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
                     <div style={{ fontWeight: 600, fontSize: 13, color: '#f0f0ff' }}>{s.name}</div>
