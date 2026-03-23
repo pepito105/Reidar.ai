@@ -22,7 +22,7 @@ GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 GMAIL_SCOPES = [
     "openid",
     "email",
-    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.modify",
     "https://www.googleapis.com/auth/gmail.labels",
 ]
 STATE_SECRET = settings.GOOGLE_CLIENT_SECRET or "gmail-state-fallback-secret"
