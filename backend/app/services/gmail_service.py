@@ -246,11 +246,14 @@ async def handle_pitch(
     source: str = "email_pitch",
 ) -> dict:
     company_name = email_data.get("company_name")
+    founder_name = email_data.get("founder_name")
+    logger.info(f"Gmail handle_pitch: company={company_name}, founder={founder_name}")
     if not company_name:
         return {"action": "skipped", "reason": "no company name"}
 
     company = await _find_or_create_company(company_name, email_data, db)
     score = await _find_or_create_score(company, user_id, source, db)
+    logger.info(f"Gmail pitch processed: company={company_name} added to pipeline for user {user_id}")
 
     notif = Notification(
         user_id=user_id,
@@ -441,6 +444,7 @@ async def process_new_emails(user_id: str, db: AsyncSession) -> dict:
 
             # Classify
             email_data = await classify_email(subject, sender, body, firm_profile)
+            logger.info(f"Gmail classified email as: {email_data.get('email_type')} — company: {email_data.get('company_name')}")
             email_type = email_data.get("email_type", "irrelevant")
 
             # Route to handler
@@ -476,7 +480,7 @@ async def process_new_emails(user_id: str, db: AsyncSession) -> dict:
             processed += 1
 
         except Exception as e:
-            logger.error(f"Failed to process message {msg_id} for {user_id}: {e}")
+            logger.error(f"Gmail processing error for message {msg_id}: {e}", exc_info=True)
             continue
 
     await _update_connection(conn, db, list_data.get("historyId"))
