@@ -187,7 +187,7 @@ async def gmail_status(request: Request, db: AsyncSession = Depends(get_db)):
     return {
         "connected": True,
         "email": conn.email,
-        "last_checked_at": conn.last_checked_at.isoformat() if conn.last_checked_at else None,
+        "last_checked_at": conn.last_checked_at.isoformat() + "Z" if conn.last_checked_at else None,
     }
 
 

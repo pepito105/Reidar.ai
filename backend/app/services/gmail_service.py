@@ -16,6 +16,7 @@ from app.models.company import Company
 from app.models.firm_company_score import FirmCompanyScore
 from app.models.firm_profile import FirmProfile
 from app.models.notification import Notification
+from app.services.classifier import classify_startup
 
 logger = logging.getLogger(__name__)
 
@@ -216,6 +217,10 @@ async def _find_or_create_score(
     user_id: str,
     source: str,
     db: AsyncSession,
+    fit_score: int = 3,
+    fit_reasoning: str = "",
+    mandate_category: str = "",
+    comparable_companies: list = None,
 ) -> FirmCompanyScore:
     result = await db.execute(
         select(FirmCompanyScore)
@@ -227,7 +232,10 @@ async def _find_or_create_score(
         score = FirmCompanyScore(
             company_id=company.id,
             user_id=user_id,
-            fit_score=3,
+            fit_score=fit_score,
+            fit_reasoning=fit_reasoning or None,
+            mandate_category=mandate_category or None,
+            comparable_companies=comparable_companies or [],
             pipeline_status="new",
             source=source,
         )
@@ -252,12 +260,60 @@ async def handle_pitch(
         return {"action": "skipped", "reason": "no company name"}
 
     company = await _find_or_create_company(company_name, email_data, db)
-    score = await _find_or_create_score(company, user_id, source, db)
+
+    # Enrich company.one_liner from email if not already set
+    if not company.one_liner and email_data.get("one_liner"):
+        company.one_liner = email_data["one_liner"]
+        await db.flush()
+
+    # Build rich description from email classification fields
+    description = (
+        f"{email_data.get('one_liner', '')}. "
+        f"{' '.join(email_data.get('key_points', []))}. "
+        f"Stage: {email_data.get('stage', 'unknown')}. "
+        f"Founded by {email_data.get('founder_name', 'unknown')}."
+    )
+
+    # Run classifier with email-derived signal
+    fit_score = 3
+    fit_reasoning = ""
+    mandate_category = ""
+    comparable_companies = []
+    try:
+        classification = await classify_startup(
+            name=company_name,
+            description=description,
+            website=company.website,
+            source=source,
+            firm=firm_profile,
+        )
+        fit_score = classification.get("fit_score", 3)
+        fit_reasoning = classification.get("fit_reasoning", "")
+        mandate_category = classification.get("mandate_category", "")
+        comparable_companies = classification.get("comparable_companies", [])
+        logger.info(f"Gmail classify_startup result: company={company_name} fit_score={fit_score}")
+    except Exception as e:
+        logger.warning(f"Gmail classify_startup failed for {company_name}, falling back to fit_score=3: {e}")
+
+    score = await _find_or_create_score(
+        company, user_id, source, db,
+        fit_score=fit_score,
+        fit_reasoning=fit_reasoning,
+        mandate_category=mandate_category,
+        comparable_companies=comparable_companies,
+    )
     logger.info(f"Gmail pitch processed: company={company_name} added to pipeline for user {user_id}")
+
+    if fit_score >= 4:
+        event_type = "new_top_match"
+    elif fit_score == 3:
+        event_type = "new_strong_fit"
+    else:
+        event_type = "new_possible_fit"
 
     notif = Notification(
         user_id=user_id,
-        event_type="new_strong_fit",
+        event_type=event_type,
         title=f"Inbound pitch: {company_name}",
         body=f"{email_data.get('one_liner') or 'New pitch via email.'}",
         company_id=company.id,
@@ -272,7 +328,7 @@ async def handle_pitch(
     )
     db.add(notif)
     await db.commit()
-    return {"action": "pitch_added", "company": company_name}
+    return {"action": "pitch_added", "company": company_name, "fit_score": fit_score}
 
 
 async def handle_transcript(
