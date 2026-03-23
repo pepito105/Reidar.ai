@@ -248,6 +248,24 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
     fetchActivity()
   }, [activeTab, startup.id])
 
+  useEffect(() => {
+    if (startup?.research_status !== 'pending') return
+    const poll = setInterval(async () => {
+      try {
+        const token = await getToken().catch(() => null)
+        const headers = token ? { Authorization: `Bearer ${token}` } : {}
+        const res = await axios.get(`${API}/startups/${startup.id}`, { headers })
+        const updated = res.data
+        if (updated.research_status !== 'pending') {
+          setStartup(updated)
+          onUpdate && onUpdate(updated)
+          clearInterval(poll)
+        }
+      } catch {}
+    }, 5000)
+    return () => clearInterval(poll)
+  }, [startup?.research_status, startup?.id])
+
   const saveStatus = async (newStatus) => {
     const prev = pipelineStatus
     setPipelineStatus(newStatus)
@@ -613,7 +631,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
         </Section>
 
         {/* Research pending state */}
-        {!startup.business_model && !startup.research_status && (
+        {!startup.business_model && (!startup.research_status || startup.research_status === 'pending') && (
           <div style={{
             background: '#0a0a14', border: '1px solid #1e1e2e', borderRadius: 8,
             padding: '14px 16px', marginBottom: 24,

@@ -46,7 +46,7 @@ async def get_activity(
     user_id = _user_id_from_request(request)
     events = await get_company_activity(
         db=db,
-        startup_id=startup_id,
+        company_id=startup_id,
         user_id=user_id,
         limit=limit,
     )

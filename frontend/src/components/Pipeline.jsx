@@ -252,22 +252,26 @@ export default function Pipeline({ API, selectedCompany: incomingCompany, select
           <p style={{ fontSize: 13, color: '#555577', margin: '4px 0 0' }}>{totalInPipeline} companies being tracked</p>
         </div>
         <div style={{ display: 'flex', background: '#0f0f1a', border: '1px solid #2a2a4a', borderRadius: 7, overflow: 'hidden' }}>
-          {[['kanban', '⬜ Kanban'], ['list', '☰ List']].map(([mode, label]) => (
-            <button
-              key={mode}
-              onClick={() => setViewMode(mode)}
-              style={{
-                padding: '6px 14px',
-                fontSize: 12,
-                fontWeight: 600,
-                border: 'none',
-                cursor: 'pointer',
-                background: viewMode === mode ? '#1e1e3a' : 'transparent',
-                color: viewMode === mode ? '#a5b4fc' : '#555577',
-                transition: 'all 0.15s',
-              }}
-            >{label}</button>
-          ))}
+          <button
+            onClick={() => setViewMode('kanban')}
+            title="Kanban view"
+            style={{ padding: '5px 10px', cursor: 'pointer', border: 'none', background: viewMode === 'kanban' ? '#2a2a4a' : 'transparent', color: viewMode === 'kanban' ? '#f0f0ff' : '#6b7280', display: 'flex', alignItems: 'center' }}
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+              <rect x="0" y="0" width="5" height="5" rx="1"/><rect x="7" y="0" width="5" height="5" rx="1"/>
+              <rect x="0" y="7" width="5" height="5" rx="1"/><rect x="7" y="7" width="5" height="5" rx="1"/>
+            </svg>
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            title="List view"
+            style={{ padding: '5px 10px', cursor: 'pointer', border: 'none', background: viewMode === 'list' ? '#2a2a4a' : 'transparent', color: viewMode === 'list' ? '#f0f0ff' : '#6b7280', display: 'flex', alignItems: 'center' }}
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+              <rect x="0" y="1" width="12" height="2" rx="1"/><rect x="0" y="5" width="12" height="2" rx="1"/>
+              <rect x="0" y="9" width="12" height="2" rx="1"/>
+            </svg>
+          </button>
         </div>
       </div>
 

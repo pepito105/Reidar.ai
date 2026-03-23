@@ -99,6 +99,35 @@ function normalizeSectorName(raw) {
   return raw.trim() || 'Other'
 }
 
+function getSourceChannel(scoreSource, source) {
+  switch (scoreSource) {
+    case 'email_pitch': return { label: 'Inbound pitch', color: '#f59e0b', icon: '✉' }
+    case 'email_intro':  return { label: 'Warm intro',    color: '#10b981', icon: '↗' }
+    case 'manual':       return { label: 'Added manually', color: '#8888aa', icon: '+' }
+    default:
+      if (source === 'manual') return { label: 'Added manually', color: '#8888aa', icon: '+' }
+      return { label: 'Sourced by Reidar', color: '#6b6b8a', icon: 'radar' }
+  }
+}
+
+function getAccentColor(s) {
+  if (s.score_source === 'email_pitch') return '#f59e0b'
+  if (s.score_source === 'email_intro') return '#10b981'
+  if (s.pipeline_status && PIPELINE_COLORS[s.pipeline_status]) return PIPELINE_COLORS[s.pipeline_status]
+  return '#2a2a4a'
+}
+
+function getInboundUrgency(s) {
+  if (s.score_source !== 'email_pitch' && s.score_source !== 'email_intro') return null
+  if (s.pipeline_status && s.pipeline_status !== 'new') return null
+  if (!s.scraped_at) return null
+  const normalized = s.scraped_at.endsWith('Z') || s.scraped_at.includes('+') ? s.scraped_at : s.scraped_at + 'Z'
+  const diffMs = Date.now() - new Date(normalized).getTime()
+  const diffDays = diffMs / 86400000
+  if (diffDays > 3) return { text: `No reply · ${Math.floor(diffDays)}d ago`, color: '#ef4444' }
+  return { text: `Awaiting reply · ${Math.floor(diffMs / 3600000)}h ago`, color: '#f59e0b' }
+}
+
 function groupBySector(companies) {
   const groups = {}
   companies.forEach(s => {
@@ -127,6 +156,13 @@ export default function Coverage({ API, selectedCompany, selectedEventType, onCo
   const [inboxCollapsed, setInboxCollapsed] = useState(false)
   const [collapsedSectors, setCollapsedSectors] = useState({})
   const [viewMode, setViewMode] = useState('grouped') // 'grouped' | 'flat'
+  const [listMode, setListMode] = useState(() => {
+    try { return localStorage.getItem('radar_list_mode') === 'true' } catch { return false }
+  })
+  const toggleListMode = (val) => {
+    try { localStorage.setItem('radar_list_mode', String(val)) } catch {}
+    setListMode(val)
+  }
   const [showAddModal, setShowAddModal] = useState(false)
   const [savedId, setSavedId] = useState(null)
   const cardRefs = useRef({})
@@ -282,23 +318,44 @@ export default function Coverage({ API, selectedCompany, selectedEventType, onCo
                 )}
               </p>
             </div>
-            {/* View toggle */}
-            <div style={{
-              display: 'flex', background: '#0f0f1a',
-              border: '1px solid #2a2a4a', borderRadius: 7, overflow: 'hidden'
-            }}>
-              <button onClick={() => setViewMode('grouped')} style={{
-                padding: '5px 12px', fontSize: 11, fontWeight: 600,
-                cursor: 'pointer', border: 'none',
-                background: viewMode === 'grouped' ? '#2a2a4a' : 'transparent',
-                color: viewMode === 'grouped' ? '#f0f0ff' : '#6b7280',
-              }}>By Sector</button>
-              <button onClick={() => setViewMode('flat')} style={{
-                padding: '5px 12px', fontSize: 11, fontWeight: 600,
-                cursor: 'pointer', border: 'none',
-                background: viewMode === 'flat' ? '#2a2a4a' : 'transparent',
-                color: viewMode === 'flat' ? '#f0f0ff' : '#6b7280',
-              }}>Show all</button>
+            {/* View toggles */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ display: 'flex', background: '#0f0f1a', border: '1px solid #2a2a4a', borderRadius: 7, overflow: 'hidden' }}>
+                <button onClick={() => setViewMode('grouped')} style={{
+                  padding: '5px 12px', fontSize: 11, fontWeight: 600,
+                  cursor: 'pointer', border: 'none',
+                  background: viewMode === 'grouped' ? '#2a2a4a' : 'transparent',
+                  color: viewMode === 'grouped' ? '#f0f0ff' : '#6b7280',
+                }}>By Sector</button>
+                <button onClick={() => setViewMode('flat')} style={{
+                  padding: '5px 12px', fontSize: 11, fontWeight: 600,
+                  cursor: 'pointer', border: 'none',
+                  background: viewMode === 'flat' ? '#2a2a4a' : 'transparent',
+                  color: viewMode === 'flat' ? '#f0f0ff' : '#6b7280',
+                }}>Show all</button>
+              </div>
+              <div style={{ display: 'flex', background: '#0f0f1a', border: '1px solid #2a2a4a', borderRadius: 7, overflow: 'hidden' }}>
+                <button onClick={() => toggleListMode(false)} title="Grid view" style={{
+                  padding: '5px 10px', cursor: 'pointer', border: 'none',
+                  background: !listMode ? '#2a2a4a' : 'transparent',
+                  color: !listMode ? '#f0f0ff' : '#6b7280', display: 'flex', alignItems: 'center',
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                    <rect x="0" y="0" width="5" height="5" rx="1"/><rect x="7" y="0" width="5" height="5" rx="1"/>
+                    <rect x="0" y="7" width="5" height="5" rx="1"/><rect x="7" y="7" width="5" height="5" rx="1"/>
+                  </svg>
+                </button>
+                <button onClick={() => toggleListMode(true)} title="List view" style={{
+                  padding: '5px 10px', cursor: 'pointer', border: 'none',
+                  background: listMode ? '#2a2a4a' : 'transparent',
+                  color: listMode ? '#f0f0ff' : '#6b7280', display: 'flex', alignItems: 'center',
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                    <rect x="0" y="1" width="12" height="2" rx="1"/><rect x="0" y="5" width="12" height="2" rx="1"/>
+                    <rect x="0" y="9" width="12" height="2" rx="1"/>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -467,19 +524,19 @@ export default function Coverage({ API, selectedCompany, selectedEventType, onCo
                   onToggle={() => setInboxCollapsed(c => !c)}
                 />
                 {!inboxCollapsed && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
-                    {inboxCards.map(s => (
-                      <CompanyCard
-                        key={s.id}
-                        ref={el => { if (el) cardRefs.current[s.id] = el }}
-                        startup={s}
-                        onClick={() => handleCardClick(s)}
-                        isSelected={selected?.id === s.id}
-                        isInbox={true}
-                        onQuickAction={handleQuickAction}
-                      />
-                    ))}
-                  </div>
+                  listMode ? (
+                    <div style={{ borderTop: '1px solid #0d0d1a' }}>
+                      {inboxCards.map(s => (
+                        <CompanyRow key={s.id} ref={el => { if (el) cardRefs.current[s.id] = el }} startup={s} onClick={() => handleCardClick(s)} isSelected={selected?.id === s.id} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+                      {inboxCards.map(s => (
+                        <CompanyCard key={s.id} ref={el => { if (el) cardRefs.current[s.id] = el }} startup={s} onClick={() => handleCardClick(s)} isSelected={selected?.id === s.id} isInbox={true} onQuickAction={handleQuickAction} />
+                      ))}
+                    </div>
+                  )
                 )}
               </div>
             )}
@@ -498,19 +555,19 @@ export default function Coverage({ API, selectedCompany, selectedEventType, onCo
                       onToggle={() => toggleSector(sector)}
                     />
                     {!collapsedSectors[sector] && (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
-                        {companies.map(s => (
-                          <CompanyCard
-                            key={s.id}
-                            ref={el => { if (el) cardRefs.current[s.id] = el }}
-                            startup={s}
-                            onClick={() => handleCardClick(s)}
-                            isSelected={selected?.id === s.id}
-                            isInbox={false}
-                            onQuickAction={handleQuickAction}
-                          />
-                        ))}
-                      </div>
+                      listMode ? (
+                        <div style={{ borderTop: '1px solid #0d0d1a', marginBottom: 4 }}>
+                          {companies.map(s => (
+                            <CompanyRow key={s.id} ref={el => { if (el) cardRefs.current[s.id] = el }} startup={s} onClick={() => handleCardClick(s)} isSelected={selected?.id === s.id} />
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+                          {companies.map(s => (
+                            <CompanyCard key={s.id} ref={el => { if (el) cardRefs.current[s.id] = el }} startup={s} onClick={() => handleCardClick(s)} isSelected={selected?.id === s.id} isInbox={false} onQuickAction={handleQuickAction} />
+                          ))}
+                        </div>
+                      )
                     )}
                   </div>
                 ))}
@@ -525,19 +582,19 @@ export default function Coverage({ API, selectedCompany, selectedEventType, onCo
                   countBg="#1a1a2e"
                   countBorder="#2a2a4a"
                 />
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
-                  {filteredCards.map(s => (
-                    <CompanyCard
-                      key={s.id}
-                      ref={el => { if (el) cardRefs.current[s.id] = el }}
-                      startup={s}
-                      onClick={() => handleCardClick(s)}
-                      isSelected={selected?.id === s.id}
-                      isInbox={false}
-                      onQuickAction={handleQuickAction}
-                    />
-                  ))}
-                </div>
+                {listMode ? (
+                  <div style={{ borderTop: '1px solid #0d0d1a' }}>
+                    {filteredCards.map(s => (
+                      <CompanyRow key={s.id} ref={el => { if (el) cardRefs.current[s.id] = el }} startup={s} onClick={() => handleCardClick(s)} isSelected={selected?.id === s.id} />
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+                    {filteredCards.map(s => (
+                      <CompanyCard key={s.id} ref={el => { if (el) cardRefs.current[s.id] = el }} startup={s} onClick={() => handleCardClick(s)} isSelected={selected?.id === s.id} isInbox={false} onQuickAction={handleQuickAction} />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </>
@@ -626,27 +683,23 @@ function SectionHeader({ label, count, color, borderColor, countBg, countBorder,
 }
 
 const CompanyCard = forwardRef(function CompanyCard({ startup: s, onClick, isSelected, isInbox, onQuickAction }, ref) {
-  const badge = s.fit_score != null
-    ? (FIT_BADGES[s.fit_score] || FIT_BADGES[2])
-    : { label: 'Pending', color: '#555577', bg: '#1a1a2e' }
-  const inPipeline = s.pipeline_status && PIPELINE_COLORS[s.pipeline_status]
-  const pipelineColor = inPipeline ? PIPELINE_COLORS[s.pipeline_status] : '#2a2a4a'
+  const badge = s.fit_score != null ? (FIT_BADGES[s.fit_score] || FIT_BADGES[2]) : { label: 'Pending', color: '#555577', bg: '#1a1a2e' }
+  const accentColor = getAccentColor(s)
+  const channel = getSourceChannel(s.score_source, s.source)
+  const urgency = getInboundUrgency(s)
+  const pipelineColor = s.pipeline_status && PIPELINE_COLORS[s.pipeline_status] ? PIPELINE_COLORS[s.pipeline_status] : null
   const showActions = isInbox && !s.pipeline_status
-  const investors = Array.isArray(s.top_investors) ? s.top_investors.slice(0, 2) : []
+  const isOverdue = s.next_action && s.next_action_due && new Date(s.next_action_due) < new Date()
 
   return (
     <div ref={ref} onClick={onClick} style={{
       background: isSelected ? '#13132a' : '#0f0f1a',
-      borderLeft: `3px solid ${pipelineColor}`,
+      borderLeft: `4px solid ${accentColor}`,
       borderRadius: 10,
       padding: '14px 16px',
       cursor: 'pointer',
       transition: 'all 0.15s',
-      boxShadow: isSelected
-        ? '0 0 0 2px #3730a3'
-        : inPipeline
-        ? `0 0 0 1px ${pipelineColor}33`
-        : '0 0 0 1px #1e1e2e',
+      boxShadow: isSelected ? '0 0 0 2px #3730a3' : pipelineColor ? `0 0 0 1px ${pipelineColor}33` : '0 0 0 1px #1e1e2e',
     }}>
 
       {/* Row 1: Name + fit badge */}
@@ -655,91 +708,152 @@ const CompanyCard = forwardRef(function CompanyCard({ startup: s, onClick, isSel
           <div style={{ fontWeight: 700, fontSize: 14, color: '#f0f0ff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {s.name}
           </div>
-          {isInbox && (
-            <span style={{
-              fontSize: 9, fontWeight: 700, color: '#10b981', background: '#052e16',
-              padding: '2px 5px', borderRadius: 3, letterSpacing: '0.5px',
-              border: '1px solid #065f46', flexShrink: 0
-            }}>NEW</span>
-          )}
+          {isInbox && <span style={{ fontSize: 9, fontWeight: 700, color: '#10b981', background: '#052e16', padding: '2px 5px', borderRadius: 3, letterSpacing: '0.5px', border: '1px solid #065f46', flexShrink: 0 }}>NEW</span>}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0, marginLeft: 8 }}>
-          {inPipeline && (
-            <span style={{
-              padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 600,
-              background: `${pipelineColor}22`, color: pipelineColor,
-              border: `1px solid ${pipelineColor}55`, textTransform: 'capitalize'
-            }}>{s.pipeline_status}</span>
+          {pipelineColor && (
+            <span style={{ padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: `${pipelineColor}22`, color: pipelineColor, border: `1px solid ${pipelineColor}55`, textTransform: 'capitalize' }}>
+              {s.pipeline_status}
+            </span>
           )}
-          <span style={{
-            padding: '3px 8px', borderRadius: 5, fontSize: 11, fontWeight: 600,
-            background: badge.bg, color: badge.color, whiteSpace: 'nowrap'
-          }}>{badge.label}</span>
+          <span style={{ padding: '3px 8px', borderRadius: 5, fontSize: 11, fontWeight: 600, background: badge.bg, color: badge.color, whiteSpace: 'nowrap' }}>
+            {badge.label}
+          </span>
         </div>
       </div>
 
-      {/* Row 2: One-liner */}
-      <div style={{ fontSize: 12, color: '#8888aa', lineHeight: 1.45, marginBottom: 10 }}>
+      {/* Row 2: One-liner (2-line clamp) */}
+      <div style={{ fontSize: 12, color: '#8888aa', lineHeight: 1.45, marginBottom: 8, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
         {s.one_liner}
       </div>
 
-      {/* Row 3: Meta info */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, fontSize: 11, color: '#555577' }}>
-        {s.founding_year && (
-          <span>Est. {s.founding_year}</span>
+      {/* Source row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: urgency || s.conviction_score > 0 || s.next_action ? 6 : 8 }}>
+        {channel.icon === 'radar' ? (
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+            <circle cx="6" cy="6" r="1.5" fill="#6b6b8a"/>
+            <circle cx="6" cy="6" r="3.5" stroke="#6b6b8a" strokeWidth="1" fill="none" opacity="0.5"/>
+            <circle cx="6" cy="6" r="5.5" stroke="#6b6b8a" strokeWidth="1" fill="none" opacity="0.25"/>
+          </svg>
+        ) : (
+          <span style={{ fontSize: 11, color: channel.color, flexShrink: 0, lineHeight: 1 }}>{channel.icon}</span>
         )}
-        {s.team_size && (
-          <span>· 👤 {s.team_size}</span>
+        <span style={{ fontSize: 11, color: channel.color }}>
+          {s.score_source === 'email_intro' && s.introducer_name ? `Intro via ${s.introducer_name}` : channel.label}
+        </span>
+        {s.score_source === 'email_pitch' && s.email_subject && (
+          <span style={{ fontSize: 11, color: '#555577', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+            · "{s.email_subject}"
+          </span>
         )}
       </div>
 
-      {/* Row 4: Tags + investors */}
+      {/* Inbound urgency */}
+      {urgency && (
+        <div style={{ fontSize: 11, color: urgency.color, marginBottom: 6 }}>{urgency.text}</div>
+      )}
+
+      {/* Conviction dots */}
+      {s.conviction_score > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+          <span style={{ fontSize: 9, color: '#555577', fontFamily: 'DM Mono, monospace', letterSpacing: '0.5px', flexShrink: 0 }}>MY CONVICTION</span>
+          <div style={{ display: 'flex', gap: 3 }}>
+            {[1,2,3,4,5].map(n => (
+              <div key={n} style={{ width: 7, height: 7, borderRadius: '50%', background: n <= s.conviction_score ? '#8b5cf6' : '#1e1e2e' }} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Next action */}
+      {s.next_action && (
+        <div style={{ fontSize: 11, color: isOverdue ? '#ef4444' : '#8888aa', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          → {s.next_action}
+        </div>
+      )}
+
+      {/* Tags */}
       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
-        {s.source === 'manual' && (
-          <span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 10, background: '#1a1a2e', color: '#6b7280', border: '1px solid #2a2a4a' }}>Added by you</span>
-        )}
         {s.funding_stage && s.funding_stage !== 'unknown' && <Tag>{s.funding_stage}</Tag>}
         {s.has_unseen_signals && (
-          <span style={{
-            padding: '2px 6px', borderRadius: 4, fontSize: 10,
-            background: '#1e1b4b', color: '#a5b4fc', fontWeight: 600,
-            border: '1px solid #3730a3'
-          }}>⚡ Signal</span>
+          <span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 10, background: '#1e1b4b', color: '#a5b4fc', fontWeight: 600, border: '1px solid #3730a3' }}>⚡ Signal</span>
         )}
-        {investors.map((inv, i) => (
-          <span key={i} style={{
-            padding: '2px 6px', borderRadius: 4, fontSize: 10,
-            background: '#1a1a2e', color: '#6366f1',
-            border: '1px solid #2a2a4a', fontWeight: 500
-          }}>{inv}</span>
-        ))}
       </div>
 
-      {s.scraped_at && (
-        <div style={{ marginTop: 8, fontSize: 10, color: '#3a3a5a' }}>
-          {formatAddedDate(s.scraped_at)}
-        </div>
+      {/* Footer: time ago (suppressed when urgency already shows recency) */}
+      {!urgency && s.scraped_at && (
+        <div style={{ marginTop: 8, fontSize: 10, color: '#3a3a5a' }}>{formatAddedDate(s.scraped_at)}</div>
       )}
 
       {/* Quick actions */}
       {showActions && (
-        <div style={{
-          display: 'flex', gap: 8, marginTop: 12, paddingTop: 12,
-          borderTop: '1px solid #1e1e2e'
-        }}>
-          <button onClick={e => { e.stopPropagation(); onQuickAction(s, 'watching') }} style={{
-            padding: '5px 12px', borderRadius: 6, border: 'none',
-            background: '#4f46e5', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer'
-          }}>+ Watch</button>
-          <button onClick={e => { e.stopPropagation(); onQuickAction(s, 'passed') }} style={{
-            padding: '5px 12px', borderRadius: 6, border: 'none',
-            background: '#1a1a2e', color: '#6b7280', fontSize: 11, fontWeight: 600, cursor: 'pointer'
-          }}>Pass</button>
-          <button onClick={e => { e.stopPropagation(); onClick() }} style={{
-            padding: '5px 12px', borderRadius: 6, border: 'none',
-            background: 'transparent', color: '#555577', fontSize: 11, fontWeight: 600,
-            cursor: 'pointer', marginLeft: 'auto'
-          }}>→ Memo</button>
+        <div style={{ display: 'flex', gap: 8, marginTop: 12, paddingTop: 12, borderTop: '1px solid #1e1e2e' }}>
+          <button onClick={e => { e.stopPropagation(); onQuickAction(s, 'watching') }} style={{ padding: '5px 12px', borderRadius: 6, border: 'none', background: '#4f46e5', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>+ Watch</button>
+          <button onClick={e => { e.stopPropagation(); onQuickAction(s, 'passed') }} style={{ padding: '5px 12px', borderRadius: 6, border: 'none', background: '#1a1a2e', color: '#6b7280', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>Pass</button>
+          <button onClick={e => { e.stopPropagation(); onClick() }} style={{ padding: '5px 12px', borderRadius: 6, border: 'none', background: 'transparent', color: '#555577', fontSize: 11, fontWeight: 600, cursor: 'pointer', marginLeft: 'auto' }}>→ Memo</button>
+        </div>
+      )}
+    </div>
+  )
+})
+
+const CompanyRow = forwardRef(function CompanyRow({ startup: s, onClick, isSelected }, ref) {
+  const badge = s.fit_score != null ? (FIT_BADGES[s.fit_score] || FIT_BADGES[2]) : { label: 'Pending', color: '#555577', bg: '#1a1a2e' }
+  const accentColor = getAccentColor(s)
+  const channel = getSourceChannel(s.score_source, s.source)
+  const pipelineColor = s.pipeline_status && PIPELINE_COLORS[s.pipeline_status] ? PIPELINE_COLORS[s.pipeline_status] : null
+  const isOverdue = s.next_action && s.next_action_due && new Date(s.next_action_due) < new Date()
+
+  return (
+    <div
+      ref={ref}
+      onClick={onClick}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        height: 44, paddingLeft: 12, paddingRight: 16,
+        borderLeft: `3px solid ${accentColor}`,
+        borderBottom: '1px solid #0d0d1a',
+        background: isSelected ? '#0d0d1a' : 'transparent',
+        cursor: 'pointer', transition: 'background 0.1s',
+      }}
+      onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = '#0d0d1a' }}
+      onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent' }}
+    >
+      <div style={{ minWidth: 180, maxWidth: 200, fontWeight: 600, fontSize: 14, color: '#f0f0ff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>
+        {s.name}
+      </div>
+      <span style={{ padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: badge.bg, color: badge.color, whiteSpace: 'nowrap', flexShrink: 0 }}>
+        {badge.label}
+      </span>
+      <span style={{ fontSize: 10, color: channel.color, whiteSpace: 'nowrap', flexShrink: 0 }}>
+        {s.score_source === 'email_intro' && s.introducer_name ? `Intro via ${s.introducer_name}` : channel.label}
+      </span>
+      <div style={{ flex: 1, fontSize: 12, color: '#8888aa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
+        {s.one_liner}
+      </div>
+      {s.conviction_score > 0 && (
+        <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+          {[1,2,3,4,5].map(n => (
+            <div key={n} style={{ width: 6, height: 6, borderRadius: '50%', background: n <= s.conviction_score ? '#8b5cf6' : '#1e1e2e' }} />
+          ))}
+        </div>
+      )}
+      {s.next_action && (
+        <div style={{ fontSize: 11, color: isOverdue ? '#ef4444' : '#8888aa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 160, flexShrink: 0 }}>
+          → {s.next_action}
+        </div>
+      )}
+      {pipelineColor && (
+        <span style={{ padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: `${pipelineColor}22`, color: pipelineColor, border: `1px solid ${pipelineColor}55`, textTransform: 'capitalize', flexShrink: 0, whiteSpace: 'nowrap' }}>
+          {s.pipeline_status}
+        </span>
+      )}
+      {s.has_unseen_signals && (
+        <span style={{ fontSize: 10, color: '#a5b4fc', flexShrink: 0 }}>⚡</span>
+      )}
+      {s.scraped_at && (
+        <div style={{ fontSize: 11, color: '#555577', whiteSpace: 'nowrap', flexShrink: 0 }}>
+          {formatAddedDate(s.scraped_at)}
         </div>
       )}
     </div>

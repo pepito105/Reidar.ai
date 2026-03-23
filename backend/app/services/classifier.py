@@ -217,7 +217,7 @@ BULL_CASE: Structure each statement as "If [assumption] proves true, then [outco
 Respond with ONLY a JSON object, no markdown:
 {{
   "name": "actual company name only, or null if input is a headline/description and you cannot extract a clean name",
-  "one_liner": "We help [customer] [solve problem] by [mechanism] — max 15 words",
+  "one_liner": "We help [customer] [solve problem] by [mechanism]",
   "ai_summary": "2-3 sentence investment overview",
   "fit_score": <integer 1-5>,
   "fit_reasoning": "Bullet points with • [dimension]: [reasoning] — High/Medium/Low confidence",
@@ -445,7 +445,7 @@ BULL CASE: Max 2. Each: "If [specific assumption] proves true, then [specific ou
 Respond with ONLY a JSON object, no markdown, no backticks:
 {{
   "name": "clean company name only",
-  "one_liner": "We help [customer] [solve problem] by [mechanism] — max 15 words",
+  "one_liner": "We help [customer] [solve problem] by [mechanism]",
   "enriched_one_liner": "2-sentence description from actual research",
   "ai_summary": "3-4 sentence investment overview with specific findings",
   "fit_score": <integer 1-5>,

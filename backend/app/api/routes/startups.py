@@ -302,7 +302,7 @@ class AddCompanyRequest(BaseModel):
 
 
 @router.post("/add")
-async def add_company(data: AddCompanyRequest, request: Request, db: AsyncSession = Depends(get_db)):
+async def add_company(data: AddCompanyRequest, background_tasks: BackgroundTasks, request: Request, db: AsyncSession = Depends(get_db)):
     from app.services.classifier import classify_startup
     import datetime as _dt
 
@@ -363,6 +363,9 @@ async def add_company(data: AddCompanyRequest, request: Request, db: AsyncSessio
         )
         db.add(company)
         await db.flush()
+    else:
+        # Existing company — mark pending so the frontend shows research in progress
+        company.research_status = "pending"
 
     # ── STEP 2: Check if this firm already scored this company ────────────────
     existing_score = await db.execute(
@@ -377,6 +380,7 @@ async def add_company(data: AddCompanyRequest, request: Request, db: AsyncSessio
         score = FirmCompanyScore(
             company_id=company.id,
             user_id=user_id,
+            source="manual",
             fit_score=clamp(result.get("fit_score"), 1, 5),
             fit_reasoning=t(result.get("fit_reasoning"), 2000),
             mandate_category=t(result.get("mandate_category"), 99),
@@ -393,7 +397,296 @@ async def add_company(data: AddCompanyRequest, request: Request, db: AsyncSessio
     await db.commit()
     await db.refresh(company)
     await db.refresh(score)
+
+    # ── STEP 3: Enqueue background deep research (same as /analyze) ──────────
+    score_uuid = score.id
+    score_id_str = str(score.id)
+    company_id_str = str(company.id)
+
+    async def run_research_background():
+        async with AsyncSessionLocal() as bg_db:
+            try:
+                bg_row = (await bg_db.execute(
+                    select(Company, FirmCompanyScore)
+                    .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+                    .where(FirmCompanyScore.id == score_uuid)
+                )).first()
+                if not bg_row:
+                    return
+                bg_company, bg_score = bg_row
+
+                bg_profile_result = await bg_db.execute(
+                    select(FirmProfile).where(FirmProfile.user_id == user_id).where(FirmProfile.is_active == True).limit(1)
+                )
+                bg_profile = bg_profile_result.scalars().first()
+                if not bg_profile:
+                    logger.error(f"No profile found in background research for user {user_id}")
+                    bg_company.research_status = None
+                    await bg_db.commit()
+                    return
+
+                from app.services.classifier import research_startup
+                result = await research_startup(
+                    bg_company.name,
+                    bg_company.one_liner or "",
+                    bg_company.website,
+                    bg_profile,
+                )
+                if not result:
+                    bg_company.research_status = None
+                    await bg_db.commit()
+                    return
+
+                import json as _json
+                stringify_fields = {"fit_reasoning", "key_risks", "bull_case",
+                                    "traction_signals", "red_flags", "recommended_next_step"}
+
+                for field in GLOBAL_FIELDS:
+                    value = result.get(field)
+                    if value is not None:
+                        if field in stringify_fields and not isinstance(value, str):
+                            value = _json.dumps(value)
+                        if field == "team_size" and value is not None:
+                            value = str(value)
+                        setattr(bg_company, field, value)
+
+                if result.get("website_content") and not bg_company.website_content:
+                    bg_company.website_content = result["website_content"][:10000]
+                if (bg_company.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):
+                    bg_company.funding_stage = result["funding_stage"]
+                bg_company.research_status = "complete"
+                bg_company.research_completed_at = datetime.utcnow()
+
+                for field in FIRM_FIELDS:
+                    value = result.get(field)
+                    if value is not None:
+                        if field in stringify_fields and not isinstance(value, str):
+                            value = _json.dumps(value)
+                        setattr(bg_score, field, value)
+
+                if result.get("notable_traction"):
+                    bg_company.notable_traction = result["notable_traction"]
+
+                await bg_db.commit()
+
+                try:
+                    from app.services.notification_writer import write_research_complete_notification
+                    await write_research_complete_notification(bg_db, bg_score, user_id=user_id, company_name=bg_company.name)
+                except Exception as e:
+                    logger.warning(f"Failed to write research notification: {e}")
+
+            except Exception as e:
+                logger.error(f"Background research failed for {score_id_str}: {e}")
+                async with AsyncSessionLocal() as err_db:
+                    try:
+                        err_company = (await err_db.execute(
+                            select(Company).where(Company.id == _to_uuid(company_id_str))
+                        )).scalar_one_or_none()
+                        if err_company:
+                            err_company.research_status = None
+                            await err_db.commit()
+                    except Exception:
+                        pass
+
+    background_tasks.add_task(run_research_background)
     return _startup_to_card(company, score)
+
+
+class AddAndAnalyzeRequest(BaseModel):
+    name: str
+    website: str = None
+    description: str = None
+    meeting_notes: str = None
+    funding_stage: str = None
+    source: str = "manual"
+
+
+@router.post("/add-and-analyze", status_code=202)
+async def add_and_analyze(data: AddAndAnalyzeRequest, background_tasks: BackgroundTasks, request: Request, db: AsyncSession = Depends(get_db)):
+    """Create company with minimal data, register SSE queue, enqueue full research. Returns 202 immediately."""
+    import datetime as _dt
+    user_id = _user_id_from_request(request)
+
+    def t(v, n): return (v or "")[:n] if v is not None else None
+
+    # ── STEP 1: Find or create global Company record ──────────────────────────
+    company = None
+    if data.website:
+        try:
+            from urllib.parse import urlparse
+            domain = urlparse(data.website).netloc.lower().replace("www.", "")
+            if domain:
+                existing = await db.execute(
+                    select(Company).where(Company.website.ilike(f"%{domain}%")).limit(1)
+                )
+                company = existing.scalar_one_or_none()
+        except Exception:
+            pass
+
+    if company is None:
+        slug = _slugify_global(data.name)
+        slug_check = await db.execute(select(Company).where(Company.slug == slug).limit(1))
+        if slug_check.scalar_one_or_none():
+            slug = f"{slug}-{str(_uuid_mod.uuid4())[:4]}"
+
+        company = Company(
+            name=data.name,
+            slug=slug,
+            website=t(data.website, 499),
+            one_liner=t(data.description, 499),
+            funding_stage=t(data.funding_stage or "unknown", 49),
+            source=data.source or "manual",
+            source_url=data.website,
+            research_status="pending",
+            scraped_at=_dt.datetime.utcnow(),
+        )
+        db.add(company)
+        await db.flush()
+    else:
+        company.research_status = "pending"
+
+    # ── STEP 2: Find or create score record ──────────────────────────────────
+    existing_score = await db.execute(
+        select(FirmCompanyScore)
+        .where(FirmCompanyScore.company_id == company.id)
+        .where(FirmCompanyScore.user_id == user_id)
+        .limit(1)
+    )
+    score = existing_score.scalar_one_or_none()
+
+    if score is None:
+        score = FirmCompanyScore(
+            company_id=company.id,
+            user_id=user_id,
+            source="manual",
+            pipeline_status="new",
+            meeting_notes=(
+                [{"note": data.meeting_notes, "created_at": _dt.datetime.utcnow().isoformat() + "Z"}]
+                if data.meeting_notes else []
+            ),
+        )
+        db.add(score)
+
+    await db.commit()
+    await db.refresh(company)
+    await db.refresh(score)
+
+    # ── STEP 3: Register progress queue THEN enqueue research ─────────────────
+    # Queue must exist before background task starts so SSE stream can find it.
+    score_id_str = str(score.id)
+    company_id_str = str(company.id)
+    score_uuid = score.id
+
+    progress_queue = _asyncio.Queue()
+    _research_queues[score_id_str] = progress_queue
+
+    async def run_analyze_background():
+        async with AsyncSessionLocal() as bg_db:
+            try:
+                bg_row = (await bg_db.execute(
+                    select(Company, FirmCompanyScore)
+                    .join(FirmCompanyScore, FirmCompanyScore.company_id == Company.id)
+                    .where(FirmCompanyScore.id == score_uuid)
+                )).first()
+                if not bg_row:
+                    return
+                bg_company, bg_score = bg_row
+
+                queue = _research_queues.get(score_id_str)
+
+                async def on_progress(message: str):
+                    if queue:
+                        await queue.put({"type": "stage", "message": message})
+
+                bg_profile_result = await bg_db.execute(
+                    select(FirmProfile).where(FirmProfile.user_id == user_id).where(FirmProfile.is_active == True).limit(1)
+                )
+                bg_profile = bg_profile_result.scalars().first()
+                if not bg_profile:
+                    logger.error(f"No profile in add-and-analyze background for user {user_id}")
+                    bg_company.research_status = None
+                    await bg_db.commit()
+                    if queue:
+                        await queue.put({"type": "error", "message": "No firm profile found"})
+                    _research_queues.pop(score_id_str, None)
+                    return
+
+                from app.services.classifier import research_startup
+                result = await research_startup(
+                    bg_company.name,
+                    bg_company.one_liner or "",
+                    bg_company.website,
+                    bg_profile,
+                    progress_callback=on_progress,
+                )
+                if not result:
+                    bg_company.research_status = None
+                    await bg_db.commit()
+                    if queue:
+                        await queue.put({"type": "error", "message": "Research returned no result"})
+                    _research_queues.pop(score_id_str, None)
+                    return
+
+                import json as _json
+                stringify_fields = {"fit_reasoning", "key_risks", "bull_case",
+                                    "traction_signals", "red_flags", "recommended_next_step"}
+
+                for field in GLOBAL_FIELDS:
+                    value = result.get(field)
+                    if value is not None:
+                        if field in stringify_fields and not isinstance(value, str):
+                            value = _json.dumps(value)
+                        if field == "team_size" and value is not None:
+                            value = str(value)
+                        setattr(bg_company, field, value)
+
+                if result.get("website_content") and not bg_company.website_content:
+                    bg_company.website_content = result["website_content"][:10000]
+                if (bg_company.funding_stage or "unknown") == "unknown" and result.get("funding_stage"):
+                    bg_company.funding_stage = result["funding_stage"]
+                bg_company.research_status = "complete"
+                bg_company.research_completed_at = datetime.utcnow()
+
+                for field in FIRM_FIELDS:
+                    value = result.get(field)
+                    if value is not None:
+                        if field in stringify_fields and not isinstance(value, str):
+                            value = _json.dumps(value)
+                        setattr(bg_score, field, value)
+
+                if result.get("notable_traction"):
+                    bg_company.notable_traction = result["notable_traction"]
+
+                await bg_db.commit()
+
+                if queue:
+                    await queue.put({"type": "complete", "startup": None})
+                _research_queues.pop(score_id_str, None)
+
+                try:
+                    from app.services.notification_writer import write_research_complete_notification
+                    await write_research_complete_notification(bg_db, bg_score, user_id=user_id, company_name=bg_company.name)
+                except Exception as e:
+                    logger.warning(f"Failed to write research notification: {e}")
+
+            except Exception as e:
+                logger.error(f"add-and-analyze background failed for {score_id_str}: {e}")
+                q = _research_queues.pop(score_id_str, None)
+                if q:
+                    await q.put({"type": "error", "message": str(e)})
+                async with AsyncSessionLocal() as err_db:
+                    try:
+                        err_company = (await err_db.execute(
+                            select(Company).where(Company.id == _to_uuid(company_id_str))
+                        )).scalar_one_or_none()
+                        if err_company:
+                            err_company.research_status = None
+                            await err_db.commit()
+                    except Exception:
+                        pass
+
+    background_tasks.add_task(run_analyze_background)
+    return {"startup_id": score_id_str, "name": company.name}
 
 
 class PortfolioCompany(BaseModel):
