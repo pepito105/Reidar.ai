@@ -605,6 +605,7 @@ export default function Coverage({ API, selectedCompany, selectedEventType, onCo
       {selected && (
         <div style={{ width: 520, borderLeft: '1px solid #1e1e2e', overflow: 'auto', flexShrink: 0 }}>
           <CompanyDetail
+            key={selected?.id}
             API={API}
             startup={selected}
             initialTab={selectedTab}

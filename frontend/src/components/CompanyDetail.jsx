@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import ReactDOM from 'react-dom'
 import { useAuth } from '@clerk/clerk-react'
 import axios from 'axios'
@@ -85,12 +85,27 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
   const [newOutreach, setNewOutreach] = useState({})
   const [analyzing, setAnalyzing] = useState(false)
   const [analyzeStage, setAnalyzeStage] = useState(null)
+  const esRef = useRef(null)
   const [customFocus, setCustomFocus] = useState('')
   const [showFocusInput, setShowFocusInput] = useState(false)
   const [activityEvents, setActivityEvents] = useState([])
   const [activityLoading, setActivityLoading] = useState(false)
 
   const badge = startup.fit_score != null ? (FIT_BADGES[startup.fit_score] || FIT_BADGES[2]) : { label: 'Pending', color: '#555577', bg: '#1a1a2e' }
+
+  // Close EventSource on unmount
+  useEffect(() => {
+    return () => {
+      if (esRef.current) { esRef.current.close(); esRef.current = null; }
+    }
+  }, [])
+
+  // Reset analyzing state and close any open stream when company changes
+  useEffect(() => {
+    if (esRef.current) { esRef.current.close(); esRef.current = null; }
+    setAnalyzing(false)
+    setAnalyzeStage('')
+  }, [startup?.id])
 
   useEffect(() => {
     if (!startup?.id) return
@@ -380,6 +395,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
         const focusValue = showFocusInput && customFocus.trim() ? customFocus.trim() : ''
         const streamUrl = `${API}/startups/${startup.id}/analyze/stream${token ? `?token=${token}` : ''}${focusValue ? `&focus=${encodeURIComponent(focusValue)}` : ''}`
         const es = new EventSource(streamUrl)
+        esRef.current = es
         es.onmessage = (e) => {
           try {
             const data = JSON.parse(e.data)
@@ -388,7 +404,7 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
             } else if (data.type === 'ping') {
               // keep alive, do nothing
             } else if (data.type === 'complete') {
-              es.close()
+              es.close(); esRef.current = null
               if (data.startup) {
                 setStartup(data.startup)
                 onUpdate && onUpdate(data.startup)
@@ -396,14 +412,14 @@ export default function CompanyDetail({ API, startup: s, onClose, onUpdate, onSe
               setAnalyzing(false)
               setAnalyzeStage('')
             } else if (data.type === 'error') {
-              es.close()
+              es.close(); esRef.current = null
               setAnalyzing(false)
               setAnalyzeStage('')
             }
           } catch {}
         }
         es.onerror = () => {
-          es.close()
+          es.close(); esRef.current = null
           setAnalyzing(false)
           setAnalyzeStage('')
         }
