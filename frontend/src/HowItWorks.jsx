@@ -276,25 +276,28 @@ function MockClassify() {
         <div className="mm-dot" style={{ background: "#FF5F57" }} />
         <div className="mm-dot" style={{ background: "#FFBD2E" }} />
         <div className="mm-dot" style={{ background: "#28C840" }} />
-        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>classifier · claude-sonnet</span>
+        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>reidar.ai/learning</span>
       </div>
       <div className="mm-body">
         <div className="memo-section">
-          <div className="memo-label">SCORING AGAINST MANDATE</div>
-          <div style={{ background: "rgba(255,255,255,.03)", borderRadius: 5, padding: "10px", marginBottom: 8 }}>
-            <div style={{ fontSize: 11, fontWeight: 500, color: "#EBEBEB", marginBottom: 6 }}>Synthos <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.3)", fontWeight: 400 }}>· seed · HealthTech</span></div>
-            <div className="score-bars">
-              {[["Thesis fit", 94], ["AI-nativeness", 97], ["Stage match", 100], ["Mandate score", 92]].map(([l, v]) => (
-                <div className="score-row" key={l}>
-                  <div className="score-label">{l}</div>
-                  <div className="score-track"><div className="score-fill" style={{ width: `${v}%`, opacity: .85 }} /></div>
-                  <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "#A992FA", width: 28, textAlign: "right" }}>{v}</span>
-                </div>
-              ))}
-            </div>
+          <div className="memo-label">LEARNING FROM YOUR DECISIONS</div>
+          <div style={{ background: "rgba(255,255,255,.03)", borderRadius: 5, padding: "10px", marginBottom: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+            {[
+              { dot: "#4ade80", text: "✓ Passed on Nexora — 'TAM too narrow for our thesis'" },
+              { dot: "#A992FA", text: "✓ Advanced Synthos — 'Strong technical founder, regulated wedge'" },
+              { dot: "#f59e0b", text: "✓ Pattern detected: you consistently back technical founders in regulated verticals" },
+            ].map((row, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: row.dot, flexShrink: 0, marginTop: 3 }} />
+                <span style={{ fontSize: 11, color: "rgba(235,235,235,.55)", lineHeight: 1.5 }}>{row.text}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 10, color: "rgba(235,235,235,.3)", fontFamily: "'DM Mono',monospace", marginBottom: 6 }}>
+            Reidar has captured <span style={{ color: "#A992FA" }}>47 decisions</span> · Profile confidence: <span style={{ color: "#A992FA" }}>72%</span>
           </div>
           <div style={{ fontSize: 10, color: "rgba(235,235,235,.3)", fontFamily: "'DM Mono',monospace" }}>
-            ✓ PASSES THRESHOLD → surfaced as <span style={{ color: "#4ade80" }}>Top Match</span>
+            PROFILE UPDATING → <span style={{ color: "#f59e0b" }}>investor lens sharpening</span>
           </div>
         </div>
       </div>
@@ -375,9 +378,9 @@ function MockNotification() {
           </svg>
         </div>
         <div>
-          <div className="notif-title">12 new companies matched your mandate</div>
-          <div className="notif-body">3 Top Match companies sourced overnight — Synthos, Waymark AI, and Corpora all score above threshold for your HealthTech + LegalTech thesis.</div>
-          <div className="notif-tag">↑ 34 total in coverage</div>
+          <div className="notif-title">Company you passed on just hit a milestone</div>
+          <div className="notif-body">Meridian Health — you passed 8 months ago noting 'too early, no revenue.' They just announced $500K ARR and 3 enterprise pilots. Your original concern has been addressed.</div>
+          <div className="notif-tag">↑ Re-evaluate</div>
         </div>
       </div>
       <div style={{ background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.06)", borderRadius: 8, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -395,31 +398,29 @@ function MockParameters() {
         <div className="mm-dot" style={{ background: "#FF5F57" }} />
         <div className="mm-dot" style={{ background: "#FFBD2E" }} />
         <div className="mm-dot" style={{ background: "#28C840" }} />
-        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>reidar.ai/setup · step 2 of 5</span>
+        <span style={{ marginLeft: 8, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(235,235,235,.2)" }}>reidar.ai/setup · investor profile</span>
       </div>
       <div className="mm-body">
         <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 9, fontFamily: "'DM Mono',monospace", color: "rgba(235,235,235,.3)", letterSpacing: ".1em", marginBottom: 7 }}>INVESTMENT STAGES</div>
+          <div style={{ fontSize: 9, fontFamily: "'DM Mono',monospace", color: "rgba(235,235,235,.3)", letterSpacing: ".1em", marginBottom: 7 }}>YOUR EVALUATION PATTERNS</div>
           <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-            {["pre-seed", "seed", "Series A", "Series B"].map((s, i) => (
+            {["Technical founders", "Domain expertise", "Prior exits", "First-time founders"].map((s, i) => (
               <div key={s} style={{ padding: "4px 10px", borderRadius: 12, fontSize: 10, background: i < 2 ? "rgba(107,71,245,.2)" : "rgba(255,255,255,.04)", border: `1px solid ${i < 2 ? "rgba(107,71,245,.35)" : "rgba(255,255,255,.08)"}`, color: i < 2 ? "#A992FA" : "rgba(235,235,235,.3)" }}>{s}</div>
             ))}
           </div>
         </div>
         <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 9, fontFamily: "'DM Mono',monospace", color: "rgba(235,235,235,.3)", letterSpacing: ".1em", marginBottom: 7 }}>GEOGRAPHY</div>
+          <div style={{ fontSize: 9, fontFamily: "'DM Mono',monospace", color: "rgba(235,235,235,.3)", letterSpacing: ".1em", marginBottom: 7 }}>DOMAINS YOU KNOW BEST</div>
           <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-            {["North America", "Europe", "Asia", "Latin America", "Global"].map((g, i) => (
+            {["HealthTech", "LegalTech", "FinTech", "Developer Tools"].map((g, i) => (
               <div key={g} style={{ padding: "4px 10px", borderRadius: 12, fontSize: 10, background: i < 2 ? "rgba(107,71,245,.2)" : "rgba(255,255,255,.04)", border: `1px solid ${i < 2 ? "rgba(107,71,245,.35)" : "rgba(255,255,255,.08)"}`, color: i < 2 ? "#A992FA" : "rgba(235,235,235,.3)" }}>{g}</div>
             ))}
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 9, fontFamily: "'DM Mono',monospace", color: "rgba(235,235,235,.3)", letterSpacing: ".1em", marginBottom: 7 }}>CHECK SIZE</div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <div style={{ flex: 1, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", borderRadius: 5, padding: "7px 10px", fontSize: 11, color: "#EBEBEB" }}>$200,000</div>
-            <div style={{ fontSize: 10, color: "rgba(235,235,235,.3)" }}>to</div>
-            <div style={{ flex: 1, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", borderRadius: 5, padding: "7px 10px", fontSize: 11, color: "#EBEBEB" }}>$1,000,000</div>
+          <div style={{ fontSize: 9, fontFamily: "'DM Mono',monospace", color: "rgba(235,235,235,.3)", letterSpacing: ".1em", marginBottom: 7 }}>WHAT MAKES YOU PASS</div>
+          <div className="form-textarea">
+            No technical co-founder for a deep tech product. Horizontal positioning trying to serve everyone. Vision-heavy pitch with no current product.
           </div>
         </div>
       </div>
@@ -533,43 +534,43 @@ function MockNotifSetup() {
 const STORY = [
   {
     time: "Step 1 · ~2 minutes",
-    title: <>Define your <em>mandate.</em></>,
-    body: "Start with your firm name and investment thesis in plain English — as specific as you'd describe it to a founder. This becomes the lens Reidar uses for every company it ever touches. The more specific, the sharper the signal.",
+    title: <>Define your firm's <em>mandate.</em></>,
+    body: "Start with your firm name and investment thesis in plain English. Add your stage focus, geography, check size, and sectors to exclude. This becomes the firm-level filter that every company is scored against — but it's just the beginning.",
     side: "left",
     Mock: MockOnboarding,
   },
   {
-    time: "Step 2 · ~1 minute",
-    title: <>Set your <em>parameters.</em></>,
-    body: "Choose the stages you invest at, your geography focus, and your check size range. These parameters tell Reidar where to look and what to prioritize — companies outside your range are deprioritized before they reach you.",
+    time: "Step 2 · ~3 minutes",
+    title: <>Build your <em>investor profile.</em></>,
+    body: "This is what makes Reidar different. Tell it about your personal evaluation patterns — what types of founders you back, what signals you trust, what you've passed on and why. Upload past deals or describe your track record. Two partners at the same firm will get different recommendations because they think differently.",
     side: "right",
     Mock: MockParameters,
   },
   {
-    time: "Step 3 · ~1 minute",
-    title: <>Configure your <em>filters.</em></>,
-    body: "Tell Reidar what to never surface — crypto, hardware, defense, whatever falls outside your mandate. Then set your minimum fit threshold: a score of 4+ means only Strong Fits and Top Matches appear in your feed. You control the signal-to-noise ratio.",
+    time: "Step 3 · ~2 minutes",
+    title: <>Import your <em>history.</em></>,
+    body: "Upload a CSV of companies you've evaluated, connect your CRM, or paste your portfolio. Every past decision — investments, passes, watchlist companies — gives Reidar context that no database has. The more history you provide, the smarter it is from day one.",
     side: "left",
-    Mock: MockFilters,
-  },
-  {
-    time: "Step 4 · Optional",
-    title: <>Import your <em>portfolio.</em></>,
-    body: "Upload a CSV or paste your portfolio companies. This gives the AI analyst instant context on what you've already backed — and turns those bets into a sourcing signal. Ask it to find more companies like any portfolio company.",
-    side: "right",
     Mock: MockPortfolio,
   },
   {
-    time: "Step 5 · ~30 seconds",
-    title: <>Set up <em>notifications.</em></>,
-    body: "Choose what Reidar emails you about: daily top matches from the nightly sourcing run, diligence signals when pipeline companies get new funding or press, and a weekly market brief every Monday. Then hit Launch — your first sourcing run starts immediately.",
-    side: "left",
+    time: "Step 4 · ~1 minute",
+    title: <>Set your <em>signal preferences.</em></>,
+    body: "Choose your minimum fit threshold and what Reidar alerts you about: new companies above threshold, milestone changes on companies you've passed on, pipeline signals, and a weekly brief. Then hit Launch — your first sourcing run starts immediately.",
+    side: "right",
     Mock: MockNotifSetup,
   },
   {
-    time: "Every night, automatically",
-    title: <>Reidar works while <em>you sleep.</em></>,
-    body: "Reidar runs AI-powered sourcing every night — generating mandate-specific search queries, finding early-stage companies across the web, and scoring each one against your thesis. By morning, your inbox has a digest of the highest-conviction matches. Your feed keeps growing. You never miss a company worth seeing.",
+    time: "Every interaction, automatically",
+    title: <>Reidar <em>keeps learning.</em></>,
+    body: "This is where it compounds. Take a founder call — Reidar captures the context. Send a follow-up email — the touchpoint is logged. Pass on a deal — the reasoning is remembered. You don't change how you work. You don't fill out forms or log activities. Reidar watches your normal workflow and learns from it. After 30 days, it's measurably smarter than day one. After 6 months, it knows your patterns better than you do.",
+    side: "left",
+    Mock: MockClassify,
+  },
+  {
+    time: "Every morning",
+    title: <>Context that <em>no one else has.</em></>,
+    body: "This context exists because Reidar was silently learning from 6 months of your meetings, emails, and decisions. No database has it. No competitor can scrape it. A company you passed on 8 months ago just hit a milestone? Reidar remembers what you said in that call and shows you what changed. A deal heading to IC? Reidar tells you what objections to expect — because it was there for every conversation that shaped your firm's judgment.",
     side: "right",
     Mock: MockNotification,
   },
@@ -610,7 +611,7 @@ export default function HowItWorks() {
         </a>
         <div className="nav-center">
           <a href="/how-it-works" className="nav-a active">How it works</a>
-          <a href="/#product" className="nav-a">Product</a>
+          <a href="/pricing" className="nav-a">Pricing</a>
         </div>
         <div className="nav-right">
           {isSignedIn ? (
@@ -624,8 +625,8 @@ export default function HowItWorks() {
       {/* PAGE HERO */}
       <div className="page-hero">
         <div className="page-label">How it works</div>
-        <h1 className="page-h1">Five steps. Then Reidar <em>runs itself.</em></h1>
-        <p className="page-sub">Setup takes under 10 minutes. After that, Reidar sources, scores, and surfaces companies every night — and emails you the ones worth seeing.</p>
+        <h1 className="page-h1">Teach it once. It <em>never stops learning.</em></h1>
+        <p className="page-sub">Reidar learns your firm's mandate and your personal patterns during a 10-minute setup. After that, it learns from your normal workflow — meetings, emails, pipeline decisions — without you lifting a finger.</p>
       </div>
 
       {/* TIMELINE */}
@@ -678,15 +679,16 @@ export default function HowItWorks() {
         <div className="ready-grid sr">
           <div className="ready-cell">
             <div className="ready-tag">Get started</div>
-            <h3 className="ready-h3">Ready to set up your <em>associate?</em></h3>
-            <p className="ready-p">Five steps, under 10 minutes. Write your thesis, set your parameters, and Reidar starts sourcing tonight.</p>
+            <h3 className="ready-h3">Ready to teach it <em>how you invest?</em></h3>
+            <p className="ready-p">Four steps to teach Reidar your mandate and your patterns. After that, it learns from your normal workflow — no logging, no data entry, no extra work. Your edge compounds just by doing your job.</p>
             <div className="ready-steps">
               {[
-                ["Define your mandate", "Your thesis in plain English — as specific as you'd say it to a founder."],
-                ["Set parameters & filters", "Stages, geography, check size, excluded sectors, fit threshold."],
-                ["Import your portfolio", "Optional but powerful — turns your bets into a sourcing signal."],
-                ["Set up notifications", "Choose what Reidar emails you. Hit Launch. First run starts immediately."],
-                ["Reidar works every night", "Scrapes, scores, surfaces. Email digest every morning."],
+                ["Define your mandate", "Your firm's thesis in plain English — the firm-level filter every company is scored against."],
+                ["Build your investor profile", "Your personal patterns, what you back, what you pass on. Your lens, not your firm's."],
+                ["Import your history", "Past deals, portfolio, evaluated companies. The more context, the smarter day one."],
+                ["Set signal preferences", "Fit threshold, alert types, weekly brief. Hit Launch — first run starts immediately."],
+                ["Every interaction teaches it", "Passes, advances, notes, conversations. 30 days in, it's measurably sharper."],
+                ["Context compounds daily", "Right company, right moment. Resurfaced when the reason you passed is resolved."],
               ].map(([title, desc], i) => (
                 <div className="ready-step" key={i}>
                   <div className="rs-num">{i + 1}</div>
@@ -701,10 +703,10 @@ export default function HowItWorks() {
           <div className="ready-cell" style={{ display: "flex", flexDirection: "column", justifyContent: "center", background: "radial-gradient(ellipse 80% 80% at 50% 100%,rgba(107,71,245,.07),transparent 70%)" }}>
             <div style={{ textAlign: "center", padding: "20px" }}>
               {[
-                ["5", "onboarding steps, ~10 min total"],
-                ["8", "sourcing queries per night"],
-                ["every night", "Reidar sources & scores automatically"],
-                ["3", "email alerts — daily, signals, weekly brief"],
+                ["10 min", "to teach it your mandate and profile"],
+                ["30 days", "until it's measurably smarter than day one"],
+                ["every decision", "compounds your investor lens"],
+                ["yours alone", "context no other firm has access to"],
               ].map(([n, l]) => (
                 <div key={l} style={{ marginBottom: 28 }}>
                   <div style={{ fontSize: 36, fontWeight: 600, color: "#EBEBEB", letterSpacing: "-.03em", lineHeight: 1 }}>{n}</div>
@@ -722,6 +724,7 @@ export default function HowItWorks() {
           <div className="foot-l">© 2026 Reidar.</div>
           <a href="/" className="foot-link">Home</a>
           <a href="/how-it-works" className="foot-link">How it works</a>
+          <a href="/pricing" className="foot-link">Pricing</a>
         </div>
         <div className="foot-r">POWERED BY CLAUDE · ANTHROPIC</div>
       </footer>

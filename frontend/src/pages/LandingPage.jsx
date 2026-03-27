@@ -396,7 +396,7 @@ function MockCoverage() {
 
             {/* Deploy agents block */}
             <div style={{ background: 'rgba(107,71,245,.06)', border: '1px solid rgba(107,71,245,.15)', borderRadius: 8, padding: '12px 14px' }}>
-              <div style={{ fontSize: 11, color: 'rgba(235,235,235,.4)', marginBottom: 10, lineHeight: 1.5 }}>Deploy research agents to unlock a full investment analysis.</div>
+              <div style={{ fontSize: 11, color: 'rgba(235,235,235,.4)', marginBottom: 10, lineHeight: 1.5 }}>Deploy research agents for a full investment analysis — scored against your mandate and your personal evaluation patterns.</div>
               {!analyzing && !done && (
                 <div style={{ display: 'flex', gap: 6 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', padding: '7px 14px', borderRadius: 6, cursor: 'pointer' }}>⚡ Deploy Research Agents</div>
@@ -423,6 +423,7 @@ function MockCoverage() {
                 <div style={{ background: 'rgba(255,255,255,.025)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 8, padding: '12px 14px', animation: 'fadeIn .5s ease' }}>
                   <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: 'rgba(107,71,245,.7)', letterSpacing: '.1em', marginBottom: 10 }}>THESIS FIT REASONING</div>
                   {[
+                    { t: 'Matches your pattern — you\'ve backed 3 technical founders in regulated verticals', c: '#A992FA' },
                     { t: 'AI-native architecture: LLM-first, no legacy layer', c: '#4ade80' },
                     { t: 'Regulated vertical: HIPAA-compliant clinical workflows', c: '#4ade80' },
                     { t: 'B2B SaaS: per-seat enterprise contracts', c: '#facc15' },
@@ -478,6 +479,7 @@ function MockMemo() {
         <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: "rgba(107,71,245,.7)", letterSpacing: ".1em", marginBottom: 12 }}>THESIS FIT REASONING</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {[
+            { point: "Pattern match: aligns with your track record of backing technical founders in regulated B2B", conf: "Investor-specific", color: "#A992FA" },
             { point: "AI-native architecture: LLM-first product with no legacy layer", conf: "High confidence", color: "#4ade80" },
             { point: "Regulated vertical: clinical documentation in HIPAA environment", conf: "High confidence", color: "#4ade80" },
             { point: "B2B SaaS model: per-seat pricing, enterprise contracts", conf: "Medium confidence", color: "#facc15" },
@@ -899,20 +901,20 @@ function ProductPreview() {
 }
 
 /* ─── CONSTANTS ─── */
-const TICKER_ITEMS = ["MANDATE-AWARE SOURCING","INSTITUTIONAL DEAL MEMORY","AI INVESTMENT MEMOS","PIPELINE TRACKING","NEVER MISS A COMPANY AGAIN","CONVERSATION INTELLIGENCE","RE-SURFACE AT THE RIGHT MOMENT","NIGHTLY AI SOURCING","RESEARCH AGENTS ON DEMAND","EMERGING FUND TOOLING","CONTEXT THAT COMPOUNDS"];
+const TICKER_ITEMS = ["INVESTOR-SPECIFIC SCORING","DECISION MEMORY","PATTERN RECOGNITION","JUDGMENT THAT COMPOUNDS","CONTEXT THAT TRAVELS WITH YOU","NEVER LOSE A DEAL AGAIN","CAPTURES YOUR ALPHA","FIRM-AWARE FILTERING","PERSONAL AI ASSOCIATE","SMARTER EVERY INTERACTION","BUILT FOR YOUR MIND","LEARNS FROM YOUR MEETINGS","ZERO MANUAL LOGGING","PASSIVE CONTEXT CAPTURE","WORKS WHILE YOU WORK"];
 const STEPS = [
-  { n:"01", t:"Reads your firm",               d:"Reidar reads your thesis and firm website — learning your mandate, portfolio, and what you care about." },
-  { n:"02", t:"Sources nightly",               d:"At 4AM, AI-powered web search runs mandate-specific queries across the web to surface early-stage startups." },
-  { n:"03", t:"Classifies",                    d:"Claude scores each company 1–5 against your thesis. Below threshold = never reaches your feed." },
-  { n:"04", t:"Researches on demand",          d:"Deploy research agents on any company — full investment analysis, memo, recommended next step." },
-  { n:"05", t:"Learns from every interaction", d:"Founder call notes, pipeline moves, passes, and deal context all feed back in. The more you use Reidar, the sharper the signal." },
-  { n:"06", t:"Surfaces what matters",         d:"Pipeline company just raised? Company you passed on hit $5M ARR? Reidar flags it at the right moment." },
+  { n:"01", t:"Learns your mandate",      d:"Reidar ingests your firm's thesis, portfolio, and stage focus. Upload past deals, connect your CRM, or start from scratch." },
+  { n:"02", t:"Builds your profile",      d:"Tell it how you evaluate. What patterns you trust. What you've passed on and why. Every investor at the firm gets their own lens." },
+  { n:"03", t:"Sources with your lens",   d:"Nightly sourcing filtered through your firm's mandate AND your personal evaluation patterns. Different partners see different companies." },
+  { n:"04", t:"Captures every decision",  d:"You don't log anything. Reidar captures context from meetings you take, emails you send, deals you advance, and notes you write. Every interaction with your workflow feeds back in — automatically." },
+  { n:"05", t:"Resurfaces at the right moment", d:"Company you passed on just hit a milestone? Reidar remembers why you passed — from the notes you took in that meeting 8 months ago — and shows you exactly what changed." },
+  { n:"06", t:"Coaches your internal pitch", d:"Before you bring a deal to IC, Reidar tells you what objections to expect based on your firm's decision history." },
 ];
 const COMPS = [
-  { name:"Harmonic",   t:"Best-in-class data.",  c:"But it's a search engine. You bring the query, the context. It doesn't know what you've already seen — or what you passed on last year." },
-  { name:"PitchBook",  t:"Institutional depth.", c:"$12K–$100K/yr. Built for brand-name funds, not emerging GPs. Won't remember what you told it last quarter." },
-  { name:"Affinity",   t:"Tracks relationships.", c:"Knows who you know. Doesn't know what you've seen, what fits your mandate, or when to bring a company back." },
-  { name:"Crunchbase", t:"Broad coverage.",      c:"A directory, not an analyst. Start from scratch every time." },
+  { name:"Signal platforms",    t:"Same signals, every user.",    c:"When a thousand firms get the same funding alert at the same time, the signal is noise. The edge isn't knowing — it's knowing what it means for you specifically." },
+  { name:"Startup databases",   t:"Broad but generic.",           c:"50 million company profiles, and none of them remember that you saw this company eight months ago and passed because the unit economics didn't work." },
+  { name:"CRM tools",           t:"Track relationships, not judgment.", c:"They know who you emailed. They don't know what you thought, what pattern you recognized, or why you had conviction. The context that matters most never gets captured." },
+  { name:"Market intelligence", t:"Shared views, shared blind spots.", c:"If your sourcing strategy is the same tool everyone else uses, your sourcing strategy isn't a strategy. It's a subscription." },
 ];
 
 const INTEGRATIONS = [
@@ -979,11 +981,11 @@ const ORBIT_SVGS = [
 ];
 
 const HERO_PHRASES = [
-  "Working while you sleep.",
-  "Knows your mandate cold.",
-  "Never drops a deal.",
-  "Gets smarter every week.",
-  "Built for how you invest.",
+  "Learns how you think.",
+  "Remembers what you've seen.",
+  "Gets sharper every decision.",
+  "Knows your blind spots.",
+  "Built around your judgment.",
 ];
 
 /* ─── COMPETITOR GRID ─── */
@@ -1620,7 +1622,6 @@ const { isSignedIn } = useAuth();
         </a>
         <div className="nav-links">
           <a href="/how-it-works" className="nav-a">How it works</a>
-          <a href="/#product" className="nav-a">Product</a>
           <a href="/pricing" className="nav-a">Pricing</a>
         </div>
         <div className="nav-right">
@@ -1638,10 +1639,10 @@ const { isSignedIn } = useAuth();
         <div className="hero-fade" />
         <div className="hero-content">
           <div style={{ display: 'inline-block', border: '1px solid rgba(107,71,245,0.3)', background: 'rgba(107,71,245,0.08)', padding: '4px 12px', borderRadius: 20, fontSize: 12, fontFamily: "'Space Mono',monospace", color: 'rgba(255,255,255,0.6)', letterSpacing: '0.1em', marginBottom: 20 }}>
-            Intelligence layer for VC
+            The AI that learns how you invest
           </div>
           <h1 className="hero-h1">Meet Reidar.<br />Your AI associate. <span className="acc">{heroDisplayed}<span className="typewriter-cursor">|</span></span></h1>
-          <p className="hero-sub">The intelligence layer for VC. Every deal you've ever touched — always in play, surfaced at the right moment.</p>
+          <p className="hero-sub">Reidar sources deals, writes investment memos, and tracks your pipeline — all filtered through your firm's mandate and your personal judgment. It learns from every meeting, email, and decision you make, getting sharper without you doing any extra work.</p>
           <div className="hero-cta">
             <button className="btn-lg" onClick={() => window.location.href = SIGN_UP_URL}>Start for free →</button>
             <button className="btn-out" onClick={() => window.location.href = '/how-it-works'}>
@@ -1650,7 +1651,7 @@ const { isSignedIn } = useAuth();
             </button>
           </div>
           <div className="hero-stats">
-            {[["5 min", "to setup your profile"], ["Every deal", "you've touched, always in play"], ["24 / 7", "working while you sleep"]].map(([n, l]) => (
+            {[["5 min", "to teach it your mandate"], ["Every decision", "makes it sharper"], ["Personal to you", "not shared intelligence"]].map(([n, l]) => (
               <div key={l}><div className="stat-n">{n}</div><div className="stat-l">{l}</div></div>
             ))}
           </div>
@@ -1670,8 +1671,8 @@ const { isSignedIn } = useAuth();
       <div className="wrap">
         <section className="sec">
           <div className="s-tag sr">Meet Reidar</div>
-          <h2 className="s-h2 sr d1">Not a database. <em>An associate.</em></h2>
-          <p className="s-p sr d2">Reidar reads your inbox, watches your calendar, and remembers every founder you've ever met. Every interaction your firm has ever had — structured, scored, and surfaced at exactly the right moment.</p>
+          <h2 className="s-h2 sr d1">Not a database. <em>A mind.</em></h2>
+          <p className="s-p sr d2">You don't feed Reidar — it feeds itself. Take a founder call and the context is captured. Email a co-investor and the relationship is logged. Pass on a deal and the reasoning is remembered. Two investors at the same firm see different recommendations because Reidar learned different things from watching them work.</p>
           <div className="sr d3">
             <MockIntelligenceLayer />
           </div>
@@ -1704,8 +1705,8 @@ const { isSignedIn } = useAuth();
       <div className="wrap">
         <section id="why" className="sec">
           <div className="s-tag sr">The problem</div>
-          <h2 className="s-h2 sr d1">Every tool makes you <em>go to it.</em> Then forgets what you found.</h2>
-          <p className="s-p sr d2">The best deal isn't the one nobody's heard of. It's the one you heard of eight months ago, forgot to follow up on, and just watched someone else close. Every existing tool makes you go to it. None of them work for you.</p>
+          <h2 className="s-h2 sr d1">Shared intelligence is <em>diminishing alpha.</em></h2>
+          <p className="s-p sr d2">Every database, every signal platform, every market intelligence tool has the same structural problem: the more widely it's adopted, the less edge any single firm gets from it. Your alpha doesn't come from data everyone has access to. It comes from how your people see the market.</p>
           <div className="sr d3">
             <CompetitorGrid />
           </div>
@@ -1719,8 +1720,8 @@ const { isSignedIn } = useAuth();
       <div className="wrap">
         <section id="product" className="sec">
           <div className="s-tag sr">The product</div>
-          <h2 className="s-h2 sr d1">Every screen. <em>One associate.</em></h2>
-          <p className="s-p sr d2">Everything a VC analyst does — built around your mandate. Hover to pause, click to explore.</p>
+          <h2 className="s-h2 sr d1">Your judgment. <em>Every screen.</em></h2>
+          <p className="s-p sr d2">Every screen is shaped by your firm's context and your personal evaluation patterns. Not generic market data — intelligence that reflects how you actually invest.</p>
           <div className="sr d3">
             <ProductPreview />
           </div>
@@ -1746,14 +1747,14 @@ const { isSignedIn } = useAuth();
 
       {/* CTA */}
       <div className="cta-wrap sr">
-        <h2 className="cta-h2">Your mandate.<br />Deployed tonight.</h2>
-        <p className="cta-sub">Set up in two minutes. No credit card. Results on night one.</p>
+        <h2 className="cta-h2">Your alpha.<br />Compounding from day one.</h2>
+        <p className="cta-sub">No extra work. No manual logging. Just invest the way you already do — and let your edge compound.</p>
         <button className="btn-lg" onClick={() => window.location.href = SIGN_UP_URL}>Join the waitlist →</button>
       </div>
 
       {/* FOOTER */}
       <footer className="footer">
-        <div className="foot-l">© 2026 Reidar. Built for emerging VC funds.</div>
+        <div className="foot-l">© 2026 Reidar. The AI that learns how you invest.</div>
         <div className="foot-r">POWERED BY CLAUDE · ANTHROPIC</div>
       </footer>
 
