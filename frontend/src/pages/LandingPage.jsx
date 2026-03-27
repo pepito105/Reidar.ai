@@ -1723,7 +1723,7 @@ const { isSignedIn } = useAuth();
             The intelligence layer for venture capital
           </div>
           <h1 className="hero-h1">Meet Reidar.<br />Your AI associate. <span className="acc">{heroDisplayed}<span className="typewriter-cursor">|</span></span></h1>
-          <p className="hero-sub">Reidar sources deals, writes investment memos, and tracks your pipeline — all filtered through your firm's mandate and your personal judgment. It learns from every meeting, email, and decision you make, getting sharper without you doing any extra work.</p>
+          <p className="hero-sub">Source deals, write memos, track your pipeline — filtered through your judgment. Gets smarter every day.</p>
           <div className="hero-cta">
             <button className="btn-lg" onClick={() => window.location.href = SIGN_UP_URL}>Start for free →</button>
             <button className="btn-out" onClick={() => window.location.href = '/how-it-works'}>
