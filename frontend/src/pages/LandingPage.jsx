@@ -919,65 +919,116 @@ const COMPS = [
 
 const INTEGRATIONS = [
   {
+    name: "Affinity",
+    desc: "Sync deal flow, relationship data, and pipeline activity from the most popular VC CRM",
+    badge: "Coming soon",
+    iconBg: "rgba(99,102,241,.15)",
+    iconBorder: "rgba(99,102,241,.4)",
+  },
+  {
+    name: "Attio",
+    desc: "Import deal history, contact records, and pipeline stages from your Attio workspace",
+    badge: "Coming soon",
+    iconBg: "rgba(255,255,255,.08)",
+    iconBorder: "rgba(255,255,255,.25)",
+  },
+  {
     name: "Gmail",
-    desc: "Inbound founder pitches auto-detected and scored against your mandate",
-    badge: "Early access",
-    badgeColor: "#10b981",
-    badgeBg: "rgba(16,185,129,.12)",
-    badgeBorder: "rgba(16,185,129,.25)",
+    desc: "Inbound pitches auto-detected, founder emails captured, warm intros logged — all passively",
+    badge: "Coming soon",
     iconBg: "rgba(234,67,53,.15)",
     iconBorder: "rgba(234,67,53,.4)",
   },
   {
-    name: "Google Calendar",
-    desc: "Meeting notes and founder interactions logged automatically",
-    badge: "Coming soon",
-    iconBg: "rgba(66,133,244,.15)",
-    iconBorder: "rgba(66,133,244,.4)",
-  },
-  {
     name: "Slack",
-    desc: "Deal alerts and weekly digests delivered where your team already works",
+    desc: "Deal discussions captured, weekly briefs delivered, and ask Reidar anything in-channel",
     badge: "Coming soon",
     iconBg: "rgba(224,30,90,.15)",
     iconBorder: "rgba(224,30,90,.4)",
   },
   {
-    name: "Notion",
-    desc: "Push investment memos and company briefs directly to your workspace",
+    name: "Google Calendar",
+    desc: "Founder meetings detected automatically, pre-call briefs generated, context logged after",
     badge: "Coming soon",
-    iconBg: "rgba(255,255,255,.08)",
-    iconBorder: "rgba(255,255,255,.2)",
+    iconBg: "rgba(66,133,244,.15)",
+    iconBorder: "rgba(66,133,244,.4)",
+  },
+  {
+    name: "Granola",
+    desc: "Meeting notes and founder call transcripts flow in automatically — no manual upload needed",
+    badge: "Coming soon",
+    iconBg: "rgba(245,158,11,.15)",
+    iconBorder: "rgba(245,158,11,.4)",
+  },
+  {
+    name: "Fireflies",
+    desc: "Call transcripts from every founder meeting auto-imported and linked to company records",
+    badge: "Coming soon",
+    iconBg: "rgba(74,222,128,.15)",
+    iconBorder: "rgba(74,222,128,.4)",
+  },
+  {
+    name: "Crunchbase",
+    desc: "Company profiles, funding history, and investor data enriched automatically",
+    badge: "Coming soon",
+    iconBg: "rgba(2,136,209,.15)",
+    iconBorder: "rgba(2,136,209,.4)",
+  },
+  {
+    name: "PitchBook",
+    desc: "Deep company data, valuations, and comparable transactions pulled into your research",
+    badge: "Coming soon",
+    iconBg: "rgba(0,51,102,.15)",
+    iconBorder: "rgba(0,51,102,.4)",
+  },
+  {
+    name: "Harmonic",
+    desc: "Early-stage company signals and founder data enriching your coverage feed",
+    badge: "Coming soon",
+    iconBg: "rgba(168,85,247,.15)",
+    iconBorder: "rgba(168,85,247,.4)",
   },
   {
     name: "LinkedIn",
-    desc: "Founder and team signals surfaced inline with company profiles",
+    desc: "Founder backgrounds, team signals, and network connections surfaced inline",
     badge: "Coming soon",
     iconBg: "rgba(0,119,181,.15)",
     iconBorder: "rgba(0,119,181,.4)",
   },
   {
-    name: "Crunchbase",
-    desc: "Funding history and investor data enriched automatically",
+    name: "Notion",
+    desc: "Push investment memos and company briefs directly to your team workspace",
     badge: "Coming soon",
-    iconBg: "rgba(2,136,209,.15)",
-    iconBorder: "rgba(2,136,209,.4)",
+    iconBg: "rgba(255,255,255,.08)",
+    iconBorder: "rgba(255,255,255,.2)",
   },
 ];
 
 const ORBIT_SVGS = [
+  /* Affinity */
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l4 7H8l4-7zm0 20l-4-7h8l-4 7zM2 12l4-4v8L2 12zm20 0l-4 4V8l4 4z" fill="#6366f1"/></svg>,
+  /* Attio */
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" fill="#ffffff"/><rect x="14" y="3" width="7" height="7" rx="1.5" fill="#ffffff"/><rect x="3" y="14" width="7" height="7" rx="1.5" fill="#ffffff"/><rect x="14" y="14" width="7" height="7" rx="1.5" fill="#ffffff"/></svg>,
   /* Gmail */
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="#EA4335"/></svg>,
-  /* Google Calendar */
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M19 3h-1V1h-2v2H8V1H6v2H5C3.9 3 3 3.9 3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" fill="#4285F4"/></svg>,
   /* Slack */
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5.042 15.165a2.528 2.528 0 01-2.52 2.523A2.528 2.528 0 010 15.165a2.527 2.527 0 012.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 012.521-2.52 2.527 2.527 0 012.521 2.52v6.313A2.528 2.528 0 018.834 24a2.528 2.528 0 01-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 01-2.521-2.52A2.528 2.528 0 018.834 0a2.528 2.528 0 012.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 012.521 2.521 2.528 2.528 0 01-2.521 2.521H2.522A2.528 2.528 0 010 8.834a2.528 2.528 0 012.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 012.522-2.521A2.528 2.528 0 0124 8.834a2.528 2.528 0 01-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 01-2.523 2.521 2.527 2.527 0 01-2.52-2.521V2.522A2.527 2.527 0 0115.165 0a2.528 2.528 0 012.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 012.523 2.522A2.528 2.528 0 0115.165 24a2.527 2.527 0 01-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 01-2.52-2.523 2.526 2.526 0 012.52-2.52h6.313A2.527 2.527 0 0124 15.165a2.528 2.528 0 01-2.522 2.523h-6.313z" fill="#E01E5A"/></svg>,
-  /* Notion */
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 3h4.5l9 13.5V3H21v18h-4.5L7.5 7.5V21H4V3z" fill="#ffffff"/></svg>,
-  /* LinkedIn */
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" fill="#0077B5"/></svg>,
+  /* Google Calendar */
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M19 3h-1V1h-2v2H8V1H6v2H5C3.9 3 3 3.9 3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" fill="#4285F4"/></svg>,
+  /* Granola */
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="4" y="2" width="16" height="20" rx="2" stroke="#f59e0b" strokeWidth="1.8" fill="none"/><line x1="8" y1="8" x2="16" y2="8" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/><line x1="8" y1="16" x2="13" y2="16" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/></svg>,
+  /* Fireflies */
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="#4ade80"/><path d="M5 10a7 7 0 0014 0" stroke="#4ade80" strokeWidth="1.8" strokeLinecap="round" fill="none"/><line x1="12" y1="17" x2="12" y2="22" stroke="#4ade80" strokeWidth="1.8" strokeLinecap="round"/><line x1="8" y1="22" x2="16" y2="22" stroke="#4ade80" strokeWidth="1.8" strokeLinecap="round"/></svg>,
   /* Crunchbase */
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="12" width="5" height="8" rx="1" fill="#0288D1"/><rect x="9.5" y="7" width="5" height="13" rx="1" fill="#0288D1"/><rect x="17" y="4" width="5" height="16" rx="1" fill="#0288D1"/><line x1="2" y1="23" x2="22" y2="23" stroke="#0288D1" strokeWidth="1.5"/></svg>,
+  /* PitchBook */
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#336699" strokeWidth="1.8" fill="none"/><line x1="7" y1="12" x2="17" y2="12" stroke="#336699" strokeWidth="1.5" strokeLinecap="round"/><line x1="7" y1="8" x2="17" y2="8" stroke="#336699" strokeWidth="1.5" strokeLinecap="round"/><line x1="7" y1="16" x2="13" y2="16" stroke="#336699" strokeWidth="1.5" strokeLinecap="round"/></svg>,
+  /* Harmonic */
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M2 12 Q6 4 12 12 Q18 20 22 12" stroke="#a855f7" strokeWidth="2" strokeLinecap="round" fill="none"/><path d="M2 12 Q6 16 12 12 Q18 8 22 12" stroke="#a855f7" strokeWidth="1.2" strokeLinecap="round" fill="none" opacity="0.5"/></svg>,
+  /* LinkedIn */
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" fill="#0077B5"/></svg>,
+  /* Notion */
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 3h4.5l9 13.5V3H21v18h-4.5L7.5 7.5V21H4V3z" fill="#ffffff"/></svg>,
 ];
 
 const HERO_PHRASES = [
@@ -1447,20 +1498,33 @@ function MIStage3() {
 function IntegrationsOrbit() {
   const containerRef = useRef(null);
   const frameRef = useRef(null);
-  const angleRef = useRef(0);
+  const innerAngleRef = useRef(0);
+  const outerAngleRef = useRef(0);
   const [hoveredIdx, setHoveredIdx] = useState(null);
-  const R = 140;
+  const R_INNER = 120;
+  const R_OUTER = 200;
+  const INNER_SPEED = (Math.PI * 2) / (22 * 60);
+  const OUTER_SPEED = (Math.PI * 2) / (30 * 60);
+  // Inner ring: Affinity, Gmail, Slack, Google Calendar, Granola, Crunchbase
+  const INNER_IDXS = [0, 2, 3, 4, 5, 7];
+  // Outer ring: Attio, Fireflies, PitchBook, Harmonic, LinkedIn, Notion
+  const OUTER_IDXS = [1, 6, 8, 9, 10, 11];
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    const icons = container.querySelectorAll('[data-orbit-icon]');
-    const SPEED = (Math.PI * 2) / (24 * 60);
+    const innerIcons = container.querySelectorAll('[data-orbit-inner]');
+    const outerIcons = container.querySelectorAll('[data-orbit-outer]');
     const animate = () => {
-      angleRef.current += SPEED;
-      icons.forEach((el, i) => {
-        const a = angleRef.current + (i / INTEGRATIONS.length) * Math.PI * 2 - Math.PI / 2;
-        el.style.transform = `translate(${Math.cos(a) * R}px, ${Math.sin(a) * R}px)`;
+      innerAngleRef.current += INNER_SPEED;
+      outerAngleRef.current += OUTER_SPEED;
+      innerIcons.forEach((el, i) => {
+        const a = innerAngleRef.current + (i / INNER_IDXS.length) * Math.PI * 2 - Math.PI / 2;
+        el.style.transform = `translate(${Math.cos(a) * R_INNER}px, ${Math.sin(a) * R_INNER}px)`;
+      });
+      outerIcons.forEach((el, i) => {
+        const a = outerAngleRef.current + (i / OUTER_IDXS.length) * Math.PI * 2 - Math.PI / 2;
+        el.style.transform = `translate(${Math.cos(a) * R_OUTER}px, ${Math.sin(a) * R_OUTER}px)`;
       });
       frameRef.current = requestAnimationFrame(animate);
     };
@@ -1468,16 +1532,87 @@ function IntegrationsOrbit() {
     return () => cancelAnimationFrame(frameRef.current);
   }, []);
 
+  const iconEl = (intIdx, orbitAttr) => {
+    const int = INTEGRATIONS[intIdx];
+    const isHovered = hoveredIdx === intIdx;
+    return (
+      <div
+        key={int.name}
+        {...{ [orbitAttr]: '' }}
+        style={{
+          position: 'absolute',
+          top: 'calc(50% - 22px)', left: 'calc(50% - 22px)',
+          width: 44, height: 44,
+          zIndex: 3,
+        }}
+        onMouseEnter={() => setHoveredIdx(intIdx)}
+        onMouseLeave={() => setHoveredIdx(null)}
+      >
+        <div style={{
+          width: 44, height: 44, borderRadius: 10,
+          background: int.iconBg || 'rgba(14,14,20,1)',
+          border: `1px solid ${isHovered ? 'rgba(107,71,245,.5)' : (int.iconBorder || 'rgba(255,255,255,.12)')}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer',
+          transform: isHovered ? 'scale(1.12)' : 'none',
+          transition: 'transform .2s, border-color .2s, box-shadow .2s',
+          boxShadow: isHovered ? '0 0 16px rgba(107,71,245,.3)' : 'none',
+        }}>
+          {ORBIT_SVGS[intIdx]}
+        </div>
+        {isHovered && (
+          <div style={{
+            position: 'absolute',
+            bottom: 'calc(100% + 10px)',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(10,10,16,.97)',
+            border: '1px solid rgba(255,255,255,.1)',
+            borderRadius: 8,
+            padding: '10px 14px',
+            width: 160,
+            whiteSpace: 'normal',
+            wordWrap: 'break-word',
+            animation: 'dyn-panel-in .15s ease',
+            zIndex: 20,
+            pointerEvents: 'none',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+              <span style={{ fontSize: 12, fontWeight: 500, color: '#EBEBEB' }}>{int.name}</span>
+              <span style={{
+                fontFamily: "'Space Mono',monospace", fontSize: 8, letterSpacing: '.06em',
+                padding: '2px 6px', borderRadius: 100,
+                background: int.badgeBg || 'rgba(107,71,245,.1)',
+                color: int.badgeColor || 'rgba(107,71,245,.7)',
+                border: `1px solid ${int.badgeBorder || 'rgba(107,71,245,.2)'}`,
+              }}>{int.badge}</span>
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(235,235,235,.45)', lineHeight: 1.45, maxWidth: 220 }}>{int.desc}</div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div style={{ display: 'flex', justifyContent: 'center', marginTop: 48 }}>
-      <div ref={containerRef} style={{ position: 'relative', width: 340, height: 340 }}>
-        {/* Orbit ring visual */}
+      <div ref={containerRef} style={{ position: 'relative', width: 480, height: 480 }}>
+        {/* Inner orbit ring visual */}
         <div style={{
           position: 'absolute', top: '50%', left: '50%',
-          width: R * 2, height: R * 2,
-          marginTop: -R, marginLeft: -R,
+          width: R_INNER * 2, height: R_INNER * 2,
+          marginTop: -R_INNER, marginLeft: -R_INNER,
           borderRadius: '50%',
-          border: '1px solid rgba(107,71,245,.1)',
+          border: '1px solid rgba(107,71,245,.12)',
+          pointerEvents: 'none',
+        }} />
+        {/* Outer orbit ring visual */}
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%',
+          width: R_OUTER * 2, height: R_OUTER * 2,
+          marginTop: -R_OUTER, marginLeft: -R_OUTER,
+          borderRadius: '50%',
+          border: '1px solid rgba(107,71,245,.07)',
           pointerEvents: 'none',
         }} />
         {/* Center mark */}
@@ -1495,64 +1630,10 @@ function IntegrationsOrbit() {
             <circle cx="7" cy="7" r="2" fill="white"/>
           </svg>
         </div>
-        {/* Icons */}
-        {INTEGRATIONS.map((int, i) => (
-          <div
-            key={int.name}
-            data-orbit-icon={i}
-            style={{
-              position: 'absolute',
-              top: 'calc(50% - 22px)', left: 'calc(50% - 22px)',
-              width: 44, height: 44,
-              zIndex: 3,
-            }}
-            onMouseEnter={() => setHoveredIdx(i)}
-            onMouseLeave={() => setHoveredIdx(null)}
-          >
-            <div style={{
-              width: 44, height: 44, borderRadius: 10,
-              background: int.iconBg || 'rgba(14,14,20,1)',
-              border: `1px solid ${hoveredIdx === i ? 'rgba(107,71,245,.5)' : (int.iconBorder || 'rgba(255,255,255,.12)')}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer',
-              transform: hoveredIdx === i ? 'scale(1.12)' : 'none',
-              transition: 'transform .2s, border-color .2s, box-shadow .2s',
-              boxShadow: hoveredIdx === i ? '0 0 16px rgba(107,71,245,.3)' : 'none',
-            }}>
-              {ORBIT_SVGS[i]}
-            </div>
-            {hoveredIdx === i && (
-              <div style={{
-                position: 'absolute',
-                bottom: 'calc(100% + 10px)',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                background: 'rgba(10,10,16,.97)',
-                border: '1px solid rgba(255,255,255,.1)',
-                borderRadius: 8,
-                padding: '10px 14px',
-                width: 160,
-                whiteSpace: 'normal',
-                wordWrap: 'break-word',
-                animation: 'dyn-panel-in .15s ease',
-                zIndex: 20,
-                pointerEvents: 'none',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
-                  <span style={{ fontSize: 12, fontWeight: 500, color: '#EBEBEB' }}>{int.name}</span>
-                  <span style={{
-                    fontFamily: "'Space Mono',monospace", fontSize: 8, letterSpacing: '.06em',
-                    padding: '2px 6px', borderRadius: 100,
-                    background: int.badgeBg || 'rgba(107,71,245,.1)',
-                    color: int.badgeColor || 'rgba(107,71,245,.7)',
-                    border: `1px solid ${int.badgeBorder || 'rgba(107,71,245,.2)'}`,
-                  }}>{int.badge}</span>
-                </div>
-                <div style={{ fontSize: 11, color: 'rgba(235,235,235,.45)', lineHeight: 1.45, maxWidth: 220 }}>{int.desc}</div>
-              </div>
-            )}
-          </div>
-        ))}
+        {/* Inner ring icons */}
+        {INNER_IDXS.map(idx => iconEl(idx, 'data-orbit-inner'))}
+        {/* Outer ring icons */}
+        {OUTER_IDXS.map(idx => iconEl(idx, 'data-orbit-outer'))}
       </div>
     </div>
   );
@@ -1639,7 +1720,7 @@ const { isSignedIn } = useAuth();
         <div className="hero-fade" />
         <div className="hero-content">
           <div style={{ display: 'inline-block', border: '1px solid rgba(107,71,245,0.3)', background: 'rgba(107,71,245,0.08)', padding: '4px 12px', borderRadius: 20, fontSize: 12, fontFamily: "'Space Mono',monospace", color: 'rgba(255,255,255,0.6)', letterSpacing: '0.1em', marginBottom: 20 }}>
-            The AI that learns how you invest
+            The intelligence layer for venture capital
           </div>
           <h1 className="hero-h1">Meet Reidar.<br />Your AI associate. <span className="acc">{heroDisplayed}<span className="typewriter-cursor">|</span></span></h1>
           <p className="hero-sub">Reidar sources deals, writes investment memos, and tracks your pipeline — all filtered through your firm's mandate and your personal judgment. It learns from every meeting, email, and decision you make, getting sharper without you doing any extra work.</p>
@@ -1734,13 +1815,13 @@ const { isSignedIn } = useAuth();
       <div className="wrap">
         <section className="sec">
           <div className="s-tag sr">Integrations</div>
-          <h2 className="s-h2 sr d1">Plugs into your world.</h2>
-          <p className="s-p sr d2">Reidar connects to the tools you already use — so every inbound pitch, calendar meeting, and portfolio update flows into your deal intelligence automatically.</p>
+          <h2 className="s-h2 sr d1">Sits on top of your <em>entire stack.</em></h2>
+          <p className="s-p sr d2">Every tool your firm already uses becomes a learning signal. Reidar absorbs context from your CRM, your inbox, your meetings, and your data sources — so nothing falls through the cracks.</p>
           <div className="sr d3">
             <IntegrationsOrbit />
           </div>
           <p style={{ marginTop: 28, fontSize: 12, color: 'rgba(235,235,235,.2)', fontFamily: "'Space Mono',monospace", letterSpacing: '.04em' }}>
-            More integrations on the roadmap. Built for how emerging funds actually work.
+            More integrations on the roadmap. If your firm uses it, Reidar should plug into it.
           </p>
         </section>
       </div>
