@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: Optional[str] = None
     BACKEND_URL: str = "http://localhost:8000"
     FRONTEND_URL: str = "https://reidar.ai"
+    # When True, APScheduler registers no jobs (no nightly sourcing, signal refresh, weekly digest, Gmail polling).
+    DISABLE_SCHEDULED_JOBS: bool = True
 
     class Config:
         env_file = ".env"

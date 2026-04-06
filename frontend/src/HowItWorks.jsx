@@ -581,6 +581,11 @@ export default function HowItWorks() {
   const [scrolled, setScrolled] = useState(false);
   const { isSignedIn } = useAuth();
   useScrollReveal();
+  useEffect(() => {
+    document.title = "How Reidar Works — AI Deal Sourcing for VC Firms";
+    const desc = document.querySelector('meta[name="description"]');
+    if (desc) desc.setAttribute('content', "See how Reidar autonomously sources startups, scores them against your mandate, and generates investment memos — all without manual effort.");
+  }, []);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 8);

@@ -61,6 +61,11 @@ function RadarBg() {
 }
 
 export default function Pricing() {
+  useEffect(() => {
+    document.title = "Pricing — Reidar";
+    const desc = document.querySelector('meta[name="description"]');
+    if (desc) desc.setAttribute('content', "Reidar pricing for emerging fund managers and solo GPs. Early access available now.");
+  }, []);
   return (
     <>
       <style>{FONTS}</style>

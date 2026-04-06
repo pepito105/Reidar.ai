@@ -7,6 +7,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy import select, update, text
 
+from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.models.company import Company
 from app.models.firm_company_score import FirmCompanyScore
@@ -420,33 +421,42 @@ async def run_startup_check():
 
 
 def start_scheduler():
-    scheduler.add_job(
-        job_refresh_signals,
-        CronTrigger(hour=3, minute=0),
-        id='nightly_refresh',
-        replace_existing=True,
-        misfire_grace_time=3600,
-    )
-    scheduler.add_job(
-        job_weekly_summary,
-        CronTrigger(day_of_week='mon', hour=8, minute=0, timezone='America/New_York'),
-        id='weekly_summary',
-        replace_existing=True,
-        misfire_grace_time=3600,
-    )
-    scheduler.add_job(
-        job_run_sourcing,
-        CronTrigger(hour=4, minute=0, timezone='America/New_York'),
-        id='autonomous_sourcing',
-        replace_existing=True,
-        misfire_grace_time=3600,
-    )
-    scheduler.add_job(
-        job_process_gmail_emails,
-        CronTrigger(minute="*/15"),
-        id='gmail_polling',
-        replace_existing=True,
-        misfire_grace_time=300,
-    )
+    if settings.DISABLE_SCHEDULED_JOBS:
+        logger.info(
+            "APScheduler: no jobs registered (DISABLE_SCHEDULED_JOBS=true). "
+            "Set DISABLE_SCHEDULED_JOBS=false to re-enable."
+        )
+    else:
+        scheduler.add_job(
+            job_refresh_signals,
+            CronTrigger(hour=3, minute=0),
+            id='nightly_refresh',
+            replace_existing=True,
+            misfire_grace_time=3600,
+        )
+        scheduler.add_job(
+            job_weekly_summary,
+            CronTrigger(day_of_week='mon', hour=8, minute=0, timezone='America/New_York'),
+            id='weekly_summary',
+            replace_existing=True,
+            misfire_grace_time=3600,
+        )
+        scheduler.add_job(
+            job_run_sourcing,
+            CronTrigger(hour=4, minute=0, timezone='America/New_York'),
+            id='autonomous_sourcing',
+            replace_existing=True,
+            misfire_grace_time=3600,
+        )
+        scheduler.add_job(
+            job_process_gmail_emails,
+            CronTrigger(minute="*/15"),
+            id='gmail_polling',
+            replace_existing=True,
+            misfire_grace_time=300,
+        )
+        logger.info(
+            "Scheduler started - signal refresh 3AM, deep sourcing 4AM ET, "
+            "weekly summary Monday 8AM ET, Gmail polling every 15min"
+        )
     scheduler.start()
-    logger.info('Scheduler started - signal refresh 3AM, deep sourcing 4AM ET, weekly summary Monday 8AM ET, Gmail polling every 15min')

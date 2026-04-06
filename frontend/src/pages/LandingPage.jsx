@@ -1272,6 +1272,11 @@ export default function LandingPage() {
   const [heroPhase, setHeroPhase] = useState('typing');
   const containerRef = useRef(null);
   const { isSignedIn } = useAuth();
+  useEffect(() => {
+    document.title = "Reidar — AI Investment Associate for VC Firms";
+    const desc = document.querySelector('meta[name="description"]');
+    if (desc) desc.setAttribute('content', "Reidar autonomously sources startups, scores them against your investment mandate, and generates investment memos. The AI associate built for emerging fund managers.");
+  }, []);
 
   // Track active section via IntersectionObserver
   useEffect(() => {
