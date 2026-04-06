@@ -186,145 +186,62 @@ const STYLES = `
   }
 `;
 
-/* ─── CONSTELLATION BACKGROUND ─── */
-function ConstellationBg() {
+/* ─── RADAR SWEEP BACKGROUND ─── */
+function RadarBg() {
   const ref = useRef(null);
-
   useEffect(() => {
     const canvas = ref.current;
     const ctx = canvas.getContext("2d");
-    let W, H, raf;
-    const timeouts = [];
-    const N = 65;
-    let nodes = [], edges = [], adj = [];
-
-    const build = () => {
-      W = canvas.width = window.innerWidth;
-      H = canvas.height = canvas.parentElement?.offsetHeight || window.innerHeight;
-      const TH = Math.min(W, H) * 0.21;
-      const outerPos = () => {
-        let x, y;
-        do {
-          x = Math.random() * W;
-          y = Math.random() * H;
-        } while (x > W * 0.25 && x < W * 0.75 && y > H * 0.25 && y < H * 0.75);
-        return { x, y };
-      };
-      nodes = Array.from({ length: N }, () => {
-        const { x, y } = outerPos();
-        return { x, y, r: Math.random() * 1.4 + 0.6, pulse: Math.random() * Math.PI * 2, pulseSpd: 0.002 + Math.random() * 0.003, base: 0.13 + Math.random() * 0.2, glow: 0 };
-      });
-      edges = [];
-      adj = Array.from({ length: N }, () => []);
-      for (let i = 0; i < N; i++) {
-        for (let j = i + 1; j < N; j++) {
-          const dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y;
-          if (dx * dx + dy * dy < TH * TH) {
-            const e = { i, j, b: 0, decay: 0, amb: 0.02 + Math.random() * 0.038 };
-            edges.push(e);
-            adj[i].push(e);
-            adj[j].push(e);
-          }
-        }
-      }
-    };
-
-    // Single calm ripple — slow propagation, stays readable
-    const cascade = (ni, depth, visited) => {
-      if (depth > 2 || visited.has(ni)) return;
-      visited.add(ni);
-      const picks = adj[ni].slice().sort(() => Math.random() - 0.5).slice(0, depth === 0 ? 3 : 2);
-      picks.forEach((e, k) => {
-        const delay = depth * 300 + k * 240 + Math.random() * 260;
-        const t = setTimeout(() => {
-          e.b = Math.max(e.b, 0.55 + Math.random() * 0.22);
-          e.decay = 0.005 + Math.random() * 0.004;
-          cascade(e.i === ni ? e.j : e.i, depth + 1, visited);
-        }, delay);
-        timeouts.push(t);
-      });
-    };
-
-    let loopTimer;
-    const scheduleLoop = () => {
-      loopTimer = setTimeout(() => {
-        cascade(Math.floor(Math.random() * N), 0, new Set());
-        scheduleLoop();
-      }, 5000 + Math.random() * 2500);
-    };
-    const t0 = setTimeout(() => cascade(Math.floor(Math.random() * N), 0, new Set()), 400);
-    timeouts.push(t0);
-    scheduleLoop();
-
+    let W, H, angle = 0, raf;
+    const blips = [];
+    for (let i = 0; i < 30; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const d = Math.random() * .85 + .05;
+      blips.push({ a, d, brightness: 0, decay: .016 + Math.random() * .012 });
+    }
+    const resize = () => { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; };
+    resize();
+    window.addEventListener("resize", resize);
     const draw = () => {
       ctx.clearRect(0, 0, W, H);
-
-      // Always-visible base network
-      edges.forEach(e => {
-        if (e.b > 0.08) return;
-        const a = nodes[e.i], b = nodes[e.j];
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-        ctx.strokeStyle = `rgba(107,71,245,${0.055 + e.amb})`;
-        ctx.lineWidth = 0.48; ctx.stroke();
+      const cx = W * .5, cy = H * .38, R = Math.min(W, H) * .38;
+      for (let i = 1; i <= 4; i++) {
+        ctx.beginPath(); ctx.arc(cx, cy, R * i / 4, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(107,71,245,${.055 - i * .007})`; ctx.lineWidth = .8; ctx.stroke();
+      }
+      ctx.lineWidth = .5; ctx.strokeStyle = "rgba(107,71,245,.035)";
+      ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.stroke();
+      ctx.save(); ctx.beginPath(); ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, R, angle - Math.PI * .45, angle); ctx.closePath();
+      const rg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+      rg.addColorStop(0, "rgba(107,71,245,0)"); rg.addColorStop(.6, "rgba(107,71,245,.025)"); rg.addColorStop(1, "rgba(107,71,245,.075)");
+      ctx.fillStyle = rg; ctx.fill(); ctx.restore();
+      const ex = cx + Math.cos(angle) * R, ey = cy + Math.sin(angle) * R;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(ex, ey);
+      const lg = ctx.createLinearGradient(cx, cy, ex, ey);
+      lg.addColorStop(0, "rgba(139,92,246,0)"); lg.addColorStop(1, "rgba(139,92,246,.6)");
+      ctx.strokeStyle = lg; ctx.lineWidth = 1.4; ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, Math.PI * 2); ctx.fillStyle = "rgba(139,92,246,.5)"; ctx.fill();
+      const norm = a => ((a % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+      blips.forEach(b => {
+        const bx = cx + Math.cos(b.a) * b.d * R, by = cy + Math.sin(b.a) * b.d * R;
+        const diff = norm(angle) - norm(b.a);
+        if (diff >= 0 && diff < .08) b.brightness = 1;
+        b.brightness = Math.max(0, b.brightness - b.decay);
+        if (b.brightness < .01) return;
+        const grd = ctx.createRadialGradient(bx, by, 0, bx, by, 10 + b.brightness * 8);
+        grd.addColorStop(0, `rgba(180,140,255,${b.brightness * .65})`); grd.addColorStop(1, "rgba(107,71,245,0)");
+        ctx.beginPath(); ctx.arc(bx, by, 10 + b.brightness * 8, 0, Math.PI * 2); ctx.fillStyle = grd; ctx.fill();
+        ctx.beginPath(); ctx.arc(bx, by, 1.6, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(210,180,255,${Math.min(1, b.brightness * 1.3)})`; ctx.fill();
       });
-
-      // Active glowing edges
-      edges.forEach(e => {
-        if (e.b < 0.08) return;
-        const a = nodes[e.i], b = nodes[e.j];
-        const g = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-        g.addColorStop(0, `rgba(107,71,245,${e.b * 0.5})`);
-        g.addColorStop(0.5, `rgba(169,146,250,${e.b * 0.85})`);
-        g.addColorStop(1, `rgba(107,71,245,${e.b * 0.5})`);
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-        ctx.strokeStyle = g; ctx.lineWidth = 0.5 + e.b * 1.5; ctx.stroke();
-        e.b = Math.max(0, e.b - e.decay);
-      });
-
-      // Nodes
-      nodes.forEach((n, i) => {
-        n.pulse += n.pulseSpd;
-        let maxB = 0;
-        adj[i].forEach(e => { if (e.b > maxB) maxB = e.b; });
-        n.glow += (maxB - n.glow) * 0.06;
-
-        if (n.glow > 0.05) {
-          const gr = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, 12 + n.glow * 18);
-          gr.addColorStop(0, `rgba(169,146,250,${n.glow * 0.45})`);
-          gr.addColorStop(0.4, `rgba(107,71,245,${n.glow * 0.15})`);
-          gr.addColorStop(1, 'rgba(107,71,245,0)');
-          ctx.beginPath(); ctx.arc(n.x, n.y, 12 + n.glow * 18, 0, Math.PI * 2);
-          ctx.fillStyle = gr; ctx.fill();
-        }
-
-        const op = n.base * (0.6 + 0.4 * Math.sin(n.pulse));
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, n.r + n.glow * 2, 0, Math.PI * 2);
-        ctx.fillStyle = n.glow > 0.05
-          ? `rgba(215,198,255,${Math.min(1, op + n.glow * 0.55)})`
-          : `rgba(180,162,250,${op})`;
-        ctx.fill();
-      });
-
-      raf = requestAnimationFrame(draw);
+      angle += .006; raf = requestAnimationFrame(draw);
     };
-
-    // Phrase change event — fires a cascade when the typewriter rolls over
-    const onPhrase = () => cascade(Math.floor(Math.random() * N), 0, new Set());
-    window.addEventListener('reidar-phrase', onPhrase);
-
-    build(); draw();
-    const onResize = () => { timeouts.forEach(clearTimeout); timeouts.length = 0; build(); };
-    window.addEventListener("resize", onResize);
-    return () => {
-      cancelAnimationFrame(raf); clearTimeout(loopTimer);
-      timeouts.forEach(clearTimeout);
-      window.removeEventListener("resize", onResize);
-      window.removeEventListener('reidar-phrase', onPhrase);
-    };
+    draw();
+    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
   }, []);
-
-  return <canvas ref={ref} style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0 }} />;
+  return <canvas ref={ref} style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }} />;
 }
 
 /* ─── SECTION ENTRY HOOK ─── */
@@ -1352,8 +1269,8 @@ export default function LandingPage() {
           <span className="nav-name">Reidar</span>
         </a>
         <div className="nav-links">
-          <span className="nav-a" style={{ cursor: 'pointer' }} onClick={() => scrollTo(1)}>See it in action</span>
-          <span className="nav-a" style={{ cursor: 'pointer' }} onClick={() => scrollTo(4)}>How it works</span>
+          <a href="/how-it-works" className="nav-a">How it works</a>
+          <a href="/pricing" className="nav-a">Pricing</a>
         </div>
         <div className="nav-right">
           {isSignedIn ? (
@@ -1379,7 +1296,7 @@ export default function LandingPage() {
 
         {/* ── 01 HERO ── */}
         <section className="snap-section" id="hero" style={{ flexDirection: 'column' }}>
-          <ConstellationBg />
+          <RadarBg />
           <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 65% at 50% 48%,transparent 28%,rgba(7,7,10,.55) 58%,#07070A 88%)', pointerEvents: 'none', zIndex: 1 }} />
           <div className="hero-content">
             <div className="badge"><div className="badge-dot" />The intelligence layer for VC</div>

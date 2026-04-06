@@ -615,14 +615,14 @@ export default function HowItWorks() {
           <span className="nav-name">Reidar</span>
         </a>
         <div className="nav-center">
-          <a href="/how-it-works" className="nav-a active">How it works</a>
-          <a href="/pricing" className="nav-a">Pricing</a>
+          <a href="/how-it-works" className={`nav-a${window.location.pathname === '/how-it-works' ? ' active' : ''}`}>How it works</a>
+          <a href="/pricing" className={`nav-a${window.location.pathname === '/pricing' ? ' active' : ''}`}>Pricing</a>
         </div>
         <div className="nav-right">
           {isSignedIn ? (
             <><button className="btn-pri" onClick={goApp}>Go to Reidar →</button><UserButton afterSignOutUrl="/" /></>
           ) : (
-            <><button className="btn-ghost" onClick={goApp}>Sign in</button><button className="btn-pri" onClick={goApp}>Get started</button></>
+            <><button className="btn-ghost" onClick={() => window.location.href = '/sign-in'}>Sign in</button><button className="btn-pri" onClick={() => window.location.href = '/sign-up'}>Join the waitlist</button></>
           )}
         </div>
       </nav>
