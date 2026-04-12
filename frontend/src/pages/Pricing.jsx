@@ -165,7 +165,7 @@ export default function Pricing() {
         <div style={{ paddingTop: 140, paddingBottom: 80, textAlign: 'center', maxWidth: 720, margin: '0 auto', padding: '140px 40px 80px' }}>
           <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: '.14em', color: '#6B47F5', textTransform: 'uppercase', marginBottom: 18, animation: 'fadeUp .5s .05s both' }}>Pricing</div>
           <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(32px,4.5vw,54px)', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-.02em', color: '#EBEBEB', marginBottom: 18, animation: 'fadeUp .55s .12s both' }}>
-            Built for funds that move fast.
+            Simple pricing for every investor.
           </h1>
           <p style={{ fontSize: 16, fontWeight: 300, color: 'rgba(235,235,235,.45)', lineHeight: 1.75, maxWidth: 560, margin: '0 auto', animation: 'fadeUp .55s .2s both' }}>
             Reidar is in early access. We're onboarding a small number of emerging fund managers now — no enterprise contract, no $100K commitment.
@@ -178,11 +178,11 @@ export default function Pricing() {
           <div style={{ background: 'rgba(255,255,255,.025)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 12, padding: '28px 28px' }}>
             <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: '.1em', color: '#f59e0b', textTransform: 'uppercase', marginBottom: 20 }}>Reidar is for you if —</div>
             {[
-              "You run a sub-$200M fund with no dedicated analyst",
-              "You're a solo GP or small team doing everything manually",
-              "You're losing deals because your sourcing process doesn't scale",
-              "You want your firm's judgment to compound over time, not disappear when people leave",
-              "You can't justify a $12K–$100K PitchBook or Harmonic contract",
+              "You evaluate companies and want your judgment to compound over time, not disappear between deals",
+              "You want every inbound pitch scored against your mandate before you open it",
+              "You want to walk into every founder meeting knowing everything your firm already knows about that company",
+              "You want your pass reasons remembered and surfaced when a company comes back around",
+              "You can't justify a $12K–$100K data contract for commodity signals everyone else has too",
             ].map((item, i, arr) => (
               <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: i < arr.length - 1 ? 14 : 0 }}>
                 {CHECK}
@@ -201,6 +201,66 @@ export default function Pricing() {
               <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: i < arr.length - 1 ? 14 : 0 }}>
                 {CROSS}
                 <span style={{ fontSize: 13, color: 'rgba(235,235,235,.35)', lineHeight: 1.6 }}>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── COMPARISON TABLE ── */}
+        <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 40px 80px' }}>
+          <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: '.12em', color: '#6B47F5', textTransform: 'uppercase', marginBottom: 28, textAlign: 'center' }}>How Reidar Compares</div>
+          <div style={{ border: '1px solid rgba(255,255,255,.07)', borderRadius: 12, overflow: 'hidden' }}>
+            {/* Header */}
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 1fr', background: 'rgba(255,255,255,.02)', borderBottom: '1px solid rgba(255,255,255,.07)' }}>
+              {['Feature', 'Reidar', 'Harmonic', 'Affinity', 'PitchBook'].map((col, i) => (
+                <div key={col} style={{
+                  padding: '14px 16px',
+                  fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: '.06em',
+                  color: i === 1 ? '#A992FA' : 'rgba(235,235,235,.35)',
+                  fontWeight: i === 1 ? 700 : 400,
+                  borderRight: i < 4 ? '1px solid rgba(255,255,255,.06)' : 'none',
+                  borderLeft: i === 1 ? '1px solid rgba(107,71,245,.35)' : 'none',
+                  background: i === 1 ? 'rgba(107,71,245,.06)' : 'transparent',
+                  textAlign: i === 0 ? 'left' : 'center',
+                }}>{col}</div>
+              ))}
+            </div>
+            {/* Rows */}
+            {[
+              { feature: 'Proactive sourcing',         reidar: true,  harmonic: false, affinity: false, pitchbook: false },
+              { feature: 'Mandate-aware scoring',      reidar: true,  harmonic: false, affinity: false, pitchbook: false },
+              { feature: 'Investment memo generation', reidar: true,  harmonic: false, affinity: false, pitchbook: false },
+              { feature: 'Institutional memory',       reidar: true,  harmonic: false, affinity: false, pitchbook: false },
+              { feature: 'Gmail & Calendar integration', reidar: true, harmonic: false, affinity: true, pitchbook: false },
+              { feature: 'Pipeline management',        reidar: true,  harmonic: false, affinity: true,  pitchbook: false },
+              { feature: 'Price',                      reidar: 'Free (early access)', harmonic: '$$$+', affinity: '$2–2.7K/user/yr', pitchbook: '$12–100K/yr' },
+            ].map((row, ri) => (
+              <div key={ri} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 1fr', borderBottom: ri < 6 ? '1px solid rgba(255,255,255,.04)' : 'none' }}>
+                <div style={{ padding: '13px 16px', fontSize: 13, color: 'rgba(235,235,235,.55)', borderRight: '1px solid rgba(255,255,255,.04)' }}>{row.feature}</div>
+                {[
+                  { val: row.reidar,    isReidar: true },
+                  { val: row.harmonic,  isReidar: false },
+                  { val: row.affinity,  isReidar: false },
+                  { val: row.pitchbook, isReidar: false },
+                ].map((cell, ci) => {
+                  const isText = typeof cell.val === 'string';
+                  return (
+                    <div key={ci} style={{
+                      padding: '13px 16px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      borderRight: ci < 3 ? `1px solid ${cell.isReidar ? 'rgba(107,71,245,.2)' : 'rgba(255,255,255,.04)'}` : 'none',
+                      borderLeft: cell.isReidar ? '1px solid rgba(107,71,245,.35)' : 'none',
+                      background: cell.isReidar ? 'rgba(107,71,245,.04)' : 'transparent',
+                    }}>
+                      {isText ? (
+                        <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: cell.isReidar ? '#10b981' : 'rgba(235,235,235,.28)', letterSpacing: '.02em' }}>{cell.val}</span>
+                      ) : cell.val ? (
+                        <span style={{ fontSize: 15, color: cell.isReidar ? '#10b981' : 'rgba(235,235,235,.3)' }}>✓</span>
+                      ) : (
+                        <span style={{ fontSize: 13, color: 'rgba(235,235,235,.15)' }}>✗</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>
@@ -295,6 +355,14 @@ export default function Pricing() {
           <FaqItem
             q="Is my data shared with other funds?"
             a="Never. Every firm's intelligence is completely isolated. Your passes, conviction patterns, and pipeline are yours alone — that's the entire point."
+          />
+          <FaqItem
+            q="How does Reidar compare to Harmonic?"
+            a="Harmonic is a company intelligence database with 50M+ profiles and real-time signals. It's excellent for data volume and breadth. Reidar is not a database — it's an active system that sources on your behalf, scores against your specific mandate, and builds a private intelligence layer from your firm's own decisions. Harmonic tells you a company exists. Reidar tells you whether it's worth your time, why, and what your firm already knows about it."
+          />
+          <FaqItem
+            q="Does Reidar replace my CRM?"
+            a="Reidar includes pipeline management and logs interactions automatically from Gmail and Calendar. For investors currently using a spreadsheet or nothing, it replaces that entirely. For firms deeply embedded in Affinity or Attio, Reidar works alongside it — your CRM manages relationships you already have, Reidar finds and evaluates companies you don't know yet, and captures the reasoning behind every decision your team makes."
           />
         </div>
 
