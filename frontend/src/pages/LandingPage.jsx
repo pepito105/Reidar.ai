@@ -1684,6 +1684,153 @@ const HERO_PHRASES = [
   "Your edge, compounding from day one.",
 ];
 
+/* ─── SLACK CARD SECTION ─── */
+function SlackCardSection() {
+  const [showTyping, setShowTyping] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setShowTyping(false), 2000);
+    return () => clearTimeout(t);
+  }, []);
+
+  const HexIcon = ({ stroke = "white", size = 10 }) => (
+    <svg viewBox="0 0 14 14" width={size} height={size} fill="none">
+      <path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke={stroke} strokeWidth="1.5" />
+    </svg>
+  );
+
+  const badge = (bg, border, color, label) => (
+    <span style={{
+      fontFamily: "'DM Mono',monospace", fontSize: 10,
+      padding: '4px 9px', borderRadius: 4,
+      background: bg, border: `1px solid ${border}`, color,
+    }}>{label}</span>
+  );
+
+  const actionBtn = (primary, label) => (
+    <button style={{
+      fontFamily: "'DM Mono',monospace", fontSize: 12,
+      padding: '8px 16px', borderRadius: 6, cursor: 'pointer',
+      background: primary ? 'rgba(107,71,245,0.15)' : 'transparent',
+      border: primary ? '1px solid rgba(107,71,245,0.3)' : '1px solid rgba(255,255,255,0.1)',
+      color: primary ? '#A992FA' : 'rgba(235,235,235,0.4)',
+    }}>{label}</button>
+  );
+
+  return (
+    <section style={{ padding: '0 24px 100px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      {/* Context label */}
+      <div style={{
+        fontFamily: "'DM Mono',monospace", fontSize: 10, textTransform: 'uppercase',
+        letterSpacing: '0.12em', color: 'rgba(107,71,245,0.6)', marginBottom: 20,
+      }}>
+        This is what happens before you open your inbox
+      </div>
+
+      {/* Card */}
+      <div style={{
+        width: '100%', maxWidth: 580,
+        background: '#0F0F14',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 14, overflow: 'hidden', position: 'relative',
+        boxShadow: '0 0 60px rgba(107,71,245,0.08)',
+      }}>
+        {/* Left accent bar */}
+        <div style={{
+          position: 'absolute', left: 0, top: 0, bottom: 0, width: 3,
+          background: 'linear-gradient(180deg, #6B47F5, rgba(107,71,245,0))',
+        }} />
+
+        {/* Header */}
+        <div style={{
+          padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{
+              width: 18, height: 18, borderRadius: 5, background: '#6B47F5',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <HexIcon stroke="white" size={10} />
+            </div>
+            <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 12, color: 'rgba(235,235,235,0.35)', letterSpacing: '0.04em' }}>
+              Reidar · #deal-flow
+            </span>
+          </div>
+          <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: 'rgba(235,235,235,0.2)' }}>
+            just now
+          </span>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: 20, display: 'flex', gap: 14 }}>
+          {/* Avatar */}
+          <div style={{
+            width: 36, height: 36, borderRadius: 9,
+            background: 'rgba(107,71,245,0.12)',
+            border: '1px solid rgba(107,71,245,0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <HexIcon stroke="#A992FA" size={16} />
+          </div>
+
+          {/* Content */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* Sender row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 13, fontWeight: 500, color: '#A992FA' }}>Reidar</span>
+              <span style={{
+                fontFamily: "'DM Mono',monospace", fontSize: 9,
+                color: 'rgba(107,71,245,0.55)',
+                background: 'rgba(107,71,245,0.1)',
+                border: '1px solid rgba(107,71,245,0.2)',
+                borderRadius: 3, padding: '2px 7px',
+              }}>AI associate</span>
+            </div>
+
+            {/* Message */}
+            <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 15, color: 'rgba(235,235,235,0.7)', lineHeight: 1.65, margin: 0 }}>
+              New inbound — <strong style={{ color: '#EBEBEB' }}>Synthos AI</strong>, clinical documentation automation. Thesis match: <strong style={{ color: '#10b981' }}>87/100</strong>. You've passed on 3 similar companies — each lacked an enterprise GTM motion. Want me to run the full research pipeline?
+            </p>
+
+            {/* Badges */}
+            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+              {badge('rgba(16,185,129,0.1)', 'rgba(16,185,129,0.2)', '#10b981', '87/100 thesis match')}
+              {badge('rgba(217,119,6,0.1)', 'rgba(217,119,6,0.2)', '#D97706', '3 comparable passes')}
+              {badge('rgba(107,71,245,0.1)', 'rgba(107,71,245,0.2)', '#A992FA', 'Pool 2 context loaded')}
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div style={{
+          padding: '14px 20px', borderTop: '1px solid rgba(255,255,255,0.05)',
+          display: 'flex', gap: 8,
+        }}>
+          {actionBtn(true, 'Run full pipeline')}
+          {actionBtn(false, 'Quick signal only')}
+          {actionBtn(false, 'Pass')}
+        </div>
+      </div>
+
+      {/* Typing indicator */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        marginTop: 20,
+        opacity: showTyping ? 1 : 0,
+        transition: 'opacity 0.4s ease',
+      }}>
+        <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(107,71,245,0.4)', display: 'inline-block', animation: 'pulse 1.2s ease-in-out infinite' }} />
+        <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(107,71,245,0.4)', display: 'inline-block', animation: 'pulse 1.2s ease-in-out infinite', animationDelay: '0.15s', margin: '0 4px' }} />
+        <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(107,71,245,0.4)', display: 'inline-block', animation: 'pulse 1.2s ease-in-out infinite', animationDelay: '0.3s' }} />
+        <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: 'rgba(107,71,245,0.35)', marginLeft: 8 }}>
+          Reidar is analyzing your pipeline...
+        </span>
+      </div>
+    </section>
+  );
+}
+
 /* ─── MAIN ─── */
 export default function LandingPage() {
   const { isSignedIn } = useAuth();
@@ -1738,15 +1885,15 @@ export default function LandingPage() {
           <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, letterSpacing:'.12em', color:'#A992FA', textTransform:'uppercase', marginBottom:24, animation:'fadeUp .5s .05s both' }}>
             The intelligence layer for venture capital
           </div>
-          <h1 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(42px,5.5vw,64px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.1, letterSpacing:'-.03em', marginBottom:24, animation:'fadeUp .55s .13s both' }}>
-            Every top fund is quietly<br />building this.<br />Now you don't have to.
+          <h1 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(38px,5.5vw,58px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.1, letterSpacing:'-.03em', marginBottom:24, animation:'fadeUp .55s .13s both' }}>
+            The AI agent stack for venture capital.<br /><span style={{ color:'#A992FA' }}>Your firm's intelligence layer, compounding from day one.</span>
           </h1>
           <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:18, color:'rgba(235,235,235,.55)', lineHeight:1.7, maxWidth:560, margin:'0 auto 40px', animation:'fadeUp .55s .2s both' }}>
             Reidar is the ambient agent stack for venture capital — sourcing, researching, and surfacing intelligence across your entire workflow without being asked. Built around how your firm actually thinks.
           </p>
           <div style={{ display:'flex', gap:12, alignItems:'center', justifyContent:'center', animation:'fadeUp .55s .27s both' }}>
             <button style={{ background:'#6B47F5', color:'#fff', padding:'14px 28px', borderRadius:8, fontSize:15, fontWeight:500, border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", boxShadow:'0 0 24px rgba(107,71,245,.4)', transition:'background .15s' }} onClick={() => window.location.href = SIGN_UP_URL}>
-              Request early access
+              Get early access →
             </button>
             <button style={{ background:'transparent', color:'rgba(235,235,235,.5)', padding:'14px 28px', borderRadius:8, fontSize:15, border:'1px solid rgba(255,255,255,.1)', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", transition:'all .15s' }} onClick={() => document.getElementById('demo').scrollIntoView({ behavior:'smooth' })}>
               See how it works ↓
@@ -1782,7 +1929,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── 03 DEMO ── */}
+      {/* ── 03 SLACK CARD ── */}
+      <SlackCardSection />
+
+      {/* ── 04 DEMO ── */}
       <DealTimeline />
 
       {/* ── 04 PROBLEM ── */}
