@@ -1013,12 +1013,12 @@ function DealTimeline() {
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 48px' }}>
         {/* Header */}
         <div style={{ marginBottom: 40 }}>
-          <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: '.12em', color: '#6B47F5', textTransform: 'uppercase', marginBottom: 12 }}>Ambient intelligence</div>
+          <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: '.12em', color: '#6B47F5', textTransform: 'uppercase', marginBottom: 12 }}>One deal. Six weeks.</div>
           <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(24px,2.8vw,36px)', fontWeight: 700, lineHeight: 1.08, color: '#EBEBEB', letterSpacing: '-.02em', marginBottom: 14, maxWidth: 640 }}>
-            Reidar worked while you were in a two-hour meeting.
+            Reidar works across your entire deal lifecycle.
           </h2>
           <p style={{ fontSize: 14, color: 'rgba(235,235,235,.38)', lineHeight: 1.7, maxWidth: 520 }}>
-            Six trigger events. Five surfaces. No prompts. Here's what happened.
+            From the moment a pitch lands in your inbox to the moment you walk into IC — across every surface, without being asked.
           </p>
         </div>
 
