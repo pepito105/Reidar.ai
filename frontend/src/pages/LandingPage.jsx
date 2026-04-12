@@ -135,6 +135,8 @@ const STYLES = `
     .steps{grid-template-columns:1fr}
     .step{border-right:none;border-bottom:1px solid rgba(255,255,255,.06)}
     .step:last-child{border-bottom:none}
+    .hero-split{flex-direction:column!important;padding:100px 24px 80px!important}
+    .hero-split-right{width:100%!important;max-width:480px}
   }
   @media(max-width:640px){
     .nav{padding:0 20px}.nav-links{display:none}
@@ -1684,6 +1686,78 @@ const HERO_PHRASES = [
   "Your edge, compounding from day one.",
 ];
 
+/* ─── HERO FEED ─── */
+const FEED_ENTRIES = [
+  { time: "08:47:23", event: "Inbound — Synthos AI",          status: "triaged",    color: "rgba(235,235,235,0.55)" },
+  { time: "08:47:24", event: "Thesis match: 87/100",          status: "scored",     color: "#10b981" },
+  { time: "08:47:31", event: "11 agents dispatched",          status: "running",    color: "#A992FA" },
+  { time: "08:51:14", event: "Comparable passes: 3 found",    status: "flagged",    color: "#D97706" },
+  { time: "08:52:03", event: "Market research complete",      status: "done",       color: "#10b981" },
+  { time: "08:52:44", event: "Founder backgrounds complete",  status: "done",       color: "#10b981" },
+  { time: "08:53:01", event: "Brief → #deal-flow",            status: "delivered",  color: "#10b981" },
+  { time: "09:12:05", event: "Calendar: Synthos call 30min",  status: "detected",   color: "#A992FA" },
+  { time: "09:12:06", event: "Pre-meeting brief generating",  status: "running",    color: "#A992FA" },
+  { time: "09:14:33", event: "Brief → Slack",                 status: "delivered",  color: "#10b981" },
+  { time: "11:30:00", event: "Transcript received — Granola", status: "processing", color: "#A992FA" },
+  { time: "11:30:04", event: "Signals extracted: 7",          status: "done",       color: "#10b981" },
+];
+
+const STATUS_STYLES = {
+  triaged:    { background: "rgba(235,235,235,0.08)", color: "rgba(235,235,235,0.3)" },
+  scored:     { background: "rgba(16,185,129,0.1)",   color: "#10b981" },
+  running:    { background: "rgba(107,71,245,0.12)",  color: "#A992FA" },
+  flagged:    { background: "rgba(217,119,6,0.1)",    color: "#D97706" },
+  done:       { background: "rgba(16,185,129,0.1)",   color: "#10b981" },
+  delivered:  { background: "rgba(16,185,129,0.08)",  color: "#10b981" },
+  detected:   { background: "rgba(107,71,245,0.12)",  color: "#A992FA" },
+  processing: { background: "rgba(107,71,245,0.12)",  color: "#A992FA" },
+};
+
+function HeroFeed() {
+  const [visibleCount, setVisibleCount] = useState(0);
+  const [cycle, setCycle] = useState(0);
+  useEffect(() => {
+    let timer;
+    let count = 0;
+    const tick = () => {
+      count += 1;
+      setVisibleCount(count);
+      if (count < FEED_ENTRIES.length) {
+        timer = setTimeout(tick, 280);
+      } else {
+        timer = setTimeout(() => {
+          setVisibleCount(0);
+          setCycle(c => c + 1);
+        }, 3000);
+      }
+    };
+    timer = setTimeout(tick, 280);
+    return () => clearTimeout(timer);
+  }, [cycle]);
+  return (
+    <>
+      {FEED_ENTRIES.map((entry, i) => {
+        const s = STATUS_STYLES[entry.status] || STATUS_STYLES.triaged;
+        return (
+          <div key={i} style={{
+            padding: '7px 18px',
+            display: 'grid', gridTemplateColumns: '80px 1fr auto',
+            alignItems: 'center', gap: 12,
+            borderBottom: i < FEED_ENTRIES.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none',
+            opacity: i < visibleCount ? 1 : 0,
+            transform: i < visibleCount ? 'none' : 'translateY(4px)',
+            transition: 'opacity 200ms ease, transform 200ms ease',
+          }}>
+            <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'rgba(235,235,235,0.2)', letterSpacing:'0.04em' }}>{entry.time}</span>
+            <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:entry.color }}>{entry.event}</span>
+            <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, letterSpacing:'0.06em', padding:'2px 6px', borderRadius:3, whiteSpace:'nowrap', background:s.background, color:s.color }}>{entry.status}</span>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 /* ─── MAIN ─── */
 export default function LandingPage() {
   const { isSignedIn } = useAuth();
@@ -1734,27 +1808,64 @@ export default function LandingPage() {
       <section id="hero" className="hero-wrap">
         <RadarBg />
         <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 65% at 50% 48%,transparent 28%,rgba(7,7,10,.55) 58%,#07070A 88%)', pointerEvents: 'none', zIndex: 1 }} />
-        <div className="hero-content">
-          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, letterSpacing:'.12em', color:'#A992FA', textTransform:'uppercase', marginBottom:24, animation:'fadeUp .5s .05s both' }}>
-            The intelligence layer for venture capital
+        {/* Split layout */}
+        <div className="hero-split" style={{ position:'relative', zIndex:2, display:'flex', alignItems:'center', justifyContent:'space-between', gap:60, maxWidth:1200, margin:'0 auto', padding:'140px 48px 120px', width:'100%' }}>
+
+          {/* LEFT */}
+          <div style={{ flex:1, maxWidth:540 }}>
+            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, textTransform:'uppercase', letterSpacing:'0.12em', color:'#A992FA', marginBottom:24 }}>
+              The intelligence layer for venture capital
+            </div>
+            <h1 style={{ fontFamily:"'Syne',sans-serif", fontWeight:600, lineHeight:1.08, letterSpacing:'-0.03em', marginBottom:24 }}>
+              <span style={{ fontSize:'clamp(38px,4.5vw,56px)', color:'#EBEBEB', display:'block' }}>The AI agent stack</span>
+              <span style={{ fontSize:'clamp(38px,4.5vw,56px)', color:'#EBEBEB', display:'block' }}>for venture capital.</span>
+              <span style={{ fontSize:'clamp(24px,2.8vw,36px)', color:'#A992FA', display:'block', marginTop:8 }}>Your firm's intelligence layer,<br />compounding from day one.</span>
+            </h1>
+            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:17, color:'rgba(235,235,235,0.5)', lineHeight:1.75, marginBottom:36, maxWidth:460 }}>
+              Sourcing, researching, and surfacing intelligence across your entire workflow — without being asked. Built around how your firm actually thinks.
+            </p>
+            <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+              <button style={{ background:'#6B47F5', color:'white', padding:'13px 26px', borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:15, fontWeight:500, border:'none', cursor:'pointer', boxShadow:'0 0 24px rgba(107,71,245,0.4)', transition:'background .15s' }} onClick={() => window.location.href = SIGN_UP_URL}>
+                Get early access →
+              </button>
+              <button style={{ background:'transparent', color:'rgba(235,235,235,0.45)', padding:'13px 26px', borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:15, border:'1px solid rgba(255,255,255,0.1)', cursor:'pointer', transition:'all .15s' }} onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior:'smooth' })}>
+                See it in action ↓
+              </button>
+            </div>
+            <p style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'rgba(235,235,235,0.22)', marginTop:28 }}>
+              Used by emerging fund managers · No credit card required · Set up in under an hour
+            </p>
           </div>
-          <h1 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(38px,5.5vw,58px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.1, letterSpacing:'-.03em', marginBottom:24, animation:'fadeUp .55s .13s both' }}>
-            The AI agent stack for venture capital.<br /><span style={{ color:'#A992FA' }}>Your firm's intelligence layer, compounding from day one.</span>
-          </h1>
-          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:18, color:'rgba(235,235,235,.55)', lineHeight:1.7, maxWidth:560, margin:'0 auto 40px', animation:'fadeUp .55s .2s both' }}>
-            Reidar is the ambient agent stack for venture capital — sourcing, researching, and surfacing intelligence across your entire workflow without being asked. Built around how your firm actually thinks.
-          </p>
-          <div style={{ display:'flex', gap:12, alignItems:'center', justifyContent:'center', animation:'fadeUp .55s .27s both' }}>
-            <button style={{ background:'#6B47F5', color:'#fff', padding:'14px 28px', borderRadius:8, fontSize:15, fontWeight:500, border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", boxShadow:'0 0 24px rgba(107,71,245,.4)', transition:'background .15s' }} onClick={() => window.location.href = SIGN_UP_URL}>
-              Get early access →
-            </button>
-            <button style={{ background:'transparent', color:'rgba(235,235,235,.5)', padding:'14px 28px', borderRadius:8, fontSize:15, border:'1px solid rgba(255,255,255,.1)', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", transition:'all .15s' }} onClick={() => document.getElementById('demo').scrollIntoView({ behavior:'smooth' })}>
-              See how it works ↓
-            </button>
+
+          {/* RIGHT */}
+          <div className="hero-split-right" style={{ width:440, flexShrink:0, position:'relative' }}>
+            {/* Glow */}
+            <div style={{ position:'absolute', width:300, height:300, background:'rgba(107,71,245,0.12)', borderRadius:'50%', filter:'blur(60px)', top:-60, right:-60, pointerEvents:'none', zIndex:0 }} />
+            {/* Feed container */}
+            <div style={{ background:'rgba(7,7,10,0.8)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, overflow:'hidden', position:'relative', zIndex:1, backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)' }}>
+              {/* Header */}
+              <div style={{ padding:'14px 18px', borderBottom:'1px solid rgba(255,255,255,0.06)', display:'flex', justifyContent:'space-between', alignItems:'center', background:'rgba(255,255,255,0.02)' }}>
+                <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                  <div style={{ width:16, height:16, borderRadius:4, background:'#6B47F5', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <svg viewBox="0 0 14 14" width="9" height="9" fill="none"><path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke="white" strokeWidth="1.5"/></svg>
+                  </div>
+                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:'rgba(235,235,235,0.5)', letterSpacing:'0.06em' }}>Reidar</span>
+                </div>
+                <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                  <div style={{ width:6, height:6, borderRadius:'50%', background:'#10b981', animation:'pulse 2s ease-in-out infinite' }} />
+                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'#10b981' }}>live</span>
+                </div>
+              </div>
+              {/* Log */}
+              <div style={{ padding:'6px 0' }}><HeroFeed /></div>
+              {/* Footer */}
+              <div style={{ padding:'12px 18px', borderTop:'1px solid rgba(255,255,255,0.05)', background:'rgba(107,71,245,0.03)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'rgba(235,235,235,0.2)' }}>12 events processed today</span>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'rgba(107,71,245,0.5)' }}>0 manual actions required</span>
+              </div>
+            </div>
           </div>
-          <p style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:'rgba(235,235,235,.28)', marginTop:48, animation:'fadeUp .55s .35s both' }}>
-            Used by emerging fund managers · No credit card required · Set up in under an hour
-          </p>
+
         </div>
         {/* Ticker */}
         <div className="ticker" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 2 }}>
