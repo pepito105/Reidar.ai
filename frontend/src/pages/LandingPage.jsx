@@ -5,7 +5,7 @@ const APP_URL = "/app";
 const SIGN_IN_URL = "/sign-in";
 const SIGN_UP_URL = "/sign-up";
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400&family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');`;
+const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400&family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');`;
 
 const STYLES = `
   *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
@@ -1308,39 +1308,55 @@ function IntegrationsOrbit() {
 }
 
 /* ─── THESIS SECTION ─── */
-const THESIS_CARDS = [
-  { name: "Signal platforms",          t: "Same signals, zero differentiation.",      c: "When every fund gets the same alert at the same time, the signal is noise. Knowing isn't the edge. Knowing what it means for your specific thesis is." },
-  { name: "Startup databases",         t: "Broad data, shared by everyone.",          c: "Fifty million profiles, and none of them remember that you saw this company eight months ago and passed because the unit economics didn't work." },
-  { name: "CRM tools",                 t: "Tracks relationships. Not judgment.",       c: "They know who you emailed. They don't know what you thought, what pattern you recognized, or what would change your mind." },
-  { name: "AI intelligence platforms", t: "Reasons backward. Not forward.",           c: "They're powerful if you have decades of documents to ingest. But the most valuable intelligence isn't what you've already decided — it's what you're deciding right now. Reidar captures it as it happens." },
+/* ─── PROBLEM SECTION ─── */
+const COMPETITOR_CARDS = [
+  { name: "Harmonic",             tag: "Data infrastructure",        desc: "50M+ company profiles. Best-in-class data. Goes silent the moment you close the tab." },
+  { name: "Affinity",             tag: "Relationship CRM",           desc: "Knows everyone you've met. Doesn't know why any of them matter to your thesis." },
+  { name: "PitchBook",            tag: "Market intelligence",        desc: "$12K–$100K per year to answer questions you remembered to ask." },
+  { name: "Spreadsheets + memory", tag: "What everyone actually uses", desc: "Free, flexible, and completely unable to tell you what you already know." },
 ];
 
-function ThesisSection() {
+function ProblemSection() {
   const [entered, ref] = useSectionEntry();
   const T = (d) => ({ opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition: `opacity .55s ${d}ms ease, transform .55s ${d}ms ease` });
   return (
-    <section id="problem" ref={ref} style={{ padding: '96px 0' }}>
+    <section id="problem" ref={ref} style={{ padding: '120px 0', borderTop: '1px solid rgba(255,255,255,.04)' }}>
       <div className="sec-inner">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '480px 1fr', gap: 80, alignItems: 'start' }}>
+          {/* Left col */}
           <div>
-            <div className="s-tag" style={T(0)}>The problem</div>
-            <h2 className="s-h2" style={T(80)}>Every intelligence tool has the same <em>structural problem.</em></h2>
-            <p className="s-p" style={T(160)}>Databases, signal platforms, CRM tools, market intelligence feeds — they all reason backward. They ingest what already exists and wait for a query. The more widely adopted they become, the less edge any single investor gets from using them.<br /><br />Reidar works differently. It captures the intelligence your firm is building right now — from every meeting, every pass decision, every email thread — and surfaces it at the moment it matters. The edge it builds belongs to you alone.</p>
-            <div className="thesis-pull" style={{ marginTop: 24, ...T(240) }}>
-              <div className="thesis-pull-q">"Our CRM tracks who we know. Nothing tracks how we think — or what we decided, and why."</div>
-              <div className="thesis-pull-src">— RECURRING FEEDBACK FROM EMERGING FUND GPS</div>
+            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:10, letterSpacing:'.12em', color:'#A992FA', textTransform:'uppercase', marginBottom:20, ...T(0) }}>The problem</div>
+            <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(28px,2.8vw,40px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.15, letterSpacing:'-.02em', marginBottom:28, ...T(80) }}>
+              The tools that exist today wait for you to show up.
+            </h2>
+            <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+              {[
+                "Harmonic surfaces companies when you search. Affinity logs relationships when you update it. PitchBook answers questions when you ask. None of them watch. None of them remember. None of them work when you're not looking.",
+                "The investment process is a continuous conversation — across emails, meetings, calls, and decisions made over years. The intelligence that matters most isn't in any database. It's in how your firm reasons: why you passed, what would change your mind, which founders fit your pattern, which markets you believe in before anyone else does.",
+                "That reasoning has never been captured. Until now.",
+              ].map((p, i) => (
+                <p key={i} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:16, color:'rgba(235,235,235,.55)', lineHeight:1.75, margin:0, ...T(160 + i * 60) }}>{p}</p>
+              ))}
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {THESIS_CARDS.map((c, i) => (
-              <div key={i} style={{ padding: '14px 16px', background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 8, cursor: 'default', opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(14px)', transition: `opacity .45s ${120 + i * 140}ms ease, transform .45s ${120 + i * 140}ms ease, background .2s ease` }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(107,71,245,.05)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.02)'}
-              >
-                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: 'rgba(235,235,235,.25)', letterSpacing: '.07em', marginBottom: 5 }}>{c.name}</div>
-                <div style={{ fontSize: 12, color: 'rgba(235,235,235,.55)', lineHeight: 1.55 }}><strong style={{ color: '#EBEBEB', fontWeight: 500 }}>{c.t}</strong> {c.c}</div>
-              </div>
-            ))}
+          {/* Right col */}
+          <div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:20 }}>
+              {COMPETITOR_CARDS.map((c, i) => (
+                <div key={i} style={{ background:'#0C0C10', border:'1px solid rgba(255,255,255,.06)', borderRadius:10, padding:20, opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(14px)', transition: `opacity .45s ${100 + i * 100}ms ease, transform .45s ${100 + i * 100}ms ease` }}>
+                  <div style={{ fontSize:13, fontWeight:500, color:'#EBEBEB', marginBottom:4 }}>{c.name}</div>
+                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(235,235,235,.28)', letterSpacing:'.04em', marginBottom:10 }}>{c.tag}</div>
+                  <p style={{ fontSize:12, color:'rgba(235,235,235,.45)', lineHeight:1.6, margin:0 }}>{c.desc}</p>
+                </div>
+              ))}
+            </div>
+            {/* Reidar contrast row */}
+            <div style={{ borderTop:'1px solid rgba(107,71,245,.2)', paddingTop:16, display:'flex', alignItems:'flex-start', gap:10, opacity: entered ? 1 : 0, transition:'opacity .55s 500ms ease' }}>
+              <div style={{ width:6, height:6, borderRadius:'50%', background:'#6B47F5', flexShrink:0, marginTop:4 }} />
+              <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:'rgba(235,235,235,.6)', lineHeight:1.65, margin:0 }}>
+                Reidar watches your workflow, deploys research automatically, and surfaces intelligence the moment it's relevant — without being asked.
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -1433,6 +1449,144 @@ function UseCasesSection() {
   );
 }
 
+/* ─── REASONING LAYER SECTION ─── */
+function ReasoningLayerSection() {
+  const [entered, ref] = useSectionEntry();
+  const T = (d) => ({ opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition: `opacity .55s ${d}ms ease, transform .55s ${d}ms ease` });
+  const cardBase = { background:'#0C0C10', border:'1px solid rgba(255,255,255,.06)', borderRadius:10, padding:28, display:'flex', flexDirection:'column' };
+  return (
+    <section ref={ref} style={{ padding:'140px 0', borderTop:'1px solid rgba(255,255,255,.04)' }}>
+      <div className="sec-inner">
+        {/* Centered header */}
+        <div style={{ maxWidth:640, margin:'0 auto', textAlign:'center', marginBottom:80 }}>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:10, letterSpacing:'.12em', color:'#A992FA', textTransform:'uppercase', marginBottom:16, ...T(0) }}>What makes Reidar different</div>
+          <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(28px,3vw,44px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.1, letterSpacing:'-.02em', marginBottom:20, ...T(80) }}>Not a database.<br />A reasoning layer.</h2>
+          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:17, color:'rgba(235,235,235,.5)', lineHeight:1.7, margin:0, ...T(160) }}>Other tools store what happened. Reidar structures how you thought about it — and retrieves that reasoning at the moment it matters again.</p>
+        </div>
+        {/* Three cards */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20 }}>
+          {/* Card 1 — Structured signals */}
+          <div style={{ ...cardBase, borderTop:'2px solid #6B47F5', ...T(100) }}>
+            <div style={{ width:32, height:32, borderRadius:8, background:'rgba(107,71,245,.1)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+              <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><rect x="0" y="0" width="16" height="2" rx="1" fill="#A992FA"/><rect x="0" y="5" width="11" height="2" rx="1" fill="#A992FA" opacity=".7"/><rect x="0" y="10" width="7" height="2" rx="1" fill="#A992FA" opacity=".4"/></svg>
+            </div>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontSize:18, fontWeight:600, color:'#EBEBEB', marginTop:20, marginBottom:12 }}>Structured reasoning signals</div>
+            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:'rgba(235,235,235,.5)', lineHeight:1.7, marginBottom:20, flex:1 }}>Every meeting transcript, pass email, and partner objection is processed into structured signals — not stored as raw text. "Maria raised an unresolved defensibility concern about incumbent entry" is more useful than a 6,000-word transcript.</p>
+            <div style={{ borderTop:'1px solid rgba(255,255,255,.06)', paddingTop:16 }}>
+              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(107,71,245,.5)', letterSpacing:'.08em', marginBottom:8 }}>SIGNAL EXTRACTED</div>
+              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:'#A992FA', background:'rgba(107,71,245,.06)', borderRadius:6, padding:12, lineHeight:1.6 }}>
+                signal_type: "partner_objection"<br/>
+                dimension: "defensibility"<br/>
+                resolution: "unresolved"<br/>
+                conviction_impact: "negative"
+              </div>
+            </div>
+          </div>
+          {/* Card 2 — Two layers */}
+          <div style={{ ...cardBase, borderTop:'2px solid #D97706', ...T(200) }}>
+            <div style={{ width:32, height:32, borderRadius:8, background:'rgba(217,119,6,.1)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+              <svg width="18" height="14" viewBox="0 0 18 14" fill="none"><circle cx="6" cy="7" r="5.5" stroke="#D97706" strokeWidth="1.3" fill="none"/><circle cx="12" cy="7" r="5.5" stroke="#D97706" strokeWidth="1.3" fill="none" opacity=".5"/></svg>
+            </div>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontSize:18, fontWeight:600, color:'#EBEBEB', marginTop:20, marginBottom:12 }}>Two layers. Firm and individual.</div>
+            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:'rgba(235,235,235,.5)', lineHeight:1.7, marginBottom:20, flex:1 }}>Your firm has a collective view. You have your own. A deal that's a 3 for the partnership can be a 5 for you based on your personal conviction patterns. Reidar knows the difference and surfaces both.</p>
+            <div style={{ borderTop:'1px solid rgba(255,255,255,.06)', paddingTop:16 }}>
+              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(107,71,245,.5)', letterSpacing:'.08em', marginBottom:12 }}>YOUR LENS vs FIRM LENS</div>
+              {[{ label:'Firm fit', pct:60, color:'#D97706' }, { label:'Your fit', pct:90, color:'#10b981' }].map((row) => (
+                <div key={row.label} style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
+                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'rgba(235,235,235,.4)', width:52, flexShrink:0 }}>{row.label}</span>
+                  <div style={{ flex:1, height:3, background:'rgba(255,255,255,.08)', borderRadius:2, overflow:'hidden' }}>
+                    <div style={{ height:'100%', width:`${row.pct}%`, background:row.color, borderRadius:2 }} />
+                  </div>
+                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:row.color, width:28, textAlign:'right' }}>{row.pct}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Card 3 — Compounds */}
+          <div style={{ ...cardBase, borderTop:'2px solid #10b981', ...T(300) }}>
+            <div style={{ width:32, height:32, borderRadius:8, background:'rgba(16,185,129,.1)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 14V8M8 8L4 10M8 8L12 10" stroke="#10b981" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/><circle cx="8" cy="4" r="2" fill="#10b981" opacity=".5"/><circle cx="3" cy="13" r="1.5" fill="#10b981" opacity=".35"/><circle cx="13" cy="13" r="1.5" fill="#10b981" opacity=".35"/></svg>
+            </div>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontSize:18, fontWeight:600, color:'#EBEBEB', marginTop:20, marginBottom:12 }}>Compounds with every decision.</div>
+            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:'rgba(235,235,235,.5)', lineHeight:1.7, marginBottom:20, flex:1 }}>Every pass reason, IC objection, score override, and conviction shift is extracted as a signal and embedded. After 12 months, your firm has a structured record of how it reasons — one that exists nowhere else and can't be replicated by any competitor regardless of their data.</p>
+            <div style={{ borderTop:'1px solid rgba(255,255,255,.06)', paddingTop:16 }}>
+              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(107,71,245,.5)', letterSpacing:'.08em', marginBottom:8 }}>SIGNALS EXTRACTED TO DATE</div>
+              {[['Partner objections','247'],['Pass patterns identified','34'],['Conviction triggers','189']].map(([lbl,val]) => (
+                <div key={lbl} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid rgba(255,255,255,.04)', padding:'6px 0' }}>
+                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:'rgba(235,235,235,.35)' }}>{lbl}</span>
+                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:'#A992FA' }}>{val}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── PIPELINE SECTION ─── */
+const TRIGGER_ROWS = [
+  { trigger:'Email received',    agent:'Sourcing signal',       surface:'Slack',          dot:'#4ade80' },
+  { trigger:'Pitch forwarded',   agent:'Full pipeline',         surface:'Dashboard',      dot:'#A992FA' },
+  { trigger:'Calendar invite',   agent:'Pre-meeting brief',     surface:'Slack + Email',  dot:'#f59e0b' },
+  { trigger:'Transcript arrives',agent:'Signal extraction',     surface:'Company record', dot:'#6B47F5' },
+  { trigger:'Data room shared',  agent:'Consistency check',     surface:'Dashboard',      dot:'#A992FA' },
+  { trigger:'Deal → IC review',  agent:'IC prep + objections',  surface:'Dashboard',      dot:'#A992FA' },
+];
+
+function PipelineSection() {
+  const [entered, ref] = useSectionEntry();
+  const T = (d) => ({ opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition: `opacity .55s ${d}ms ease, transform .55s ${d}ms ease` });
+  return (
+    <section ref={ref} style={{ padding:'140px 0', borderTop:'1px solid rgba(255,255,255,.04)' }}>
+      <div className="sec-inner">
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:80, alignItems:'start' }}>
+          {/* Left col */}
+          <div>
+            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:10, letterSpacing:'.12em', color:'#A992FA', textTransform:'uppercase', marginBottom:16, ...T(0) }}>How it works</div>
+            <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(28px,2.8vw,44px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.1, letterSpacing:'-.02em', marginBottom:20, ...T(80) }}>
+              Events trigger agents.<br />Agents surface intelligence.<br />You make the call.
+            </h2>
+            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:16, color:'rgba(235,235,235,.5)', lineHeight:1.75, marginBottom:40, ...T(160) }}>
+              Reidar watches your workflow across email, calendar, and Slack. Every meaningful event dispatches the right agent automatically. You receive intelligence where you already are — not in a dashboard you have to remember to open.
+            </p>
+            <div style={{ borderLeft:'2px solid #6B47F5', paddingLeft:20, ...T(240) }}>
+              <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:15, color:'rgba(235,235,235,.6)', lineHeight:1.7, fontStyle:'italic', margin:0 }}>
+                "An email arrives. Before you open it, Reidar has already run triage, checked your mandate, flagged three comparable passes in your history, and is ready to deploy 11 research agents on your signal."
+              </p>
+            </div>
+          </div>
+          {/* Right col — trigger table */}
+          <div style={{ background:'#0C0C10', border:'1px solid rgba(255,255,255,.06)', borderRadius:12, overflow:'hidden', opacity: entered ? 1 : 0, transition:'opacity .6s 200ms ease' }}>
+            {/* Header */}
+            <div style={{ padding:'12px 20px', borderBottom:'1px solid rgba(255,255,255,.06)', display:'grid', gridTemplateColumns:'1fr 1fr 1fr' }}>
+              {['TRIGGER','AGENT','SURFACE'].map(h => (
+                <span key={h} style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(235,235,235,.25)', letterSpacing:'.1em' }}>{h}</span>
+              ))}
+            </div>
+            {/* Rows */}
+            {TRIGGER_ROWS.map((row, i) => (
+              <div key={i} style={{ padding:'14px 20px', borderBottom: i < TRIGGER_ROWS.length - 1 ? '1px solid rgba(255,255,255,.04)' : 'none', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', alignItems:'center' }}>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:'rgba(235,235,235,.6)' }}>{row.trigger}</span>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:'#A992FA' }}>{row.agent}</span>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:'rgba(235,235,235,.4)', display:'flex', alignItems:'center', gap:6 }}>
+                  <span style={{ width:5, height:5, borderRadius:'50%', background:row.dot, display:'inline-block', flexShrink:0 }} />
+                  {row.surface}
+                </span>
+              </div>
+            ))}
+            {/* Footer */}
+            <div style={{ padding:'14px 20px', background:'rgba(107,71,245,.04)', borderTop:'1px solid rgba(107,71,245,.1)', fontFamily:"'DM Mono',monospace", fontSize:11, color:'rgba(107,71,245,.6)' }}>
+              Every agent runs in parallel. Every claim is cited. Nothing modifies your data without showing you first.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── INTEGRATIONS SECTION ─── */
 function IntegrationsSection() {
   const [entered, ref] = useSectionEntry();
@@ -1453,28 +1607,28 @@ function IntegrationsSection() {
 /* ─── FAQ SECTION ─── */
 const FAQS = [
   {
-    q: "What is an AI investment associate?",
-    a: "An AI investment associate is software that performs the research, sourcing, and analytical work typically done by a junior VC analyst — autonomously and continuously. Reidar sources companies from the open web, scores them against a firm's investment mandate, generates investment memos, monitors pipeline companies for signals, and surfaces institutional memory at the moment it's needed. Unlike a database or search tool, it works without being asked.",
+    q: "How is Reidar different from Harmonic or Affinity?",
+    a: "Harmonic is a database — it surfaces companies when you search. Affinity is a CRM — it logs relationships when you update it. Reidar is neither. It watches your workflow continuously, deploys research automatically from trigger events, and surfaces intelligence that reflects how your specific firm reasons. You don't go to Reidar. Reidar comes to you.",
   },
   {
-    q: "How is Reidar different from Harmonic or PitchBook?",
-    a: "Harmonic and PitchBook are databases — you query them, they return results. Reidar is an active system that works on your behalf continuously. It sources proactively, scores against your specific mandate rather than a generic filter, generates investment memos rather than data exports, and builds a private intelligence layer from your firm's own decisions and interactions. The difference is the direction: they tell you what exists. Reidar tells you what matters for how you specifically invest.",
+    q: "What does 'ambient' mean in practice?",
+    a: "It means Reidar works in the surfaces you already use — Slack, email, calendar — rather than requiring you to open a new dashboard. A pitch email triggers a triage signal in Slack before you've opened it. A calendar invite triggers a pre-meeting brief 30 minutes before the call. A Granola transcript triggers signal extraction automatically. No manual logging required.",
   },
   {
-    q: "How is Reidar different from Affinity?",
-    a: "Affinity is a relationship intelligence CRM — it manages pipeline and tracks who you know. Reidar is a sourcing and intelligence tool — it finds companies you don't know yet and captures the reasoning behind every decision your firm makes. Affinity is the address book. Reidar is the scout and the memory. Many investors use both.",
+    q: "What's the individual intelligence layer?",
+    a: "Every person at a fund reasons differently. Reidar maintains a separate model for each team member — your personal thesis, your conviction patterns, your sector focus. A brief generated for you reflects your lens on a deal, not just the firm's collective view. The more you use Reidar, the more precisely it understands how you specifically think.",
   },
   {
-    q: "Is Reidar only for small VC funds?",
-    a: "No. Reidar is built for any investor who evaluates companies — solo GPs, analysts at established funds, and partners at any stage. The core value is the same regardless of fund size: capturing how an investor reasons about investments and surfacing that intelligence at the right moment. We focus on emerging fund managers first because they feel the pain most acutely — lean teams, no dedicated analyst headcount, and the highest cost of losing institutional knowledge.",
-  },
-  {
-    q: "How does Reidar build institutional memory?",
-    a: "Reidar connects to Gmail and Google Calendar and passively observes your deal workflow — inbound pitches, founder meetings, follow-up emails, pass decisions. It extracts structured reasoning signals from these interactions: partner objections, conviction triggers, pass reasons, open questions. These signals are embedded into a private vector database scoped to your firm. When you evaluate a similar company later, Reidar retrieves the relevant prior reasoning and injects it into its analysis — without you having to remember or re-enter anything.",
+    q: "How does Reidar get smarter over time?",
+    a: "Every pass reason, IC objection, score override, and conviction shift is processed into a structured reasoning signal and embedded. Reidar retrieves those signals before generating any output — brief, memo, or IC prep. After 12 months, your firm has a structured record of how it reasons that compounds in a way no generic tool can replicate.",
   },
   {
     q: "What does setup look like?",
-    a: "Connect Gmail and Google Calendar, define your investment mandate in plain English, set your stage and sector focus, and optionally import a list of companies you've previously evaluated. First sourcing run starts immediately. Most investors are fully configured in under 10 minutes.",
+    a: "You connect Gmail, Slack, and calendar. You describe your investment mandate in plain English — stage, sector, geography, check size, what you explicitly exclude. Reidar starts working immediately: sourcing companies, triaging inbound, and building your reasoning layer from the first interaction. Most firms are fully configured in under an hour.",
+  },
+  {
+    q: "Is this built for large funds?",
+    a: "No. Reidar is built for emerging fund managers and solo GPs — the tier that existing tools completely ignore. No analyst headcount, real sourcing pain, can't afford a $100K PitchBook contract. Large funds have the resources to build their own internal agent stacks. Reidar gives emerging funds the same capability on day one.",
   },
 ];
 
@@ -1497,12 +1651,18 @@ function CtaSection() {
   const [entered, ref] = useSectionEntry();
   const T = (d) => ({ opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(22px)', transition: `opacity .6s ${d}ms ease, transform .6s ${d}ms ease` });
   return (
-    <section id="cta" ref={ref} style={{ padding: '96px 0 48px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <div className="cta-inner" style={T(0)}>
-        <h2 className="cta-h2" style={T(60)}>Your firm's edge.<br />Captured from day one.</h2>
-        <p className="cta-sub" style={T(140)}>No extra work. No manual logging. No behavior change. Connect your inbox and calendar, define your mandate, and Reidar starts building the intelligence layer your firm has always needed — from the work you're already doing.</p>
-        <button className="btn-lg" style={T(220)} onClick={() => window.location.href = SIGN_UP_URL}>Join the waitlist →</button>
-        <p style={{ marginTop: 16, fontSize: 11, color: 'rgba(235,235,235,.2)', fontFamily: "'DM Mono',monospace", letterSpacing: '.04em', ...T(280) }}>Free during early access. Founding firm rate locked at launch.</p>
+    <section id="cta" ref={ref} style={{ padding: '160px 0 48px', display: 'flex', flexDirection: 'column', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,.04)' }}>
+      <div style={{ maxWidth: 600, width: '100%', textAlign: 'center', padding: '0 24px' }}>
+        <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(30px,3.5vw,48px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.1, letterSpacing:'-.02em', marginBottom:20, ...T(0) }}>
+          Your firm's intelligence layer.<br />Compounding from day one.
+        </h2>
+        <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:17, color:'rgba(235,235,235,.5)', lineHeight:1.7, marginBottom:40, ...T(80) }}>
+          Set up in under an hour. No analyst required. Gets smarter with every decision your firm makes.
+        </p>
+        <button className="btn-lg" style={{ ...T(160) }} onClick={() => window.location.href = SIGN_UP_URL}>Request early access →</button>
+        <p style={{ marginTop: 20, fontFamily:"'DM Mono',monospace", fontSize:11, color:'rgba(235,235,235,.25)', letterSpacing:'.04em', ...T(220) }}>
+          Currently accepting a small number of emerging fund managers for early access.
+        </p>
       </div>
     </section>
   );
@@ -1526,9 +1686,6 @@ const HERO_PHRASES = [
 
 /* ─── MAIN ─── */
 export default function LandingPage() {
-  const [heroIdx, setHeroIdx] = useState(0);
-  const [heroDisplayed, setHeroDisplayed] = useState('');
-  const [heroPhase, setHeroPhase] = useState('typing');
   const { isSignedIn } = useAuth();
 
   useEffect(() => {
@@ -1536,31 +1693,6 @@ export default function LandingPage() {
     const desc = document.querySelector('meta[name="description"]');
     if (desc) desc.setAttribute('content', "Reidar captures how your firm reasons about investments — from every meeting, email, and decision — and surfaces that intelligence at the moment it matters. The AI associate built for venture capital.");
   }, []);
-
-  // Typewriter
-  useEffect(() => {
-    const phrase = HERO_PHRASES[heroIdx];
-    if (heroPhase === 'typing') {
-      if (heroDisplayed.length < phrase.length) {
-        const t = setTimeout(() => setHeroDisplayed(phrase.slice(0, heroDisplayed.length + 1)), 80);
-        return () => clearTimeout(t);
-      } else {
-        const t = setTimeout(() => setHeroPhase('pause'), 2200);
-        return () => clearTimeout(t);
-      }
-    } else if (heroPhase === 'pause') {
-      const t = setTimeout(() => setHeroPhase('erasing'), 200);
-      return () => clearTimeout(t);
-    } else if (heroPhase === 'erasing') {
-      if (heroDisplayed.length > 0) {
-        const t = setTimeout(() => setHeroDisplayed(d => d.slice(0, -1)), 38);
-        return () => clearTimeout(t);
-      } else {
-        setHeroIdx(i => (i + 1) % HERO_PHRASES.length);
-        setHeroPhase('typing');
-      }
-    }
-  }, [heroDisplayed, heroPhase, heroIdx]);
 
   const NavMark = () => (
     <div className="nav-mark-wrap">
@@ -1603,19 +1735,26 @@ export default function LandingPage() {
         <RadarBg />
         <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 65% at 50% 48%,transparent 28%,rgba(7,7,10,.55) 58%,#07070A 88%)', pointerEvents: 'none', zIndex: 1 }} />
         <div className="hero-content">
-          <div className="badge"><div className="badge-dot" />The intelligence layer for VC</div>
-          <h1 className="hero-h1">The Intelligence Layer<br />for Venture Capital</h1>
-          <p className="hero-sub">Every investor builds a proprietary lens over years of decisions. Reidar captures it, structures it, and surfaces it at the moment it matters — automatically, from the work you're already doing.</p>
-          <div className="hero-phrase">
-            <span style={{ color: '#A992FA' }}>{heroDisplayed}</span><span className="typewriter-cursor" style={{ color: '#A992FA' }}>|</span>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, letterSpacing:'.12em', color:'#A992FA', textTransform:'uppercase', marginBottom:24, animation:'fadeUp .5s .05s both' }}>
+            The intelligence layer for venture capital
           </div>
-          <div className="hero-cta">
-            <button className="btn-lg" onClick={() => window.location.href = SIGN_UP_URL}>Join the waitlist →</button>
-            <button className="btn-out" onClick={() => document.getElementById('demo').scrollIntoView({ behavior: 'smooth' })}>
-              See how it works
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <h1 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(42px,5.5vw,64px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.1, letterSpacing:'-.03em', marginBottom:24, animation:'fadeUp .55s .13s both' }}>
+            Every top fund is quietly<br />building this.<br />Now you don't have to.
+          </h1>
+          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:18, color:'rgba(235,235,235,.55)', lineHeight:1.7, maxWidth:560, margin:'0 auto 40px', animation:'fadeUp .55s .2s both' }}>
+            Reidar is the ambient agent stack for venture capital — sourcing, researching, and surfacing intelligence across your entire workflow without being asked. Built around how your firm actually thinks.
+          </p>
+          <div style={{ display:'flex', gap:12, alignItems:'center', justifyContent:'center', animation:'fadeUp .55s .27s both' }}>
+            <button style={{ background:'#6B47F5', color:'#fff', padding:'14px 28px', borderRadius:8, fontSize:15, fontWeight:500, border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", boxShadow:'0 0 24px rgba(107,71,245,.4)', transition:'background .15s' }} onClick={() => window.location.href = SIGN_UP_URL}>
+              Request early access
+            </button>
+            <button style={{ background:'transparent', color:'rgba(235,235,235,.5)', padding:'14px 28px', borderRadius:8, fontSize:15, border:'1px solid rgba(255,255,255,.1)', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", transition:'all .15s' }} onClick={() => document.getElementById('demo').scrollIntoView({ behavior:'smooth' })}>
+              See how it works ↓
             </button>
           </div>
+          <p style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:'rgba(235,235,235,.28)', marginTop:48, animation:'fadeUp .55s .35s both' }}>
+            Used by emerging fund managers · No credit card required · Set up in under an hour
+          </p>
         </div>
         {/* Ticker */}
         <div className="ticker" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 2 }}>
@@ -1647,24 +1786,21 @@ export default function LandingPage() {
       <DealTimeline />
 
       {/* ── 04 PROBLEM ── */}
-      <ThesisSection />
+      <ProblemSection />
 
-      {/* ── 05 THREE MOMENTS ── */}
-      <MomentsSection />
+      {/* ── 05 REASONING LAYER ── */}
+      <ReasoningLayerSection />
 
-      {/* ── 06 HOW IT WORKS ── */}
-      <HowSection />
+      {/* ── 06 PIPELINE ── */}
+      <PipelineSection />
 
-      {/* ── 07 USE CASES ── */}
-      <UseCasesSection />
-
-      {/* ── 08 INTEGRATIONS ── */}
+      {/* ── 07 INTEGRATIONS ── */}
       <IntegrationsSection />
 
-      {/* ── 09 FAQ ── */}
+      {/* ── 08 FAQ ── */}
       <FaqSection />
 
-      {/* ── 10 CTA ── */}
+      {/* ── 09 CTA ── */}
       <CtaSection />
 
       {/* FOOTER */}
