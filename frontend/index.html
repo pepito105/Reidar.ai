@@ -7,24 +7,104 @@
     <title>Reidar — The Intelligence Layer for Venture Capital</title>
 
     <!-- Primary Meta -->
-    <meta name="description" content="Reidar sources deals, writes investment memos, and tracks your pipeline — all filtered through your firm's mandate and your personal judgment. Gets smarter with every decision you make." />
+    <meta name="description" content="Reidar captures how your firm reasons about investments — from every meeting, email, and decision — and surfaces that intelligence at the moment it matters. The AI associate built for venture capital." />
 
     <!-- Open Graph / Facebook / LinkedIn -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://reidar.ai" />
     <meta property="og:site_name" content="Reidar" />
     <meta property="og:title" content="Reidar — The Intelligence Layer for Venture Capital" />
-    <meta property="og:description" content="Reidar sources deals, writes investment memos, and tracks your pipeline — filtered through your mandate and your personal judgment. Gets smarter with every decision." />
+    <meta property="og:description" content="Reidar captures how your firm reasons about investments — from every meeting, email, and decision — and surfaces that intelligence at the moment it matters." />
     <meta property="og:image" content="https://reidar.ai/og-image.png" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Reidar — The Intelligence Layer for Venture Capital" />
-    <meta name="twitter:description" content="Reidar sources deals, writes investment memos, and tracks your pipeline — filtered through your mandate and your personal judgment. Gets smarter with every decision." />
+    <meta name="twitter:description" content="Reidar captures how your firm reasons about investments — from every meeting, email, and decision — and surfaces that intelligence at the moment it matters." />
     <meta name="twitter:image" content="https://reidar.ai/og-image.png" />
     <meta name="robots" content="index, follow">
     <meta name="google-site-verification" content="wovuX5KXYGSarvDLFCJsH6oypGtx5e7KL9qCiBUWNtk" />
     <link rel="canonical" href="https://reidar.ai">
+
+    <!-- Structured Data: SoftwareApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Reidar",
+      "applicationCategory": "BusinessApplication",
+      "description": "AI investment associate for venture capital. Captures institutional memory from every meeting, email, and decision — and surfaces it at the moment it matters.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "description": "Free during early access"
+      },
+      "targetAudience": {
+        "@type": "Audience",
+        "audienceType": "Venture Capital Investors"
+      },
+      "url": "https://reidar.ai"
+    }
+    </script>
+
+    <!-- Structured Data: FAQPage -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is an AI investment associate?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "An AI investment associate is software that performs the research, sourcing, and analytical work typically done by a junior VC analyst — autonomously and continuously. Reidar sources companies from the open web, scores them against a firm's investment mandate, generates investment memos, monitors pipeline companies for signals, and surfaces institutional memory at the moment it's needed. Unlike a database or search tool, it works without being asked."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How is Reidar different from Harmonic or PitchBook?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Harmonic and PitchBook are databases — you query them, they return results. Reidar is an active system that works on your behalf continuously. It sources proactively, scores against your specific mandate rather than a generic filter, generates investment memos rather than data exports, and builds a private intelligence layer from your firm's own decisions and interactions. The difference is the direction: they tell you what exists. Reidar tells you what matters for how you specifically invest."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How is Reidar different from Affinity?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Affinity is a relationship intelligence CRM — it manages pipeline and tracks who you know. Reidar is a sourcing and intelligence tool — it finds companies you don't know yet and captures the reasoning behind every decision your firm makes. Affinity is the address book. Reidar is the scout and the memory. Many investors use both."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Reidar only for small VC funds?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Reidar is built for any investor who evaluates companies — solo GPs, analysts at established funds, and partners at any stage. The core value is the same regardless of fund size: capturing how an investor reasons about investments and surfacing that intelligence at the right moment. We focus on emerging fund managers first because they feel the pain most acutely — lean teams, no dedicated analyst headcount, and the highest cost of losing institutional knowledge."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does Reidar build institutional memory?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Reidar connects to Gmail and Google Calendar and passively observes your deal workflow — inbound pitches, founder meetings, follow-up emails, pass decisions. It extracts structured reasoning signals from these interactions: partner objections, conviction triggers, pass reasons, open questions. These signals are embedded into a private vector database scoped to your firm. When you evaluate a similar company later, Reidar retrieves the relevant prior reasoning and injects it into its analysis — without you having to remember or re-enter anything."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What does setup look like?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Connect Gmail and Google Calendar, define your investment mandate in plain English, set your stage and sector focus, and optionally import a list of companies you've previously evaluated. First sourcing run starts immediately. Most investors are fully configured in under 10 minutes."
+          }
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
