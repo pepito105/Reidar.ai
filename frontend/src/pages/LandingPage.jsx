@@ -9,8 +9,8 @@ const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Di
 
 const STYLES = `
   *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-  html,body { height:100%; overflow:hidden; -webkit-font-smoothing:antialiased; }
-  body { background:#07070A; color:#EBEBEB; font-family:'Inter',sans-serif; }
+  html { scroll-behavior:smooth; -webkit-font-smoothing:antialiased; }
+  body { background:#07070A; color:#EBEBEB; font-family:'Inter',sans-serif; overflow-x:hidden; }
 
   @keyframes fadeUp    { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
   @keyframes pulse     { 0%,100%{opacity:1} 50%{opacity:.3} }
@@ -20,15 +20,13 @@ const STYLES = `
   @keyframes panelIn   { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
   @keyframes glowPulse { 0%,100%{box-shadow:0 0 0 1px rgba(107,71,245,.45),0 0 8px rgba(107,71,245,.1)} 50%{box-shadow:0 0 0 1px rgba(107,71,245,.7),0 0 32px rgba(107,71,245,.45)} }
   @keyframes fileDrop  { from{opacity:0;transform:translateY(-14px) scale(.97)} to{opacity:1;transform:none} }
-  @keyframes chatIn    { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:none} }
   @keyframes chatInR   { from{opacity:0;transform:translateX(10px)} to{opacity:1;transform:none} }
   @keyframes streamIn  { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
   @keyframes spin      { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-  @keyframes thinkIn   { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
 
   .typewriter-cursor { display:inline; animation:blink 1s step-end infinite }
 
-  /* ── FIXED NAV ── */
+  /* NAV */
   .nav { position:fixed;top:0;left:0;right:0;z-index:300;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 36px;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(7,7,10,.92);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px); }
   .nav-logo{display:flex;align-items:center;gap:9px;text-decoration:none}
   .nav-links{position:absolute;left:50%;transform:translateX(-50%);display:flex;gap:4px}
@@ -45,84 +43,48 @@ const STYLES = `
   .btn-pri{font:13px/1 'Inter',sans-serif;font-weight:500;color:#fff;background:#6B47F5;border:none;padding:7px 16px;border-radius:7px;cursor:pointer;transition:all .15s;box-shadow:0 0 18px rgba(107,71,245,.3)}
   .btn-pri:hover{background:#7D5CF7;box-shadow:0 0 28px rgba(107,71,245,.5)}
 
-  /* ── SNAP CONTAINER ── */
-  .snap-container { position:fixed;top:56px;left:0;right:0;bottom:0;overflow-y:scroll;scroll-snap-type:y mandatory; }
-  .snap-section { height:calc(100vh - 56px);scroll-snap-align:start;scroll-snap-stop:always;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden; }
-
-  /* ── NAV DOTS ── */
-  .nav-dots { position:fixed;right:22px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px;z-index:200; }
-  .nav-dot { width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.15);cursor:pointer;transition:all .25s;border:none;padding:0; }
-  .nav-dot:hover { background:rgba(255,255,255,.4);transform:scale(1.3); }
-  .nav-dot.dot-active { background:#6B47F5;transform:scale(1.4); }
-
-  /* ── SECTION COUNTER ── */
-  .sec-counter { position:fixed;bottom:22px;right:28px;font-family:'DM Mono',monospace;font-size:10px;color:rgba(235,235,235,.18);letter-spacing:.1em;z-index:200;transition:opacity .3s; }
-
-  /* ── TICKER ── */
-  .ticker{overflow:hidden;border-top:1px solid rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.05);padding:10px 0;flex-shrink:0}
+  /* TICKER */
+  .ticker{overflow:hidden;border-top:1px solid rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.05);padding:10px 0}
   .ticker-inner{display:flex;animation:ticker 32s linear infinite;width:max-content}
   .ticker:hover .ticker-inner{animation-play-state:paused}
   .tick-item{display:flex;align-items:center;gap:10px;padding:0 32px;white-space:nowrap;font-family:'DM Mono',monospace;font-size:10px;color:rgba(235,235,235,.2);letter-spacing:.08em}
   .tick-sep{color:rgba(107,71,245,.4);font-size:8px}
   .tick-dot{width:5px;height:5px;border-radius:50%;background:#00ff88;animation:pulse 2s ease-in-out infinite;flex-shrink:0}
 
-  /* ── COMMON SECTION LAYOUT ── */
-  .sec-inner { max-width:1100px;width:100%;padding:0 48px; }
+  /* SECTION LAYOUT */
+  .sec-inner { max-width:1100px;width:100%;padding:0 48px;margin:0 auto; }
   .s-tag { font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.12em;color:#6B47F5;text-transform:uppercase;margin-bottom:14px }
   .s-h2 { font-family:'Playfair Display',serif;font-size:clamp(26px,3.2vw,40px);font-weight:700;line-height:1.1;color:#EBEBEB;letter-spacing:-.01em;margin-bottom:14px }
   .s-h2 em { font-style:normal;color:rgba(235,235,235,.28) }
   .s-p { font-size:15px;font-weight:300;color:rgba(235,235,235,.42);line-height:1.72;max-width:520px }
 
-  /* ── HERO ── */
-  .hero-canvas{position:absolute;inset:0;pointer-events:none;z-index:0}
-  .hero-fade{position:absolute;inset:0;background:radial-gradient(ellipse 68% 72% at 50% 50%,transparent 25%,#07070A 100%);pointer-events:none;z-index:1}
-  .hero-content{position:relative;z-index:2;padding:0 24px;max-width:720px;text-align:center}
+  /* HERO */
+  .hero-wrap{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;padding-top:56px}
+  .hero-content{position:relative;z-index:2;padding:0 24px;max-width:720px;text-align:center;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
   .badge{display:inline-flex;align-items:center;gap:7px;padding:4px 12px;border-radius:100px;border:1px solid rgba(107,71,245,.4);background:rgba(107,71,245,.1);font-family:'DM Mono',monospace;font-size:10px;color:#A992FA;letter-spacing:.06em;margin-bottom:24px;animation:fadeUp .5s .05s both}
   .badge-dot{width:5px;height:5px;border-radius:50%;background:#6B47F5;animation:pulse 2s infinite}
   .hero-h1{font-family:'Playfair Display',serif;font-size:clamp(32px,4.5vw,58px);font-weight:700;line-height:1.1;color:#EBEBEB;letter-spacing:-.02em;margin-bottom:20px;animation:fadeUp .55s .13s both}
-  .hero-h1 .acc{color:#A992FA}
-  .hero-sub{font-size:16px;font-weight:300;color:rgba(235,235,235,.45);line-height:1.72;max-width:500px;margin:0 auto 32px;animation:fadeUp .55s .2s both}
-  .hero-cta{display:flex;gap:10px;align-items:center;justify-content:center;margin-bottom:44px;animation:fadeUp .55s .27s both}
+  .hero-sub{font-size:16px;font-weight:300;color:rgba(235,235,235,.45);line-height:1.72;max-width:540px;margin:0 auto 20px;animation:fadeUp .55s .2s both}
+  .hero-phrase{font-size:15px;color:#A992FA;letter-spacing:-.01em;margin-bottom:32px;min-height:24px;animation:fadeUp .55s .25s both}
+  .hero-cta{display:flex;gap:10px;align-items:center;justify-content:center;animation:fadeUp .55s .27s both}
   .btn-lg{font:15px/1 'Inter',sans-serif;font-weight:500;color:#fff;background:#6B47F5;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;transition:all .15s;box-shadow:0 0 24px rgba(107,71,245,.4)}
   .btn-lg:hover{background:#7D5CF7;transform:translateY(-1px);box-shadow:0 0 36px rgba(107,71,245,.55)}
-  .btn-out{font:14px/1 'Inter',sans-serif;color:rgba(235,235,235,.5);background:transparent;border:1px solid rgba(255,255,255,.1);padding:11px 20px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
+  .btn-out{font:14px/1 'Inter',sans-serif;color:rgba(235,235,235,.5);background:transparent;border:1px solid rgba(255,255,255,.1);padding:11px 20px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;text-decoration:none}
   .btn-out:hover{color:#EBEBEB;border-color:rgba(255,255,255,.2)}
-  .hero-stats{display:flex;gap:36px;justify-content:center;padding-top:24px;border-top:1px solid rgba(255,255,255,.06);animation:fadeUp .55s .33s both}
-  .stat-n{font-size:19px;font-weight:600;color:#EBEBEB;letter-spacing:-.02em}
-  .stat-l{font-size:11px;color:rgba(235,235,235,.28);margin-top:3px}
 
-  /* ── THESIS ── */
+  /* THESIS */
   .thesis-pull{border-left:2px solid rgba(107,71,245,.4);padding:16px 22px;background:rgba(107,71,245,.04);border-radius:0 8px 8px 0;margin-top:28px;max-width:520px}
   .thesis-pull-q{font-family:'Playfair Display',serif;font-size:16px;font-style:italic;color:rgba(235,235,235,.52);line-height:1.5;margin-bottom:8px}
   .thesis-pull-src{font-family:'Space Mono',monospace;font-size:9px;color:rgba(107,71,245,.45);letter-spacing:.1em}
 
-  /* ── DEMO SECTION ── */
-  .demo-grid{display:grid;grid-template-columns:1fr 1.5fr;gap:72px;align-items:center;max-width:1100px;width:100%;padding:0 48px}
-  .chat-shell{background:#0B0B11;border:1px solid rgba(255,255,255,.07);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;height:430px}
+  /* DEMO */
+  .chat-shell{background:#0B0B11;border:1px solid rgba(255,255,255,.07);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;height:100%}
   .chat-header{height:40px;background:#0E0E16;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;padding:0 14px;gap:7px;flex-shrink:0}
   .chat-dot{width:8px;height:8px;border-radius:50%}
   .chat-title{margin-left:auto;margin-right:auto;font-family:'DM Mono',monospace;font-size:10px;color:rgba(235,235,235,.3);letter-spacing:.08em}
-  .chat-messages{flex:1;overflow:hidden;padding:16px 14px;display:flex;flex-direction:column;gap:10px}
-  .chat-input-bar{height:44px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;padding:0 14px;gap:8px;flex-shrink:0}
-  .chat-input-fake{flex:1;font-size:12px;color:rgba(235,235,235,.18);font-family:'Inter',sans-serif}
-  .chat-send{width:28px;height:28px;border-radius:7px;background:rgba(107,71,245,.15);border:1px solid rgba(107,71,245,.2);display:flex;align-items:center;justify-content:center}
   .msg-user{align-self:flex-end;background:rgba(107,71,245,.18);border:1px solid rgba(107,71,245,.25);border-radius:10px 10px 2px 10px;padding:9px 12px;max-width:75%;animation:chatInR .3s ease both}
-  .msg-user-text{font-size:12px;color:rgba(235,235,235,.8);line-height:1.5}
   .msg-file{align-self:flex-end;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;animation:fileDrop .35s cubic-bezier(.34,1.56,.64,1) both}
-  .msg-file-icon{width:28px;height:28px;border-radius:6px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px}
-  .msg-file-name{font-size:11px;font-weight:500;color:rgba(235,235,235,.65)}
-  .msg-file-size{font-family:'DM Mono',monospace;font-size:9px;color:rgba(235,235,235,.25);margin-top:1px}
-  .msg-reidar{align-self:flex-start;display:flex;gap:8px;max-width:90%}
-  .msg-reidar-avatar{width:22px;height:22px;border-radius:6px;background:#6B47F5;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:2px}
-  .msg-reidar-body{display:flex;flex-direction:column;gap:4px}
-  .msg-reidar-name{font-family:'DM Mono',monospace;font-size:9px;color:rgba(107,71,245,.6);letter-spacing:.06em;margin-bottom:4px}
   .stream-line{font-size:12px;color:rgba(235,235,235,.6);line-height:1.6;animation:streamIn .25s ease both}
-  .stream-line.dim{color:rgba(235,235,235,.35)}
-  .stream-line.bright{color:rgba(235,235,235,.8)}
-  .stream-line.accent{color:#A992FA}
-  .stream-bullet{display:flex;gap:7px;align-items:flex-start}
-  .stream-bullet-dot{width:5px;height:5px;border-radius:50%;background:#6B47F5;flex-shrink:0;margin-top:5px}
-  .stream-divider{height:1px;background:rgba(255,255,255,.05);margin:4px 0}
   .stream-action{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:7px;background:rgba(107,71,245,.14);border:1px solid rgba(107,71,245,.3);font-size:11px;font-weight:500;color:#A992FA;cursor:pointer;margin-top:4px;animation:streamIn .3s ease both;transition:background .15s}
   .stream-action:hover{background:rgba(107,71,245,.25)}
   .typing-dots{display:flex;gap:4px;align-items:center;padding:8px 0}
@@ -130,7 +92,7 @@ const STYLES = `
   .typing-dots span:nth-child(2){animation-delay:.15s}
   .typing-dots span:nth-child(3){animation-delay:.3s}
 
-  /* ── THREE MOMENTS ── */
+  /* THREE MOMENTS */
   .moments-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.06);border-radius:12px;overflow:hidden;margin-top:36px}
   .moment-card{padding:28px 24px;background:#07070A;cursor:pointer;transition:background .25s;position:relative}
   .moment-card:hover{background:rgba(107,71,245,.04)}
@@ -148,7 +110,7 @@ const STYLES = `
   .moment-active .moment-prog{background:rgba(107,71,245,.18)}
   .moment-prog-bar{height:100%;background:#6B47F5;border-radius:1px}
 
-  /* ── HOW IT WORKS ── */
+  /* HOW IT WORKS */
   .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden;margin-top:36px}
   .step{padding:28px 22px;background:rgba(255,255,255,.012);border-right:1px solid rgba(255,255,255,.06);transition:background .2s}
   .step:last-child{border-right:none}
@@ -157,22 +119,18 @@ const STYLES = `
   .step-t{font-size:15px;font-weight:600;color:#EBEBEB;margin-bottom:8px}
   .step-d{font-size:12px;color:rgba(235,235,235,.35);line-height:1.65}
 
-  /* ── INTEGRATIONS ── */
-
-  /* ── CTA ── */
+  /* CTA */
   .cta-inner{text-align:center;border:1px solid rgba(107,71,245,.18);border-radius:16px;padding:64px 48px;max-width:760px;width:100%;position:relative;overflow:hidden;background:radial-gradient(ellipse 80% 100% at 50% 110%,rgba(107,71,245,.08),transparent 70%)}
   .cta-inner::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:160px;height:1px;background:linear-gradient(90deg,transparent,rgba(107,71,245,.6),transparent)}
   .cta-h2{font-family:'Playfair Display',serif;font-size:clamp(28px,3.5vw,44px);font-weight:700;line-height:1.1;color:#EBEBEB;letter-spacing:-.025em;margin-bottom:14px}
-  .cta-sub{font-size:14px;color:rgba(235,235,235,.35);margin-bottom:28px;max-width:420px;margin-left:auto;margin-right:auto;line-height:1.65}
+  .cta-sub{font-size:14px;color:rgba(235,235,235,.35);margin-bottom:28px;max-width:440px;margin-left:auto;margin-right:auto;line-height:1.65}
 
-  /* ── FOOTER STRIP ── */
-  .footer-strip{position:absolute;bottom:0;left:0;right:0;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 40px;border-top:1px solid rgba(255,255,255,.04)}
+  /* FOOTER */
+  .footer-strip{border-top:1px solid rgba(255,255,255,.04);padding:24px 40px;display:flex;align-items:center;justify-content:space-between;max-width:1100px;margin:0 auto}
   .foot-l{font-size:11px;color:rgba(235,235,235,.15)}
   .foot-r{font-family:'DM Mono',monospace;font-size:9px;color:rgba(235,235,235,.1);letter-spacing:.06em}
 
   @media(max-width:900px){
-    .demo-grid{grid-template-columns:1fr;gap:36px}
-    .chat-shell{height:360px}
     .moments-grid{grid-template-columns:1fr}
     .steps{grid-template-columns:1fr}
     .step{border-right:none;border-bottom:1px solid rgba(255,255,255,.06)}
@@ -181,12 +139,10 @@ const STYLES = `
   @media(max-width:640px){
     .nav{padding:0 20px}.nav-links{display:none}
     .sec-inner{padding:0 20px}
-    .nav-dots{display:none}
-    .snap-container{scroll-snap-type:y proximity}
   }
 `;
 
-/* ─── RADAR SWEEP BACKGROUND ─── */
+/* ─── RADAR BG ─── */
 function RadarBg() {
   const ref = useRef(null);
   useEffect(() => {
@@ -241,25 +197,48 @@ function RadarBg() {
     draw();
     return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
   }, []);
-  return <canvas ref={ref} style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }} />;
+  return <canvas ref={ref} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }} />;
 }
 
-/* ─── SECTION ENTRY HOOK ─── */
-function useSectionEntry(isActive) {
+/* ─── SCROLL ENTRY HOOK ─── */
+function useSectionEntry() {
   const [entered, setEntered] = useState(false);
+  const ref = useRef(null);
   useEffect(() => {
-    if (!isActive) { setEntered(false); return; }
-    const t = setTimeout(() => setEntered(true), 90);
-    return () => clearTimeout(t);
-  }, [isActive]);
-  return entered;
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { setEntered(true); obs.disconnect(); }
+    }, { threshold: 0.1 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return [entered, ref];
 }
 
+/* ─── FAQ ITEM ─── */
+function FaqItem({ q, a }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ borderBottom: '1px solid rgba(255,255,255,.06)', paddingBottom: open ? 20 : 0 }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '20px 0', textAlign: 'left' }}
+      >
+        <span style={{ fontSize: 15, fontWeight: 500, color: '#EBEBEB', fontFamily: "'Inter',sans-serif" }}>{q}</span>
+        <span style={{ color: 'rgba(235,235,235,.35)', fontSize: 20, lineHeight: 1, flexShrink: 0, marginLeft: 16, transform: open ? 'rotate(45deg)' : 'none', transition: 'transform .2s ease', fontFamily: 'monospace', display: 'inline-block' }}>+</span>
+      </button>
+      {open && (
+        <p style={{ fontSize: 14, color: 'rgba(235,235,235,.45)', lineHeight: 1.75, margin: 0, fontFamily: "'Inter',sans-serif" }}>{a}</p>
+      )}
+    </div>
+  );
+}
 
-/* ─── REIDAR CHAT DEMO ─── */
+/* ─── DEMOS ─── */
 const DEMOS = [
   {
-    // Reidar notices the deck in the inbox — user just confirms
     preMessage: {
       text: "New pitch deck in your inbox — Foundry AI, GPU scheduling layer, cold outreach this morning. Matches your AI infrastructure thesis. Want me to run it?",
       file: "FoundryAI_Deck.pdf",
@@ -340,7 +319,6 @@ function EvalCard({ artifact }) {
   };
   return (
     <div style={{ border: '1px solid rgba(255,255,255,.09)', borderRadius: 11, overflow: 'hidden', background: 'rgba(255,255,255,.018)' }}>
-      {/* Header */}
       <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,.06)', background: 'rgba(255,255,255,.025)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
           <div>
@@ -361,7 +339,6 @@ function EvalCard({ artifact }) {
           ))}
         </div>
       </div>
-      {/* Sections */}
       {artifact.sections.map((section, i) => {
         const ss = statusStyle[section.status];
         return (
@@ -376,7 +353,6 @@ function EvalCard({ artifact }) {
           </div>
         );
       })}
-      {/* Verdict + actions */}
       <div style={{ padding: '10px 16px', background: 'rgba(107,71,245,.04)', borderTop: '1px solid rgba(107,71,245,.1)' }}>
         <div style={{ fontSize: 12, color: '#A992FA', marginBottom: 9 }}>{artifact.verdict}</div>
         <div style={{ display: 'flex', gap: 7 }}>
@@ -389,7 +365,9 @@ function EvalCard({ artifact }) {
   );
 }
 
-function ReidarChat({ isActive }) {
+/* ─── REIDAR CHAT DEMO ─── */
+function ReidarChat() {
+  const [isActive, setIsActive] = useState(false);
   const [demoIdx, setDemoIdx] = useState(0);
   const [cursorVisible, setCursorVisible] = useState(false);
   const [cursorPos, setCursorPos] = useState({ x: '55%', y: '60%' });
@@ -410,6 +388,17 @@ function ReidarChat({ isActive }) {
   const a = (ms, fn) => { const id = setTimeout(fn, ms); tsRef.current.push(id); };
   const clearAll = () => { tsRef.current.forEach(clearTimeout); tsRef.current = []; };
 
+  // Activate when visible
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => {
+      setIsActive(e.isIntersecting);
+    }, { threshold: 0.2 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   const resetState = () => {
     setCursorVisible(false); setCursorPos({ x: '55%', y: '60%' }); setCursorClick(false);
     setInputText(''); setInputFile(false); setMessageSent(false);
@@ -422,26 +411,20 @@ function ReidarChat({ isActive }) {
     const demo = DEMOS[idx];
     const q = demo.query;
     const hasPre = !!demo.preMessage;
-
-    // If Reidar initiates, show its opening message first then cursor appears later
     if (hasPre) a(350, () => setPreMessageVisible(true));
-
     const cursorStart = hasPre ? 1400 : 200;
     const inputMove   = hasPre ? 2000 : 700;
     const clickAt     = hasPre ? 2700 : 1500;
     const typeStart   = hasPre ? 2900 : 1700;
     const charMs      = hasPre ? 52   : 65;
-
     a(cursorStart, () => setCursorVisible(true));
     a(inputMove,   () => setCursorPos({ x: '50%', y: '95%' }));
     a(clickAt,     () => setCursorClick(true));
     a(clickAt + 150, () => setCursorClick(false));
-
     for (let i = 1; i <= q.length; i++) {
       ((ci) => a(typeStart + ci * charMs, () => setInputText(q.slice(0, ci))))(i);
     }
     const T = typeStart + q.length * charMs;
-
     if (demo.file) a(T + 260, () => setInputFile(true));
     const sendOff = demo.file ? 900 : 420;
     a(T + sendOff - 280, () => setCursorPos({ x: 'calc(50% + 309px)', y: '95%' }));
@@ -450,21 +433,18 @@ function ReidarChat({ isActive }) {
       setCursorClick(false); setMessageSent(true);
       setInputText(''); setInputFile(false); setCursorVisible(false);
     });
-
     const stepMs = hasPre ? 1600 : 1750;
     const thinkStart = T + sendOff + 600;
     a(thinkStart, () => setThinkVisible(true));
     demo.thinking.forEach((_, i) => {
       const s = thinkStart + 250 + i * stepMs;
-      a(s,            () => setThinkActive(i));
+      a(s, () => setThinkActive(i));
       a(s + stepMs - 350, () => {
         setThinkDone(prev => prev + 1);
         if (i === demo.thinking.length - 1) setThinkActive(-1);
       });
     });
-
     const respStart = thinkStart + 250 + demo.thinking.length * stepMs + 700;
-
     if (demo.artifact) {
       a(respStart, () => { setArtifactVisible(true); setResponseComplete(true); });
       const endTime = respStart + 6500;
@@ -474,7 +454,6 @@ function ReidarChat({ isActive }) {
       });
       return;
     }
-
     demo.response.forEach((line, i) => {
       a(respStart + i * 460, () => setResponseLines(prev => [...prev, line]));
     });
@@ -482,8 +461,7 @@ function ReidarChat({ isActive }) {
     a(endTime, () => setResponseComplete(true));
     a(endTime + 4500, () => {
       clearAll(); resetState();
-      const next = (idx + 1) % DEMOS.length;
-      a(500, () => runDemo(next));
+      a(500, () => runDemo((idx + 1) % DEMOS.length));
     });
   };
 
@@ -492,7 +470,6 @@ function ReidarChat({ isActive }) {
     a(400, () => runDemo(0));
     return clearAll;
   }, [isActive]);
-
 
   const demo = DEMOS[demoIdx];
 
@@ -508,46 +485,31 @@ function ReidarChat({ isActive }) {
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%', background: '#07070A', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 55% 40% at 50% 100%, rgba(107,71,245,.04) 0%, transparent 70%)', pointerEvents: 'none' }} />
-
-      {/* Animated cursor — glowing orb, clearly not the system cursor */}
+      {/* Cursor */}
       <div style={{
         position: 'absolute', left: cursorPos.x, top: cursorPos.y, zIndex: 50,
-        width: 14, height: 14, marginLeft: -7, marginTop: -7,
-        borderRadius: '50%',
+        width: 14, height: 14, marginLeft: -7, marginTop: -7, borderRadius: '50%',
         background: cursorClick ? '#ffffff' : '#A992FA',
-        boxShadow: cursorClick
-          ? '0 0 0 3px rgba(255,255,255,.25), 0 0 20px 6px rgba(169,146,250,.7)'
-          : '0 0 0 2px rgba(169,146,250,.3), 0 0 14px 4px rgba(107,71,245,.5)',
+        boxShadow: cursorClick ? '0 0 0 3px rgba(255,255,255,.25), 0 0 20px 6px rgba(169,146,250,.7)' : '0 0 0 2px rgba(169,146,250,.3), 0 0 14px 4px rgba(107,71,245,.5)',
         opacity: cursorVisible ? 1 : 0,
         transform: `scale(${cursorClick ? 0.6 : 1})`,
         transition: 'left .85s cubic-bezier(.25,.46,.45,.94), top .85s cubic-bezier(.25,.46,.45,.94), opacity .3s ease, transform .12s ease, background .12s ease, box-shadow .12s ease',
         pointerEvents: 'none',
       }} />
-
       {/* Header */}
       <div style={{ height: 48, padding: '0 32px', borderBottom: '1px solid rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, position: 'relative', zIndex: 2 }}>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke="#A992FA" strokeWidth="1.3" fill="none"/>
-          <circle cx="7" cy="7" r="2" fill="#A992FA"/>
-        </svg>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke="#A992FA" strokeWidth="1.3" fill="none"/><circle cx="7" cy="7" r="2" fill="#A992FA"/></svg>
         <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 12, color: 'rgba(235,235,235,.38)', letterSpacing: '.07em' }}>REIDAR</span>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 5, alignItems: 'center' }}>
           {DEMOS.map((_, i) => (
-            <div key={i} style={{
-              height: 3, borderRadius: 2,
-              width: i === demoIdx ? 18 : 5,
-              background: i === demoIdx ? '#6B47F5' : 'rgba(255,255,255,.1)',
-              transition: 'width .4s ease, background .4s ease',
-            }} />
+            <div key={i} style={{ height: 3, borderRadius: 2, width: i === demoIdx ? 18 : 5, background: i === demoIdx ? '#6B47F5' : 'rgba(255,255,255,.1)', transition: 'width .4s ease, background .4s ease' }} />
           ))}
         </div>
       </div>
-
       {/* Chat area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden', position: 'relative', zIndex: 2, padding: '0 32px' }}>
         <div style={{ maxWidth: 680, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 16 }}>
-
-          {/* Reidar-initiated pre-message */}
+          {/* Pre-message */}
           {demo.preMessage && (
             <div style={{ opacity: preMessageVisible ? 1 : 0, transform: preMessageVisible ? 'none' : 'translateY(10px)', transition: 'opacity .4s ease, transform .4s ease' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -567,14 +529,12 @@ function ReidarChat({ isActive }) {
               </div>
             </div>
           )}
-
           {/* User message */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 7, opacity: messageSent ? 1 : 0, transform: messageSent ? 'none' : 'translateY(10px)', transition: 'opacity .35s ease, transform .35s ease' }}>
             <div style={{ background: 'rgba(107,71,245,.12)', border: '1px solid rgba(107,71,245,.2)', borderRadius: '14px 14px 3px 14px', padding: '11px 15px', maxWidth: '65%', fontSize: 14, color: 'rgba(235,235,235,.9)', lineHeight: 1.55 }}>
               {demo.query}
             </div>
           </div>
-
           {/* Reidar analysis block */}
           <div style={{ opacity: thinkVisible ? 1 : 0, transform: thinkVisible ? 'none' : 'translateY(10px)', transition: 'opacity .4s ease, transform .4s ease' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
@@ -583,7 +543,6 @@ function ReidarChat({ isActive }) {
               </div>
               <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: 'rgba(169,146,250,.52)', letterSpacing: '.05em' }}>REIDAR</span>
             </div>
-
             {/* Thinking steps */}
             <div style={{ paddingLeft: 38, display: 'flex', flexDirection: 'column', gap: 5, marginBottom: (responseLines.length || artifactVisible) ? 16 : 0 }}>
               {demo.thinking.map((step, i) => {
@@ -604,15 +563,11 @@ function ReidarChat({ isActive }) {
                 );
               })}
             </div>
-
-            {/* Eval artifact card */}
             {artifactVisible && demo.artifact && (
               <div style={{ paddingLeft: 38, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,.05)', animation: 'fadeUp .45s ease both' }}>
                 <EvalCard artifact={demo.artifact} />
               </div>
             )}
-
-            {/* Text response lines (demo 2) */}
             {responseLines.length > 0 && (
               <div style={{ paddingLeft: 38, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,.05)' }}>
                 {responseLines.map((line, i) => renderLine(line, i))}
@@ -622,43 +577,21 @@ function ReidarChat({ isActive }) {
           </div>
         </div>
       </div>
-
       {/* Input bar */}
       <div style={{ padding: '10px 32px 18px', flexShrink: 0, position: 'relative', zIndex: 2 }}>
         <div style={{ maxWidth: 680, margin: '0 auto' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            background: 'rgba(255,255,255,.033)', border: '1px solid rgba(255,255,255,.065)',
-            borderRadius: 12, padding: '10px 14px',
-          }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,.033)', border: '1px solid rgba(255,255,255,.065)', borderRadius: 12, padding: '10px 14px' }}>
             {inputFile && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: 'rgba(107,71,245,.1)', border: '1px solid rgba(107,71,245,.17)',
-                borderRadius: 6, padding: '3px 8px',
-                fontSize: 10, color: 'rgba(169,146,250,.7)', fontFamily: "'DM Mono',monospace",
-                flexShrink: 0, animation: 'fadeUp .2s ease both',
-              }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(107,71,245,.1)', border: '1px solid rgba(107,71,245,.17)', borderRadius: 6, padding: '3px 8px', fontSize: 10, color: 'rgba(169,146,250,.7)', fontFamily: "'DM Mono',monospace", flexShrink: 0, animation: 'fadeUp .2s ease both' }}>
                 <svg width="9" height="11" viewBox="0 0 9 11" fill="none"><rect x=".5" y=".5" width="8" height="10" rx="1.5" stroke="rgba(169,146,250,.45)" strokeWidth=".9"/></svg>
                 {demo.file}
               </div>
             )}
             <div style={{ flex: 1, fontSize: 14, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: inputText ? '#EBEBEB' : 'rgba(235,235,235,.18)' }}>
-              {inputText
-                ? <>{inputText}<span className="typewriter-cursor" style={{ color: '#A992FA' }}>|</span></>
-                : 'Ask anything about your portfolio...'}
+              {inputText ? <>{inputText}<span className="typewriter-cursor" style={{ color: '#A992FA' }}>|</span></> : 'Ask anything about your portfolio...'}
             </div>
-            <div style={{
-              width: 34, height: 34, borderRadius: 9, flexShrink: 0,
-              background: inputText ? '#6B47F5' : 'rgba(255,255,255,.04)',
-              border: inputText ? 'none' : '1px solid rgba(255,255,255,.065)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: inputText ? '0 0 18px rgba(107,71,245,.4)' : 'none',
-              transition: 'background .25s ease, box-shadow .25s ease',
-            }}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M2 7h10M7 2l5 5-5 5" stroke={inputText ? 'white' : 'rgba(235,235,235,.2)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+            <div style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, background: inputText ? '#6B47F5' : 'rgba(255,255,255,.04)', border: inputText ? 'none' : '1px solid rgba(255,255,255,.065)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: inputText ? '0 0 18px rgba(107,71,245,.4)' : 'none', transition: 'background .25s ease, box-shadow .25s ease' }}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke={inputText ? 'white' : 'rgba(235,235,235,.2)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
           </div>
         </div>
@@ -674,27 +607,36 @@ const MOMENTS = [
   { tag: "When a company comes back", h: "You passed 14 months ago. Something just changed.", p: "Reidar surfaces your original pass reason and shows you exactly what's different now. You're updating a position — the way a good investor actually thinks." },
 ];
 
-function ThreeMoments({ isActive, entered = false }) {
+function ThreeMoments() {
+  const [isActive, setIsActive] = useState(false);
+  const [entered, setEntered] = useState(false);
   const [active, setActive] = useState(0);
   const [progress, setProgress] = useState(0);
   const [allVisible, setAllVisible] = useState(false);
   const DURATION = 4000;
   const frameRef = useRef(null);
   const startRef = useRef(null);
+  const ref = useRef(null);
 
-  // Start auto-rotate after the last card finishes its staggered entry animation
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { setEntered(true); setIsActive(true); }
+      else { setIsActive(false); }
+    }, { threshold: 0.15 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   useEffect(() => {
     if (!entered) { setAllVisible(false); return; }
-    // Last card delay: 120 + (MOMENTS.length-1)*140 = 400ms, plus ~450ms animation = ~850ms
     const t = setTimeout(() => setAllVisible(true), 900);
     return () => clearTimeout(t);
   }, [entered]);
 
   useEffect(() => {
-    if (!isActive || !allVisible) {
-      cancelAnimationFrame(frameRef.current);
-      return;
-    }
+    if (!isActive || !allVisible) { cancelAnimationFrame(frameRef.current); return; }
     const tick = (ts) => {
       if (!startRef.current) startRef.current = ts;
       const elapsed = ts - startRef.current;
@@ -712,17 +654,13 @@ function ThreeMoments({ isActive, entered = false }) {
   }, [isActive, active, allVisible]);
 
   return (
-    <div className="moments-grid">
+    <div ref={ref} className="moments-grid">
       {MOMENTS.map((m, i) => (
         <div
           key={i}
           className={`moment-card${active === i ? ' moment-active' : ''}`}
           onClick={() => { if (entered) { setActive(i); setProgress(0); startRef.current = null; } }}
-          style={{
-            opacity: entered ? 1 : 0,
-            transform: entered ? 'none' : 'translateY(26px)',
-            transition: `opacity .45s ${120 + i * 140}ms ease, transform .45s ${120 + i * 140}ms ease, background .25s ease`,
-          }}
+          style={{ opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(26px)', transition: `opacity .45s ${120 + i * 140}ms ease, transform .45s ${120 + i * 140}ms ease, background .25s ease` }}
         >
           <div className="moment-num">0{i + 1}</div>
           <div className="moment-tag">{m.tag}</div>
@@ -790,30 +728,21 @@ function IntegrationsOrbit() {
     if (!c) return;
     const inn = c.querySelectorAll('[data-inner]');
     const out = c.querySelectorAll('[data-outer]');
-
     const go = () => {
       if (!pausedRef.current) {
         innerAngle.current += INNER_SPD;
         outerAngle.current += OUTER_SPD;
       }
-
       inn.forEach((el, i) => {
         const a = innerAngle.current + (i / INNER.length) * Math.PI * 2 - Math.PI / 2;
-        const x = Math.cos(a) * R_INNER;
-        const y = Math.sin(a) * R_INNER;
-        el.style.transform = `translate(${x}px,${y}px)`;
+        el.style.transform = `translate(${Math.cos(a) * R_INNER}px,${Math.sin(a) * R_INNER}px)`;
       });
-
       out.forEach((el, i) => {
         const a = outerAngle.current + (i / OUTER.length) * Math.PI * 2 - Math.PI / 2;
-        const x = Math.cos(a) * R_OUTER;
-        const y = Math.sin(a) * R_OUTER;
-        el.style.transform = `translate(${x}px,${y}px)`;
+        el.style.transform = `translate(${Math.cos(a) * R_OUTER}px,${Math.sin(a) * R_OUTER}px)`;
       });
-
       frameRef.current = requestAnimationFrame(go);
     };
-
     frameRef.current = requestAnimationFrame(go);
     return () => cancelAnimationFrame(frameRef.current);
   }, []);
@@ -832,49 +761,21 @@ function IntegrationsOrbit() {
   };
 
   const handleSelect = (idx) => {
-    if (selected === idx) {
-      setSelected(null);
-      pausedRef.current = false;
-    } else {
-      setSelected(idx);
-      pausedRef.current = true;
-      setIconPositions(capturePositions());
-    }
+    if (selected === idx) { setSelected(null); pausedRef.current = false; }
+    else { setSelected(idx); pausedRef.current = true; setIconPositions(capturePositions()); }
   };
 
   const selInt = selected !== null ? INTEGRATIONS[selected] : null;
   const selPos = selected !== null ? iconPositions[selected] : null;
-
-  const iconBgSelected = (bg) => {
-    if (typeof bg !== 'string') return bg;
-    return bg.replace(/[\d.]+\)$/, '0.3)');
-  };
+  const iconBgSelected = (bg) => typeof bg === 'string' ? bg.replace(/[\d.]+\)$/, '0.3)') : bg;
 
   const icon = (idx, ring) => {
     const int = INTEGRATIONS[idx];
     const isSel = selected === idx;
     const dataProps = ring === 'inner' ? { 'data-inner': '' } : { 'data-outer': '' };
     return (
-      <div
-        key={int.name}
-        {...dataProps}
-        style={{ position: 'absolute', top: 'calc(50% - 22px)', left: 'calc(50% - 22px)', width: 44, height: 44, zIndex: 3 }}
-        onClick={() => handleSelect(idx)}
-      >
-        <div style={{
-          width: 44,
-          height: 44,
-          borderRadius: 10,
-          background: isSel ? iconBgSelected(int.iconBg) : int.iconBg,
-          border: `1px solid ${isSel ? int.iconBorder : 'rgba(255,255,255,.08)'}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          transform: isSel ? 'scale(1.18)' : 'none',
-          transition: 'transform .25s, border-color .25s, box-shadow .25s, background .25s',
-          boxShadow: isSel ? `0 0 20px ${String(int.iconBorder).replace(/[\d.]+\)$/, '0.5)')}` : 'none',
-        }}>{ORBIT_SVGS[idx]}</div>
+      <div key={int.name} {...dataProps} style={{ position: 'absolute', top: 'calc(50% - 22px)', left: 'calc(50% - 22px)', width: 44, height: 44, zIndex: 3 }} onClick={() => handleSelect(idx)}>
+        <div style={{ width: 44, height: 44, borderRadius: 10, background: isSel ? iconBgSelected(int.iconBg) : int.iconBg, border: `1px solid ${isSel ? int.iconBorder : 'rgba(255,255,255,.08)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transform: isSel ? 'scale(1.18)' : 'none', transition: 'transform .25s, border-color .25s, box-shadow .25s, background .25s', boxShadow: isSel ? `0 0 20px ${String(int.iconBorder).replace(/[\d.]+\)$/, '0.5)')}` : 'none' }}>{ORBIT_SVGS[idx]}</div>
       </div>
     );
   };
@@ -883,124 +784,29 @@ function IntegrationsOrbit() {
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 0 }}>
       <div ref={containerRef} style={{ position: 'relative', width: 420, height: 420, flexShrink: 0 }}>
         <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 4 }}>
-          {selPos && (
-            <line
-              x1={CENTER}
-              y1={CENTER}
-              x2={selPos.x}
-              y2={selPos.y}
-              stroke="rgba(107,71,245,0.5)"
-              strokeWidth="1"
-              strokeDasharray="4 4"
-            />
-          )}
+          {selPos && <line x1={CENTER} y1={CENTER} x2={selPos.x} y2={selPos.y} stroke="rgba(107,71,245,0.5)" strokeWidth="1" strokeDasharray="4 4" />}
         </svg>
-
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          width: R_INNER * 2,
-          height: R_INNER * 2,
-          marginTop: -R_INNER,
-          marginLeft: -R_INNER,
-          borderRadius: '50%',
-          border: '1px solid rgba(107,71,245,.12)',
-          pointerEvents: 'none',
-        }} />
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          width: R_OUTER * 2,
-          height: R_OUTER * 2,
-          marginTop: -R_OUTER,
-          marginLeft: -R_OUTER,
-          borderRadius: '50%',
-          border: '1px solid rgba(107,71,245,.07)',
-          pointerEvents: 'none',
-        }} />
-
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%,-50%)',
-          width: 52,
-          height: 52,
-          borderRadius: 13,
-          background: '#6B47F5',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2,
-          animation: 'glowPulse 3s ease-in-out infinite',
-        }}>
-          <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
-            <path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke="white" strokeWidth="1.5" fill="none" />
-            <circle cx="7" cy="7" r="2" fill="white" />
-          </svg>
+        <div style={{ position: 'absolute', top: '50%', left: '50%', width: R_INNER * 2, height: R_INNER * 2, marginTop: -R_INNER, marginLeft: -R_INNER, borderRadius: '50%', border: '1px solid rgba(107,71,245,.12)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: '50%', left: '50%', width: R_OUTER * 2, height: R_OUTER * 2, marginTop: -R_OUTER, marginLeft: -R_OUTER, borderRadius: '50%', border: '1px solid rgba(107,71,245,.07)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 52, height: 52, borderRadius: 13, background: '#6B47F5', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, animation: 'glowPulse 3s ease-in-out infinite' }}>
+          <svg width="16" height="16" viewBox="0 0 14 14" fill="none"><path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke="white" strokeWidth="1.5" fill="none" /><circle cx="7" cy="7" r="2" fill="white" /></svg>
         </div>
-
         {INNER.map((i) => icon(i, 'inner'))}
         {OUTER.map((i) => icon(i, 'outer'))}
       </div>
-
-      <div style={{
-        width: selected !== null ? 260 : 0,
-        opacity: selected !== null ? 1 : 0,
-        overflow: 'hidden',
-        transition: 'width .3s cubic-bezier(.4,0,.2,1), opacity .25s ease',
-        flexShrink: 0,
-        marginLeft: selected !== null ? 24 : 0,
-      }}>
+      <div style={{ width: selected !== null ? 260 : 0, opacity: selected !== null ? 1 : 0, overflow: 'hidden', transition: 'width .3s cubic-bezier(.4,0,.2,1), opacity .25s ease', flexShrink: 0, marginLeft: selected !== null ? 24 : 0 }}>
         {selInt && (
-          <div style={{
-            background: 'rgba(13,13,20,.9)',
-            border: '1px solid rgba(255,255,255,.08)',
-            borderRadius: 12,
-            padding: '20px 20px',
-            width: 260,
-            animation: 'panelIn .2s ease',
-          }}>
+          <div style={{ background: 'rgba(13,13,20,.9)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 12, padding: '20px 20px', width: 260, animation: 'panelIn .2s ease' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <div style={{
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                background: selInt.iconBg,
-                border: `1px solid ${selInt.iconBorder}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}>{ORBIT_SVGS[selected]}</div>
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: selInt.iconBg, border: `1px solid ${selInt.iconBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{ORBIT_SVGS[selected]}</div>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#EBEBEB' }}>{selInt.name}</div>
                 <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 8, letterSpacing: '.06em', color: 'rgba(107,71,245,.7)', marginTop: 2 }}>{selInt.badge}</div>
               </div>
-              <button
-                type="button"
-                onClick={() => { setSelected(null); pausedRef.current = false; }}
-                style={{
-                  marginLeft: 'auto',
-                  background: 'none',
-                  border: 'none',
-                  color: 'rgba(235,235,235,.25)',
-                  cursor: 'pointer',
-                  fontSize: 16,
-                  lineHeight: 1,
-                  padding: 4,
-                }}
-              >
-                ×
-              </button>
+              <button type="button" onClick={() => { setSelected(null); pausedRef.current = false; }} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'rgba(235,235,235,.25)', cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 4 }}>×</button>
             </div>
-
             <div style={{ height: 1, background: 'rgba(255,255,255,.06)', marginBottom: 14 }} />
-
             <div style={{ fontSize: 12, color: 'rgba(235,235,235,.42)', lineHeight: 1.6 }}>{selInt.desc}</div>
-
             <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
               <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(107,71,245,.5)', animation: 'pulse 2s infinite' }} />
               <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: 'rgba(235,235,235,.2)', letterSpacing: '.06em' }}>On the roadmap</span>
@@ -1014,146 +820,202 @@ function IntegrationsOrbit() {
 
 /* ─── THESIS SECTION ─── */
 const THESIS_CARDS = [
-  { name: "Signal platforms",    t: "Same signals, every user.",        c: "When a thousand firms get the same alert at the same time, the signal is noise. The edge isn't knowing — it's knowing what it means for you." },
-  { name: "Startup databases",   t: "Broad but shared.",                c: "Fifty million profiles, and none of them remember that you saw this company eight months ago and passed because the unit economics didn't work." },
-  { name: "CRM tools",           t: "Track relationships, not judgment.", c: "They know who you emailed. They don't know what you thought, what pattern you recognized, or why you had conviction." },
-  { name: "Market intelligence", t: "Shared views, shared blind spots.", c: "If your sourcing strategy is the same tool everyone uses, your sourcing strategy isn't a strategy. It's a subscription." },
+  { name: "Signal platforms",          t: "Same signals, zero differentiation.",      c: "When every fund gets the same alert at the same time, the signal is noise. Knowing isn't the edge. Knowing what it means for your specific thesis is." },
+  { name: "Startup databases",         t: "Broad data, shared by everyone.",          c: "Fifty million profiles, and none of them remember that you saw this company eight months ago and passed because the unit economics didn't work." },
+  { name: "CRM tools",                 t: "Tracks relationships. Not judgment.",       c: "They know who you emailed. They don't know what you thought, what pattern you recognized, or what would change your mind." },
+  { name: "AI intelligence platforms", t: "Reasons backward. Not forward.",           c: "They're powerful if you have decades of documents to ingest. But the most valuable intelligence isn't what you've already decided — it's what you're deciding right now. Reidar captures it as it happens." },
 ];
-function ThesisSection({ isActive }) {
-  const entered = useSectionEntry(isActive);
 
-  const T = (d) => ({
-    opacity: entered ? 1 : 0,
-    transform: entered ? 'none' : 'translateY(20px)',
-    transition: `opacity .55s ${d}ms ease, transform .55s ${d}ms ease`,
-  });
-
+function ThesisSection() {
+  const [entered, ref] = useSectionEntry();
+  const T = (d) => ({ opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition: `opacity .55s ${d}ms ease, transform .55s ${d}ms ease` });
   return (
-    <div className="sec-inner">
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
-        <div>
-          <div className="s-tag" style={T(0)}>The problem</div>
-          <h2 className="s-h2" style={T(80)}>Shared intelligence is<br /><em>diminishing alpha.</em></h2>
-          <p className="s-p" style={T(160)}>Every database, every signal platform, every market intelligence tool has the same structural problem: the more widely it's adopted, the less edge any single firm gets from it. Your alpha doesn't come from data everyone has access to. It comes from how your people see the market.</p>
-          <div className="thesis-pull" style={{ marginTop: 24, ...T(240) }}>
-            <div className="thesis-pull-q">"Our CRM tracks who we know. Nothing tracks how we think."</div>
-            <div className="thesis-pull-src">— RECURRING VERBATIM FROM EMERGING FUND GPS</div>
+    <section id="problem" ref={ref} style={{ padding: '96px 0' }}>
+      <div className="sec-inner">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
+          <div>
+            <div className="s-tag" style={T(0)}>The problem</div>
+            <h2 className="s-h2" style={T(80)}>Every intelligence tool has the same <em>structural problem.</em></h2>
+            <p className="s-p" style={T(160)}>Databases, signal platforms, CRM tools, market intelligence feeds — they all reason backward. They ingest what already exists and wait for a query. The more widely adopted they become, the less edge any single investor gets from using them.<br /><br />Reidar works differently. It captures the intelligence your firm is building right now — from every meeting, every pass decision, every email thread — and surfaces it at the moment it matters. The edge it builds belongs to you alone.</p>
+            <div className="thesis-pull" style={{ marginTop: 24, ...T(240) }}>
+              <div className="thesis-pull-q">"Our CRM tracks who we know. Nothing tracks how we think — or what we decided, and why."</div>
+              <div className="thesis-pull-src">— RECURRING FEEDBACK FROM EMERGING FUND GPS</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {THESIS_CARDS.map((c, i) => (
+              <div key={i} style={{ padding: '14px 16px', background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 8, cursor: 'default', opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(14px)', transition: `opacity .45s ${120 + i * 140}ms ease, transform .45s ${120 + i * 140}ms ease, background .2s ease` }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(107,71,245,.05)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.02)'}
+              >
+                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: 'rgba(235,235,235,.25)', letterSpacing: '.07em', marginBottom: 5 }}>{c.name}</div>
+                <div style={{ fontSize: 12, color: 'rgba(235,235,235,.55)', lineHeight: 1.55 }}><strong style={{ color: '#EBEBEB', fontWeight: 500 }}>{c.t}</strong> {c.c}</div>
+              </div>
+            ))}
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {THESIS_CARDS.map((c, i) => (
-            <div key={i}
-              style={{
-                padding: '14px 16px',
-                background: 'rgba(255,255,255,.02)',
-                border: '1px solid rgba(255,255,255,.06)',
-                borderRadius: 8, cursor: 'default',
-                opacity: entered ? 1 : 0,
-                transform: entered ? 'none' : 'translateY(14px)',
-                transition: `opacity .45s ${120 + i * 140}ms ease, transform .45s ${120 + i * 140}ms ease, background .2s ease`,
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(107,71,245,.05)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.02)'}
-            >
-              <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: 'rgba(235,235,235,.25)', letterSpacing: '.07em', marginBottom: 5 }}>{c.name}</div>
-              <div style={{ fontSize: 12, color: 'rgba(235,235,235,.55)', lineHeight: 1.55 }}><strong style={{ color: '#EBEBEB', fontWeight: 500 }}>{c.t}</strong> {c.c}</div>
-            </div>
-          ))}
-        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
 /* ─── MOMENTS SECTION ─── */
-function MomentsSection({ isActive }) {
-  const entered = useSectionEntry(isActive);
-  const T = (d) => ({
-    opacity: entered ? 1 : 0,
-    transform: entered ? 'none' : 'translateY(18px)',
-    transition: `opacity .5s ${d}ms ease, transform .5s ${d}ms ease`,
-  });
+function MomentsSection() {
+  const [entered, ref] = useSectionEntry();
+  const T = (d) => ({ opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(18px)', transition: `opacity .5s ${d}ms ease, transform .5s ${d}ms ease` });
   return (
-    <div className="sec-inner">
-      <div className="s-tag" style={T(0)}>What it does</div>
-      <h2 className="s-h2" style={T(80)}>Three moments where <em>Reidar changes the game.</em></h2>
-      <p className="s-p" style={T(160)}>Not a dashboard you check — a layer that's useful before you even open it.</p>
-      <ThreeMoments isActive={isActive} entered={entered} />
-    </div>
+    <section id="moments" ref={ref} style={{ padding: '96px 0' }}>
+      <div className="sec-inner">
+        <div className="s-tag" style={T(0)}>What it does</div>
+        <h2 className="s-h2" style={T(80)}>Three moments where <em>Reidar changes the outcome.</em></h2>
+        <p className="s-p" style={T(160)}>Not a dashboard you open. A layer that's already working.</p>
+        <ThreeMoments />
+      </div>
+    </section>
   );
 }
 
 /* ─── HOW SECTION ─── */
-function HowSection({ isActive }) {
-  const entered = useSectionEntry(isActive);
-  const T = (d) => ({
-    opacity: entered ? 1 : 0,
-    transform: entered ? 'none' : 'translateY(18px)',
-    transition: `opacity .5s ${d}ms ease, transform .5s ${d}ms ease`,
-  });
+const STEPS = [
+  { n: "01", t: "Connect", d: "Link Gmail, Google Calendar, and your existing tools in five minutes. No data import project. No setup call. Reidar reads how you already work and starts building context immediately." },
+  { n: "02", t: "Capture", d: "Every founder meeting, inbound pitch, pass decision, and follow-up email feeds the intelligence layer — passively. No logging. No forms. No behavior change required." },
+  { n: "03", t: "Compound", d: "After 30 days, Reidar knows your patterns. After 90 days, it surfaces connections you wouldn't have made yourself. The private intelligence layer that gets sharper with every decision you make." },
+];
+
+function HowSection() {
+  const [entered, ref] = useSectionEntry();
+  const T = (d) => ({ opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(18px)', transition: `opacity .5s ${d}ms ease, transform .5s ${d}ms ease` });
   return (
-    <div className="sec-inner">
-      <div className="s-tag" style={T(0)}>How it works</div>
-      <h2 className="s-h2" style={T(80)}>Connect. Capture. <em>Compound.</em></h2>
-      <p className="s-p" style={T(160)}>No onboarding workflow. No data import project. Reidar starts learning from the moment you connect.</p>
-      <div className="steps" style={{ marginTop: 36 }}>
-        {STEPS.map((s, i) => (
-          <div className="step" key={s.n} style={{
-            opacity: entered ? 1 : 0,
-            transform: entered ? 'none' : 'translateY(18px)',
-            transition: `opacity .5s ${120 + i * 140}ms ease, transform .5s ${120 + i * 140}ms ease`,
-          }}>
-            <div className="step-n">{s.n}</div>
-            <div className="step-t">{s.t}</div>
-            <div className="step-d">{s.d}</div>
-          </div>
-        ))}
+    <section id="how" ref={ref} style={{ padding: '96px 0' }}>
+      <div className="sec-inner">
+        <div className="s-tag" style={T(0)}>How it works</div>
+        <h2 className="s-h2" style={T(80)}>Connect once. <em>Compound forever.</em></h2>
+        <p className="s-p" style={T(160)}>No onboarding workflow. No data import project. Reidar starts learning from the moment you connect.</p>
+        <div className="steps">
+          {STEPS.map((s, i) => (
+            <div className="step" key={s.n} style={{ opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(18px)', transition: `opacity .5s ${120 + i * 140}ms ease, transform .5s ${120 + i * 140}ms ease` }}>
+              <div className="step-n">{s.n}</div>
+              <div className="step-t">{s.t}</div>
+              <div className="step-d">{s.d}</div>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </section>
+  );
+}
+
+/* ─── USE CASES SECTION ─── */
+const USE_CASES = [
+  {
+    label: "SOURCING",
+    h3: "Deal flow that matches how you actually invest.",
+    body: "Reidar sources nightly across YC, ProductHunt, and the open web — scored against your mandate before you see a single result. Every morning: a ranked list of companies worth your attention. The ones that aren't never reach you.",
+  },
+  {
+    label: "EVALUATION",
+    h3: "From inbound pitch to structured memo in minutes.",
+    body: "A deck lands in your inbox. Reidar reads it, scores it against your thesis, checks your pass history for comparable companies, flags portfolio conflicts, and generates a structured investment brief — before you've opened the email.",
+  },
+  {
+    label: "INSTITUTIONAL MEMORY",
+    h3: "Every decision your firm has ever made. Remembered.",
+    body: "Every pass reason, every conviction note, every partner objection — captured from your normal workflow and embedded into a private intelligence layer that compounds over time. When a company comes back, Reidar shows you exactly what you thought last time and what has changed.",
+  },
+];
+
+function UseCasesSection() {
+  const [entered, ref] = useSectionEntry();
+  return (
+    <section id="use-cases" ref={ref} style={{ padding: '96px 0' }}>
+      <div className="sec-inner">
+        <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: '.12em', color: '#6B47F5', textTransform: 'uppercase', marginBottom: 14, opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(16px)', transition: 'opacity .5s ease, transform .5s ease' }}>Use cases</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+          {USE_CASES.map((c, i) => (
+            <div key={i} style={{ padding: '28px 24px', background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 12, opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition: `opacity .5s ${80 + i * 120}ms ease, transform .5s ${80 + i * 120}ms ease` }}>
+              <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: '.1em', color: 'rgba(107,71,245,.6)', textTransform: 'uppercase', marginBottom: 14 }}>{c.label}</div>
+              <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: '#EBEBEB', letterSpacing: '-.01em', lineHeight: 1.25, marginBottom: 12 }}>{c.h3}</h3>
+              <p style={{ fontSize: 13, color: 'rgba(235,235,235,.42)', lineHeight: 1.72 }}>{c.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
 /* ─── INTEGRATIONS SECTION ─── */
-function IntegrationsSection({ isActive }) {
-  const entered = useSectionEntry(isActive);
-  const T = (d) => ({
-    opacity: entered ? 1 : 0,
-    transform: entered ? 'none' : 'translateY(16px)',
-    transition: `opacity .5s ${d}ms ease, transform .5s ${d}ms ease`,
-  });
+function IntegrationsSection() {
+  const [entered, ref] = useSectionEntry();
+  const T = (d) => ({ opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(16px)', transition: `opacity .5s ${d}ms ease, transform .5s ${d}ms ease` });
   return (
-    <div className="sec-inner" style={{ textAlign: 'center' }}>
-      <div className="s-tag" style={{ ...T(0), display: 'inline-block' }}>Integrations</div>
-      <h2 className="s-h2" style={{ maxWidth: 500, margin: '0 auto 12px', ...T(80) }}>Sits on top of your <em>entire stack.</em></h2>
-      <p className="s-p" style={{ margin: '0 auto', textAlign: 'center', ...T(160) }}>Every tool your firm already uses becomes a source of intelligence. Reidar absorbs context from your CRM, inbox, meetings, and data sources — passively.</p>
-      <div style={{ ...T(260), display: 'flex', justifyContent: 'center' }}><IntegrationsOrbit /></div>
-      <p style={{ marginTop: 16, fontSize: 11, color: 'rgba(235,235,235,.15)', fontFamily: "'Space Mono',monospace", letterSpacing: '.04em', ...T(320) }}>
-        More integrations on the roadmap.
-      </p>
-    </div>
+    <section id="integrations" ref={ref} style={{ padding: '96px 0' }}>
+      <div className="sec-inner" style={{ textAlign: 'center' }}>
+        <div className="s-tag" style={{ ...T(0), display: 'inline-block' }}>Integrations</div>
+        <h2 className="s-h2" style={{ maxWidth: 500, margin: '0 auto 12px', ...T(80) }}>Plugs into your <em>existing workflow.</em></h2>
+        <p className="s-p" style={{ margin: '0 auto', textAlign: 'center', ...T(160) }}>Gmail, Google Calendar, Slack, and your existing CRM. Reidar absorbs context from every surface your team already uses — without changing how you work.</p>
+        <div style={{ ...T(260), display: 'flex', justifyContent: 'center', marginTop: 36 }}><IntegrationsOrbit /></div>
+        <p style={{ marginTop: 16, fontSize: 11, color: 'rgba(235,235,235,.15)', fontFamily: "'Space Mono',monospace", letterSpacing: '.04em', ...T(320) }}>More integrations on the roadmap.</p>
+      </div>
+    </section>
+  );
+}
+
+/* ─── FAQ SECTION ─── */
+const FAQS = [
+  {
+    q: "What is an AI investment associate?",
+    a: "An AI investment associate is software that performs the research, sourcing, and analytical work typically done by a junior VC analyst — autonomously and continuously. Reidar sources companies from the open web, scores them against a firm's investment mandate, generates investment memos, monitors pipeline companies for signals, and surfaces institutional memory at the moment it's needed. Unlike a database or search tool, it works without being asked.",
+  },
+  {
+    q: "How is Reidar different from Harmonic or PitchBook?",
+    a: "Harmonic and PitchBook are databases — you query them, they return results. Reidar is an active system that works on your behalf continuously. It sources proactively, scores against your specific mandate rather than a generic filter, generates investment memos rather than data exports, and builds a private intelligence layer from your firm's own decisions and interactions. The difference is the direction: they tell you what exists. Reidar tells you what matters for how you specifically invest.",
+  },
+  {
+    q: "How is Reidar different from Affinity?",
+    a: "Affinity is a relationship intelligence CRM — it manages pipeline and tracks who you know. Reidar is a sourcing and intelligence tool — it finds companies you don't know yet and captures the reasoning behind every decision your firm makes. Affinity is the address book. Reidar is the scout and the memory. Many investors use both.",
+  },
+  {
+    q: "Is Reidar only for small VC funds?",
+    a: "No. Reidar is built for any investor who evaluates companies — solo GPs, analysts at established funds, and partners at any stage. The core value is the same regardless of fund size: capturing how an investor reasons about investments and surfacing that intelligence at the right moment. We focus on emerging fund managers first because they feel the pain most acutely — lean teams, no dedicated analyst headcount, and the highest cost of losing institutional knowledge.",
+  },
+  {
+    q: "How does Reidar build institutional memory?",
+    a: "Reidar connects to Gmail and Google Calendar and passively observes your deal workflow — inbound pitches, founder meetings, follow-up emails, pass decisions. It extracts structured reasoning signals from these interactions: partner objections, conviction triggers, pass reasons, open questions. These signals are embedded into a private vector database scoped to your firm. When you evaluate a similar company later, Reidar retrieves the relevant prior reasoning and injects it into its analysis — without you having to remember or re-enter anything.",
+  },
+  {
+    q: "What does setup look like?",
+    a: "Connect Gmail and Google Calendar, define your investment mandate in plain English, set your stage and sector focus, and optionally import a list of companies you've previously evaluated. First sourcing run starts immediately. Most investors are fully configured in under 10 minutes.",
+  },
+];
+
+function FaqSection() {
+  const [entered, ref] = useSectionEntry();
+  return (
+    <section id="faq" ref={ref} style={{ padding: '96px 0' }}>
+      <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 48px' }}>
+        <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: '.12em', color: '#6B47F5', textTransform: 'uppercase', marginBottom: 36, textAlign: 'center', opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(14px)', transition: 'opacity .5s ease, transform .5s ease' }}>FAQ</div>
+        <div style={{ opacity: entered ? 1 : 0, transition: 'opacity .5s .1s ease' }}>
+          {FAQS.map((f, i) => <FaqItem key={i} q={f.q} a={f.a} />)}
+        </div>
+      </div>
+    </section>
   );
 }
 
 /* ─── CTA SECTION ─── */
-function CtaSection({ isActive, scrollTo }) {
-  const entered = useSectionEntry(isActive);
-  const T = (d) => ({
-    opacity: entered ? 1 : 0,
-    transform: entered ? 'none' : 'translateY(22px)',
-    transition: `opacity .6s ${d}ms ease, transform .6s ${d}ms ease`,
-  });
+function CtaSection() {
+  const [entered, ref] = useSectionEntry();
+  const T = (d) => ({ opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(22px)', transition: `opacity .6s ${d}ms ease, transform .6s ${d}ms ease` });
   return (
-    <>
+    <section id="cta" ref={ref} style={{ padding: '96px 0 48px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <div className="cta-inner" style={T(0)}>
-        <h2 className="cta-h2" style={T(60)}>Your firm's edge.<br />Compounding from day one.</h2>
-        <p className="cta-sub" style={T(140)}>No extra work. No manual logging. Invest the way you already do — and let the intelligence layer build itself around you.</p>
+        <h2 className="cta-h2" style={T(60)}>Your firm's edge.<br />Captured from day one.</h2>
+        <p className="cta-sub" style={T(140)}>No extra work. No manual logging. No behavior change. Connect your inbox and calendar, define your mandate, and Reidar starts building the intelligence layer your firm has always needed — from the work you're already doing.</p>
         <button className="btn-lg" style={T(220)} onClick={() => window.location.href = SIGN_UP_URL}>Join the waitlist →</button>
+        <p style={{ marginTop: 16, fontSize: 11, color: 'rgba(235,235,235,.2)', fontFamily: "'DM Mono',monospace", letterSpacing: '.04em', ...T(280) }}>Free during early access. Founding firm rate locked at launch.</p>
       </div>
-      <div className="footer-strip" style={{ position: 'relative', maxWidth: 1100, width: '100%', marginTop: 32, ...T(300) }}>
-        <div className="foot-l">© 2026 Reidar. The intelligence layer for venture capital.</div>
-        <div className="foot-r">POWERED BY CLAUDE · ANTHROPIC</div>
-      </div>
-    </>
+    </section>
   );
 }
 
@@ -1165,61 +1027,28 @@ const TICKER_ITEMS = [
   "DECISION MEMORY","PATTERN RECOGNITION","CAPTURES YOUR ALPHA","IRREPLICABLE OVER TIME",
 ];
 
-const STEPS = [
-  { n: "01", t: "Connect", d: "Link Gmail, Google Calendar, and your existing tools in five minutes. No data import project, no setup call. Reidar reads how your firm already works." },
-  { n: "02", t: "Capture", d: "Every founder meeting, inbound pitch, and pass decision feeds the intelligence layer automatically. Context builds without anyone lifting a finger." },
-  { n: "03", t: "Compound", d: "The longer you use Reidar, the sharper it gets. Patterns your firm spent years developing, now surfaced at the exact moment they matter." },
-];
-
-
 const HERO_PHRASES = [
-  "Reidar makes sure none of it gets lost.",
-  "Gets sharper with every decision you make.",
-  "Your context builds itself.",
-  "So you never evaluate a company cold again.",
+  "Never evaluate a company cold again.",
+  "Your pass reasons remembered. Forever.",
+  "Every inbound scored before you open it.",
+  "The scout that never sleeps.",
+  "Your edge, compounding from day one.",
 ];
-
-const SECTION_IDS = ['hero', 'demo', 'thesis', 'moments', 'how', 'integrations', 'cta'];
 
 /* ─── MAIN ─── */
 export default function LandingPage() {
-  const [currentSection, setCurrentSection] = useState(0);
   const [heroIdx, setHeroIdx] = useState(0);
   const [heroDisplayed, setHeroDisplayed] = useState('');
   const [heroPhase, setHeroPhase] = useState('typing');
-  const containerRef = useRef(null);
   const { isSignedIn } = useAuth();
+
   useEffect(() => {
-    document.title = "Reidar — AI Investment Associate for VC Firms";
+    document.title = "Reidar — The Intelligence Layer for Venture Capital";
     const desc = document.querySelector('meta[name="description"]');
-    if (desc) desc.setAttribute('content', "Reidar autonomously sources startups, scores them against your investment mandate, and generates investment memos. The AI associate built for emerging fund managers.");
+    if (desc) desc.setAttribute('content', "Reidar captures how your firm reasons about investments — from every meeting, email, and decision — and surfaces that intelligence at the moment it matters. The AI associate built for venture capital.");
   }, []);
 
-  // Track active section via IntersectionObserver
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    const obs = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const idx = SECTION_IDS.indexOf(entry.target.id);
-          if (idx !== -1) setCurrentSection(idx);
-        }
-      });
-    }, { root: container, threshold: 0.5 });
-    SECTION_IDS.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) obs.observe(el);
-    });
-    return () => obs.disconnect();
-  }, []);
-
-  const scrollTo = (idx) => {
-    const el = document.getElementById(SECTION_IDS[idx]);
-    if (el && containerRef.current) containerRef.current.scrollTo({ top: el.offsetTop, behavior: 'smooth' });
-  };
-
-  // Typewriter hero
+  // Typewriter
   useEffect(() => {
     const phrase = HERO_PHRASES[heroIdx];
     if (heroPhase === 'typing') {
@@ -1240,13 +1069,12 @@ export default function LandingPage() {
       } else {
         setHeroIdx(i => (i + 1) % HERO_PHRASES.length);
         setHeroPhase('typing');
-        window.dispatchEvent(new CustomEvent('reidar-phrase'));
       }
     }
   }, [heroDisplayed, heroPhase, heroIdx]);
 
   const NavMark = () => (
-    <div style={{ position: 'relative', width: 26, height: 26 }}>
+    <div className="nav-mark-wrap">
       <div className="nav-mark-ring" />
       <div className="nav-mark-ring delay" />
       <div className="nav-mark">
@@ -1262,7 +1090,7 @@ export default function LandingPage() {
     <>
       <style>{FONTS + STYLES}</style>
 
-      {/* FIXED NAV */}
+      {/* NAV */}
       <nav className="nav">
         <a href="/" className="nav-logo">
           <NavMark />
@@ -1281,77 +1109,98 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* RIGHT-SIDE NAV DOTS */}
-      <div className="nav-dots">
-        {SECTION_IDS.map((_, i) => (
-          <button key={i} className={`nav-dot${currentSection === i ? ' dot-active' : ''}`} onClick={() => scrollTo(i)} />
-        ))}
-      </div>
-
-      {/* SECTION COUNTER */}
-      <div className="sec-counter">0{currentSection + 1} / 0{SECTION_IDS.length}</div>
-
-      {/* SNAP CONTAINER */}
-      <div className="snap-container" ref={containerRef}>
-
-        {/* ── 01 HERO ── */}
-        <section className="snap-section" id="hero" style={{ flexDirection: 'column' }}>
-          <RadarBg />
-          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 65% at 50% 48%,transparent 28%,rgba(7,7,10,.55) 58%,#07070A 88%)', pointerEvents: 'none', zIndex: 1 }} />
-          <div className="hero-content">
-            <div className="badge"><div className="badge-dot" />The intelligence layer for VC</div>
-            <h1 className="hero-h1">
-              Your firm's judgment is your edge.<br />
-              <span className="acc">{heroDisplayed}<span className="typewriter-cursor">|</span></span>
-            </h1>
-            <div className="hero-cta">
-              <button className="btn-lg" onClick={() => window.location.href = SIGN_UP_URL}>Join the waitlist →</button>
-              <button className="btn-out" onClick={() => scrollTo(1)}>
-                See it in action
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </button>
-            </div>
+      {/* ── 01 HERO ── */}
+      <section id="hero" className="hero-wrap">
+        <RadarBg />
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 65% at 50% 48%,transparent 28%,rgba(7,7,10,.55) 58%,#07070A 88%)', pointerEvents: 'none', zIndex: 1 }} />
+        <div className="hero-content">
+          <div className="badge"><div className="badge-dot" />The intelligence layer for VC</div>
+          <h1 className="hero-h1">The Intelligence Layer<br />for Venture Capital</h1>
+          <p className="hero-sub">Every investor builds a proprietary lens over years of decisions. Reidar captures it, structures it, and surfaces it at the moment it matters — automatically, from the work you're already doing.</p>
+          <div className="hero-phrase">
+            <span style={{ color: '#A992FA' }}>{heroDisplayed}</span><span className="typewriter-cursor" style={{ color: '#A992FA' }}>|</span>
           </div>
-          {/* Ticker at bottom of hero section */}
-          <div className="ticker" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 2 }}>
-            <div className="ticker-inner">
-              {[...TICKER_ITEMS, ...TICKER_ITEMS].map((t, i) => (
-                <div className="tick-item" key={i}><span className="tick-dot" />{t}<span className="tick-sep">◆</span></div>
-              ))}
-            </div>
+          <div className="hero-cta">
+            <button className="btn-lg" onClick={() => window.location.href = SIGN_UP_URL}>Join the waitlist →</button>
+            <button className="btn-out" onClick={() => document.getElementById('demo').scrollIntoView({ behavior: 'smooth' })}>
+              See how it works
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
           </div>
-        </section>
+        </div>
+        {/* Ticker */}
+        <div className="ticker" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 2 }}>
+          <div className="ticker-inner">
+            {[...TICKER_ITEMS, ...TICKER_ITEMS].map((t, i) => (
+              <div className="tick-item" key={i}><span className="tick-dot" />{t}<span className="tick-sep">◆</span></div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-        {/* ── 02 DEMO ── */}
-        <section className="snap-section" id="demo">
-          <ReidarChat isActive={currentSection === 1} />
-        </section>
+      {/* ── 02 SOCIAL PROOF ── */}
+      <section id="proof" style={{ borderTop: '1px solid rgba(255,255,255,.05)', borderBottom: '1px solid rgba(255,255,255,.05)', padding: '20px 0' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
+          <span style={{ fontSize: 12, color: 'rgba(235,235,235,.28)', fontStyle: 'italic' }}>Trusted by investors across North America and Europe</span>
+          <div style={{ display: 'flex', gap: 36, flexWrap: 'wrap' }}>
+            {[
+              "200+ companies evaluated weekly",
+              "Pre-seed through Series B",
+              "Gmail · Calendar · Slack",
+            ].map((s, i) => (
+              <span key={i} style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: 'rgba(235,235,235,.22)', letterSpacing: '.06em' }}>{s}</span>
+            ))}
+          </div>
+        </div>
+      </section>
 
-        {/* ── 03 THESIS ── */}
-        <section className="snap-section" id="thesis">
-          <ThesisSection isActive={currentSection === 2} />
-        </section>
+      {/* ── 03 DEMO ── */}
+      <section id="demo" style={{ padding: '96px 0' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 48px' }}>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+            <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: '.12em', color: '#6B47F5', textTransform: 'uppercase', marginBottom: 14 }}>See it in action</div>
+            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(26px,3.2vw,40px)', fontWeight: 700, lineHeight: 1.1, color: '#EBEBEB', letterSpacing: '-.01em', marginBottom: 0 }}>Your AI associate, <span style={{ color: 'rgba(235,235,235,.28)' }}>working in the background</span></h2>
+          </div>
+          <div style={{ height: 560, border: '1px solid rgba(255,255,255,.07)', borderRadius: 14, overflow: 'hidden' }}>
+            <ReidarChat />
+          </div>
+          <p style={{ textAlign: 'center', fontSize: 13, color: 'rgba(235,235,235,.25)', marginTop: 20, fontStyle: 'italic' }}>
+            Reidar surfaces the right context at the right moment — without being asked.
+          </p>
+        </div>
+      </section>
 
-        {/* ── 04 THREE MOMENTS ── */}
-        <section className="snap-section" id="moments">
-          <MomentsSection isActive={currentSection === 3} />
-        </section>
+      {/* ── 04 PROBLEM ── */}
+      <ThesisSection />
 
-        {/* ── 05 HOW IT WORKS ── */}
-        <section className="snap-section" id="how">
-          <HowSection isActive={currentSection === 4} />
-        </section>
+      {/* ── 05 THREE MOMENTS ── */}
+      <MomentsSection />
 
-        {/* ── 06 INTEGRATIONS ── */}
-        <section className="snap-section" id="integrations">
-          <IntegrationsSection isActive={currentSection === 5} />
-        </section>
+      {/* ── 06 HOW IT WORKS ── */}
+      <HowSection />
 
-        {/* ── 07 CTA ── */}
-        <section className="snap-section" id="cta" style={{ flexDirection: 'column', gap: 0 }}>
-          <CtaSection isActive={currentSection === 6} scrollTo={scrollTo} />
-        </section>
+      {/* ── 07 USE CASES ── */}
+      <UseCasesSection />
 
+      {/* ── 08 INTEGRATIONS ── */}
+      <IntegrationsSection />
+
+      {/* ── 09 FAQ ── */}
+      <FaqSection />
+
+      {/* ── 10 CTA ── */}
+      <CtaSection />
+
+      {/* FOOTER */}
+      <div style={{ borderTop: '1px solid rgba(255,255,255,.04)', marginTop: 48 }}>
+        <div className="footer-strip">
+          <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+            <span className="foot-l">© 2026 Reidar. The intelligence layer for venture capital.</span>
+            <a href="/how-it-works" style={{ fontSize: 11, color: 'rgba(235,235,235,.2)', textDecoration: 'none' }}>How it works</a>
+            <a href="/pricing" style={{ fontSize: 11, color: 'rgba(235,235,235,.2)', textDecoration: 'none' }}>Pricing</a>
+          </div>
+          <div className="foot-r">POWERED BY CLAUDE · ANTHROPIC</div>
+        </div>
       </div>
     </>
   );
