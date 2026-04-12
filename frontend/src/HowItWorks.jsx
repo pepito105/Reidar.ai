@@ -166,6 +166,7 @@ const STYLES = `
     .ready-cell:first-child { border-right:none;border-bottom:1px solid rgba(255,255,255,.06); }
     .timeline { padding:20px 20px 60px; }
     .pipe-cols { grid-template-columns:1fr;gap:6px; }
+    .edge-cards { grid-template-columns:1fr !important; }
   }
   @media(max-width:640px) {
     .nav { padding:0 20px; }
@@ -582,9 +583,9 @@ export default function HowItWorks() {
   const { isSignedIn } = useAuth();
   useScrollReveal();
   useEffect(() => {
-    document.title = "How Reidar Works — AI Deal Sourcing for VC Firms";
+    document.title = "How Reidar Works — AI Investment Associate for Venture Capital";
     const desc = document.querySelector('meta[name="description"]');
-    if (desc) desc.setAttribute('content', "See how Reidar autonomously sources startups, scores them against your mandate, and generates investment memos — all without manual effort.");
+    if (desc) desc.setAttribute('content', "See how Reidar captures institutional memory from your firm's decisions, sources companies against your mandate, and surfaces intelligence at the right moment — without any manual effort.");
   }, []);
 
   useEffect(() => {
@@ -630,8 +631,8 @@ export default function HowItWorks() {
       {/* PAGE HERO */}
       <div className="page-hero">
         <div className="page-label">How it works</div>
-        <h1 className="page-h1">Teach it once. It <em>never stops learning.</em></h1>
-        <p className="page-sub">Reidar learns your firm's mandate and your personal patterns during a 10-minute setup. After that, it learns from your normal workflow — meetings, emails, pipeline decisions — without you lifting a finger.</p>
+        <h1 className="page-h1">How Reidar works: <em>connect, capture, and compound.</em></h1>
+        <p className="page-sub">Reidar learns your investment mandate and personal patterns during a 10-minute setup. After that, it learns continuously from your normal workflow — every meeting, email, and decision — without any manual effort.</p>
       </div>
 
       {/* TIMELINE */}
@@ -720,6 +721,35 @@ export default function HowItWorks() {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* COMPOUNDING EDGE CARDS */}
+      <div style={{ maxWidth: 1160, margin: '0 auto', padding: '0 40px 96px' }}>
+        <div className="edge-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+          {[
+            {
+              label: "VC ANALYST TOOLS",
+              title: "Judgment that compounds.",
+              body: "Every investor develops a proprietary lens over years of decisions. Reidar is the first tool designed to capture that lens — structuring it into a private intelligence layer that gets sharper with every deal you evaluate.",
+            },
+            {
+              label: "INSTITUTIONAL KNOWLEDGE",
+              title: "Knowledge that doesn't walk out the door.",
+              body: "When a partner leaves, their judgment leaves with them. Reidar captures reasoning signals from every interaction, embedding your firm's decision-making patterns into a private layer that persists — and compounds — over time.",
+            },
+            {
+              label: "COMPETITIVE ADVANTAGE",
+              title: "The edge compounds. Shared data erodes.",
+              body: "Every tool your competitors use gives them the same signals. Every decision your firm makes gives Reidar something no competitor can access. The longer you use it, the wider the gap.",
+            },
+          ].map((card, i) => (
+            <div key={i} className="sr" style={{ background: 'rgba(255,255,255,.025)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 12, padding: '28px 28px' }}>
+              <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: '.1em', color: 'rgba(107,71,245,.55)', textTransform: 'uppercase', marginBottom: 14 }}>{card.label}</div>
+              <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: '#EBEBEB', letterSpacing: '-.01em', lineHeight: 1.25, marginBottom: 12 }}>{card.title}</h3>
+              <p style={{ fontSize: 13, color: 'rgba(235,235,235,.42)', lineHeight: 1.72 }}>{card.body}</p>
+            </div>
+          ))}
         </div>
       </div>
 
