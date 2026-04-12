@@ -600,6 +600,495 @@ function ReidarChat() {
   );
 }
 
+/* ─── AMBIENT DEMO ─── */
+const DEMO_EVENTS = [
+  { id: 0, time: '08:47', label: 'Inbound from Synthos AI classified', surface: 'Gmail', surfaceColor: '#EA4335', detail: '87/100 thesis match · cold outreach · 3 comparable passes', hasMockup: true },
+  { id: 1, time: '09:02', label: '11-agent research pipeline dispatched', surface: 'Dashboard', surfaceColor: '#6B47F5', detail: 'market sizing · founders · competitor profiles · mandate fit', hasMockup: true },
+  { id: 2, time: '10:15', label: 'DataCorp posted VP Sales hire', surface: 'Slack', surfaceColor: '#4ade80', detail: 'traction signal · pipeline updated · brief appended', hasMockup: true },
+  { id: 3, time: '11:33', label: 'Nexus (portfolio) in TechCrunch', surface: null, surfaceColor: null, detail: 'classified as noise · not surfaced · logged', hasMockup: false },
+  { id: 4, time: '13:28', label: 'Pre-meeting brief injected into 2pm event', surface: 'Calendar', surfaceColor: '#4285F4', detail: '3 suggested questions · pass history · conflict check', hasMockup: true },
+  { id: 5, time: '14:02', label: 'YC W25: 247 ingested, 8 mandate matches', surface: 'Dashboard', surfaceColor: '#6B47F5', detail: '8 ranked matches queued · top match: Corpora AI', hasMockup: true },
+];
+
+const DEMO_CYCLEABLES = [0, 1, 2, 4, 5];
+
+const DEMO_HEX = (
+  <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+    <path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke="#A992FA" strokeWidth="1.4" fill="none"/>
+    <circle cx="7" cy="7" r="2.2" fill="#A992FA"/>
+  </svg>
+);
+
+function MockGmail() {
+  return (
+    <div style={{ background: '#fff', borderRadius: 10, overflow: 'hidden', height: 420, display: 'flex', flexDirection: 'column', fontFamily: "'Inter',sans-serif" }}>
+      {/* Gmail top bar */}
+      <div style={{ padding: '8px 14px', background: '#f6f8fc', borderBottom: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        <div style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="22" height="16" viewBox="0 0 22 16" fill="none"><rect width="22" height="16" rx="2" fill="#fff" stroke="#ddd" strokeWidth=".8"/><path d="M1 1l10 8L21 1" stroke="#EA4335" strokeWidth="1.6" fill="none"/></svg>
+        </div>
+        <div style={{ flex: 1, height: 28, background: '#eaf1fb', borderRadius: 20, display: 'flex', alignItems: 'center', paddingLeft: 12 }}>
+          <span style={{ fontSize: 11, color: '#5f6368' }}>Search mail</span>
+        </div>
+      </div>
+      {/* 3-pane body */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        {/* Left nav */}
+        <div style={{ width: 150, background: '#f6f8fc', borderRight: '1px solid #e8eaed', padding: '8px 0', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <div style={{ margin: '0 8px 8px', padding: '8px 12px', background: '#c2e7ff', borderRadius: 20, fontSize: 12, fontWeight: 600, color: '#001d35', textAlign: 'center' }}>Compose</div>
+          {[['Inbox','3'],['Starred',''],['Sent',''],['Drafts','2'],['All Mail','']].map(([lbl,cnt]) => (
+            <div key={lbl} style={{ padding: '5px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '0 20px 20px 0', background: lbl === 'Inbox' ? '#d3e3fd' : 'transparent' }}>
+              <span style={{ fontSize: 12, color: '#202124', fontWeight: lbl === 'Inbox' ? 600 : 400 }}>{lbl}</span>
+              {cnt && <span style={{ fontSize: 11, color: '#1a73e8', fontWeight: 700 }}>{cnt}</span>}
+            </div>
+          ))}
+        </div>
+        {/* Email list */}
+        <div style={{ width: 200, borderRight: '1px solid #e8eaed', overflow: 'hidden', flexShrink: 0 }}>
+          {[
+            { from: 'Alex Wu', subj: 'Synthos AI — quick intro', time: '8:47 AM', unread: true, active: true },
+            { from: 'James K.', subj: 'IC notes — DataCorp', time: '7:32 AM', unread: false, active: false },
+            { from: 'Reidar', subj: 'Weekly pipeline digest', time: 'Yesterday', unread: false, active: false },
+            { from: 'Sara L.', subj: 'Re: Corpora follow-up', time: 'Mon', unread: false, active: false },
+          ].map((e, i) => (
+            <div key={i} style={{ padding: '8px 10px', borderBottom: '1px solid #f1f3f4', background: e.active ? '#e8f0fe' : '#fff', cursor: 'default' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+                <span style={{ fontSize: 11, fontWeight: e.unread ? 700 : 500, color: '#202124', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 110 }}>{e.from}</span>
+                <span style={{ fontSize: 10, color: '#5f6368', flexShrink: 0 }}>{e.time}</span>
+              </div>
+              <div style={{ fontSize: 10, color: e.unread ? '#202124' : '#5f6368', fontWeight: e.unread ? 600 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.subj}</div>
+            </div>
+          ))}
+        </div>
+        {/* Open email + Reidar panel */}
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          {/* Email body */}
+          <div style={{ flex: 1, padding: '12px 14px', overflow: 'hidden' }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#202124', marginBottom: 4 }}>Synthos AI — quick intro</div>
+            <div style={{ fontSize: 11, color: '#5f6368', marginBottom: 10 }}>Alex Wu &lt;alex@synthosai.com&gt; · to me</div>
+            <div style={{ fontSize: 11, color: '#202124', lineHeight: 1.6, color: '#3c4043' }}>
+              Hi — I'm building Synthos AI, clinical documentation automation for health systems. We're pre-seed, looking for a lead. Would love 20 minutes if there's fit.<br/><br/>
+              — Alex
+            </div>
+          </div>
+          {/* Reidar sidebar */}
+          <div style={{ width: 168, background: '#fafafa', borderLeft: '1px solid #e8eaed', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+            <div style={{ padding: '8px 10px', borderBottom: '1px solid #e8eaed', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 16, height: 16, borderRadius: 4, background: '#6B47F5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{DEMO_HEX}</div>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#202124' }}>Reidar</span>
+            </div>
+            <div style={{ padding: '8px 10px', flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {/* Score */}
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ fontSize: 26, fontWeight: 800, color: '#10b981', lineHeight: 1, fontFamily: "'DM Mono',monospace" }}>87</span>
+                <span style={{ fontSize: 9, color: '#5f6368', fontFamily: "'DM Mono',monospace" }}>/100</span>
+              </div>
+              <div style={{ height: 4, background: '#e8eaed', borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: '87%', background: 'linear-gradient(90deg,#6B47F5,#10b981)', borderRadius: 2 }} />
+              </div>
+              <div style={{ padding: '6px 8px', background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.3)', borderRadius: 6 }}>
+                <div style={{ fontSize: 8, fontFamily: "'DM Mono',monospace", color: '#d97706', letterSpacing: '.06em', marginBottom: 3 }}>3 COMPARABLE PASSES</div>
+                <div style={{ fontSize: 10, color: '#3c4043', lineHeight: 1.4 }}>Similar pattern: no enterprise distribution motion.</div>
+              </div>
+              <div style={{ padding: '6px 8px', background: 'rgba(16,185,129,.06)', border: '1px solid rgba(16,185,129,.25)', borderRadius: 6 }}>
+                <div style={{ fontSize: 8, fontFamily: "'DM Mono',monospace", color: '#059669', letterSpacing: '.06em', marginBottom: 3 }}>PORTFOLIO CLEAR</div>
+                <div style={{ fontSize: 10, color: '#3c4043', lineHeight: 1.4 }}>12 portfolio companies checked.</div>
+              </div>
+              <button type="button" style={{ padding: '6px 0', borderRadius: 6, background: '#6B47F5', border: 'none', fontSize: 11, fontWeight: 600, color: '#fff', cursor: 'pointer', marginTop: 'auto' }}>Run pipeline →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MockDashboardAgents() {
+  const agents = [
+    { done: true,  spin: false, label: 'market sizing · healthcare AI',         result: '$4.2B · 23% CAGR',   cite: 'Statista 2024' },
+    { done: true,  spin: false, label: 'competitor profiles + pricing',          result: '6 found',             cite: 'LinkedIn / Crunchbase' },
+    { done: true,  spin: false, label: 'customer sentiment mining',              result: 'gap found',           cite: 'G2 / Reddit' },
+    { done: true,  spin: false, label: 'patent landscape',                       result: '0 conflicts',         cite: 'USPTO' },
+    { done: false, spin: true,  label: 'founder backgrounds',                    result: 'running…',            cite: '' },
+    { done: false, spin: true,  label: 'mandate fit · portfolio conflicts',      result: 'running…',            cite: '' },
+    { done: false, spin: true,  label: 'regulatory risk · FDA classification',   result: 'running…',            cite: '' },
+    { done: false, spin: false, label: 'GTM motion analysis',                    result: 'queued',              cite: '' },
+    { done: false, spin: false, label: 'comparable exits · multiples',           result: 'queued',              cite: '' },
+    { done: false, spin: false, label: 'positioning · onliness test',            result: 'queued',              cite: '' },
+    { done: false, spin: false, label: 'investment memo draft',                  result: 'queued',              cite: '' },
+  ];
+  return (
+    <div style={{ background: '#0a0a0f', borderRadius: 10, overflow: 'hidden', height: 420, display: 'flex', flexDirection: 'column' }}>
+      {/* Nav */}
+      <div style={{ padding: '9px 14px', background: '#0d0d14', borderBottom: '1px solid #1e1e2e', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+        <div style={{ width: 18, height: 18, borderRadius: 4, background: '#6B47F5', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>{DEMO_HEX}</div>
+        {['Coverage','Pipeline','Research','Signals'].map(t => (
+          <div key={t} style={{ padding: '3px 10px', borderRadius: 5, background: t === 'Research' ? 'rgba(107,71,245,.18)' : 'transparent', fontSize: 11, color: t === 'Research' ? '#A992FA' : 'rgba(235,235,235,.3)', cursor: 'default' }}>{t}</div>
+        ))}
+      </div>
+      {/* Company header */}
+      <div style={{ padding: '10px 14px', borderBottom: '1px solid #1e1e2e', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#f0f0ff', marginBottom: 2 }}>Synthos AI</div>
+          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: 'rgba(235,235,235,.32)', letterSpacing: '.04em' }}>Clinical Documentation · Seed · Cold inbound</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', animation: 'pulse 1.5s ease-in-out infinite' }} />
+          <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: '#f59e0b', letterSpacing: '.06em' }}>RUNNING</span>
+        </div>
+      </div>
+      {/* Agent list */}
+      <div style={{ flex: 1, padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 7, overflow: 'hidden' }}>
+        {agents.map((row, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+            <div style={{ width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              {row.done ? (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5.5" fill="rgba(16,185,129,.12)" stroke="rgba(16,185,129,.45)" strokeWidth=".9"/><path d="M3.5 6L5 7.5L8.5 4" stroke="#10b981" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              ) : row.spin ? (
+                <div style={{ width: 10, height: 10, borderRadius: '50%', border: '1.5px solid rgba(169,146,250,.15)', borderTopColor: '#A992FA', animation: 'spin .7s linear infinite' }} />
+              ) : (
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,.08)' }} />
+              )}
+            </div>
+            <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: row.done ? 'rgba(235,235,235,.5)' : row.spin ? 'rgba(235,235,235,.45)' : 'rgba(235,235,235,.18)', flex: 1, letterSpacing: '.02em' }}>{row.label}</span>
+            {row.done && <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: 'rgba(16,185,129,.7)', marginRight: 4 }}>{row.result}</span>}
+            {row.done && <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: 'rgba(107,71,245,.45)' }}>{row.cite}</span>}
+            {row.spin && <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: 'rgba(235,235,235,.22)' }}>{row.result}</span>}
+            {!row.done && !row.spin && <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: 'rgba(235,235,235,.12)' }}>{row.result}</span>}
+          </div>
+        ))}
+      </div>
+      <div style={{ padding: '8px 14px', borderTop: '1px solid #1e1e2e', display: 'flex', justifyContent: 'space-between', flexShrink: 0 }}>
+        <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: 'rgba(235,235,235,.18)' }}>4 of 11 complete · ~8 min remaining</span>
+        <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: 'rgba(107,71,245,.5)' }}>every claim sourced →</span>
+      </div>
+    </div>
+  );
+}
+
+function MockSlack() {
+  return (
+    <div style={{ background: '#1a1d21', borderRadius: 10, overflow: 'hidden', height: 420, display: 'flex', fontFamily: "'Inter',sans-serif" }}>
+      {/* Left sidebar */}
+      <div style={{ width: 180, background: '#19171d', borderRight: '1px solid rgba(255,255,255,.06)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        <div style={{ padding: '12px 14px 8px', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#f8f8f8' }}>Acme Ventures</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#2bac76' }} />
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,.45)' }}>You're active</span>
+          </div>
+        </div>
+        <div style={{ padding: '8px 0', display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {[['#deal-flow',true,2],['#portfolio','',0],['#signals','',0],['#general','',0],['#fundraising','',0]].map(([ch,active,badge]) => (
+            <div key={ch} style={{ padding: '4px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: active ? 'rgba(255,255,255,.09)' : 'transparent', borderRadius: 4, margin: '0 4px' }}>
+              <span style={{ fontSize: 12, color: active ? '#f8f8f8' : 'rgba(255,255,255,.45)' }}>{ch}</span>
+              {badge > 0 && <span style={{ width: 16, height: 16, borderRadius: '50%', background: '#e01e5a', fontSize: 9, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{badge}</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Message area */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#f8f8f8' }}>#deal-flow</span>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>· 4 members</span>
+        </div>
+        <div style={{ flex: 1, padding: '14px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 16 }}>
+          {/* Older ghost message */}
+          <div style={{ opacity: 0.3 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 6, background: '#4a154b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 11, color: '#fff', fontWeight: 700 }}>JK</div>
+              <div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 3 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#f8f8f8' }}>James K.</span>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,.35)' }}>9:58 AM</span>
+                </div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.7)', lineHeight: 1.5 }}>Adding DataCorp to watching, let's check back in a quarter</div>
+              </div>
+            </div>
+          </div>
+          {/* Reidar bot message */}
+          <div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 6, background: '#6B47F5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{DEMO_HEX}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 4 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#f8f8f8' }}>Reidar</span>
+                  <span style={{ padding: '1px 5px', background: 'rgba(107,71,245,.3)', borderRadius: 3, fontSize: 9, color: '#A992FA', fontWeight: 700 }}>APP</span>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,.35)' }}>10:15 AM</span>
+                </div>
+                {/* Slack attachment card */}
+                <div style={{ borderLeft: '3px solid #2bac76', padding: '8px 12px', background: 'rgba(255,255,255,.04)', borderRadius: '0 6px 6px 0' }}>
+                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: '#2bac76', letterSpacing: '.07em', marginBottom: 5 }}>TRACTION SIGNAL · DATACORP</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,.75)', lineHeight: 1.55, marginBottom: 10 }}>
+                    DataCorp just posted a VP Sales hire on LinkedIn — first enterprise sales motion. Pipeline brief updated. This aligns with what James flagged last quarter.
+                  </div>
+                  <div style={{ display: 'flex', gap: 7 }}>
+                    <button type="button" style={{ padding: '4px 10px', borderRadius: 4, background: '#6B47F5', border: 'none', fontSize: 11, color: '#fff', cursor: 'pointer' }}>View brief</button>
+                    <button type="button" style={{ padding: '4px 10px', borderRadius: 4, background: 'transparent', border: '1px solid rgba(255,255,255,.15)', fontSize: 11, color: 'rgba(255,255,255,.45)', cursor: 'pointer' }}>Dismiss</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style={{ padding: '10px 14px', borderTop: '1px solid rgba(255,255,255,.06)', flexShrink: 0 }}>
+          <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,.05)', borderRadius: 7, fontSize: 11, color: 'rgba(255,255,255,.3)' }}>Message #deal-flow</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MockCalendar() {
+  const days = ['S','M','T','W','T','F','S'];
+  const aprilGrid = [null,null,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30];
+  return (
+    <div style={{ background: '#fff', borderRadius: 10, overflow: 'hidden', height: 420, display: 'flex', flexDirection: 'column', fontFamily: "'Inter',sans-serif" }}>
+      {/* Header */}
+      <div style={{ padding: '8px 14px', background: '#fff', borderBottom: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="1" y="2" width="18" height="17" rx="2" stroke="#4285F4" strokeWidth="1.3" fill="none"/><line x1="1" y1="7" x2="19" y2="7" stroke="#4285F4" strokeWidth="1.1"/><line x1="6" y1="1" x2="6" y2="4" stroke="#4285F4" strokeWidth="1.3" strokeLinecap="round"/><line x1="14" y1="1" x2="14" y2="4" stroke="#4285F4" strokeWidth="1.3" strokeLinecap="round"/></svg>
+        <span style={{ fontSize: 16, fontWeight: 500, color: '#3c4043' }}>April 2026</span>
+      </div>
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        {/* Mini calendar */}
+        <div style={{ width: 180, padding: '10px', borderRight: '1px solid #e8eaed', flexShrink: 0 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '2px 0', marginBottom: 8 }}>
+            {days.map(d => <div key={d} style={{ textAlign: 'center', fontSize: 9, color: '#5f6368', padding: '2px 0', fontWeight: 500 }}>{d}</div>)}
+            {aprilGrid.map((d, i) => (
+              <div key={i} style={{ textAlign: 'center', fontSize: 10, padding: '3px 0', borderRadius: '50%', background: d === 12 ? '#1a73e8' : 'transparent', color: d === 12 ? '#fff' : d ? '#202124' : 'transparent', fontWeight: d === 12 ? 700 : 400 }}>{d || ''}</div>
+            ))}
+          </div>
+          <div style={{ borderTop: '1px solid #e8eaed', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: '#202124', marginBottom: 4 }}>Today</div>
+            {[
+              { time: '10:00', title: 'Team standup', color: '#039be5' },
+              { time: '14:00', title: 'Intro · Alex Wu', color: '#0f9d58', outline: true },
+              { time: '16:30', title: 'LP call · Sequoia', color: '#4285F4' },
+            ].map((ev, i) => (
+              <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                <div style={{ width: 3, height: 28, borderRadius: 2, background: ev.outline ? 'transparent' : ev.color, flexShrink: 0, marginTop: 2, border: ev.outline ? `1.5px solid ${ev.color}` : 'none' }} />
+                <div>
+                  <div style={{ fontSize: 9, color: '#5f6368' }}>{ev.time}</div>
+                  <div style={{ fontSize: 10, color: '#202124', fontWeight: ev.outline ? 600 : 400 }}>{ev.title}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Event detail */}
+        <div style={{ flex: 1, padding: '12px 14px', overflow: 'hidden' }}>
+          <div style={{ fontSize: 16, fontWeight: 500, color: '#202124', marginBottom: 4 }}>Intro · Alex Wu</div>
+          <div style={{ fontSize: 11, color: '#5f6368', marginBottom: 4 }}>Sunday, April 12 · 2:00 – 2:30 PM</div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', background: '#1a73e8', borderRadius: 4, fontSize: 11, color: '#fff', marginBottom: 10 }}>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect width="10" height="10" rx="2" fill="rgba(255,255,255,.25)"/><text x="2" y="8" fontSize="7" fill="white">▷</text></svg>
+            Join Google Meet
+          </div>
+          <div style={{ fontSize: 11, color: '#3c4043', marginBottom: 10 }}>
+            <span style={{ color: '#5f6368' }}>Guests:</span> alex@synthosai.com, you
+          </div>
+          {/* Reidar section */}
+          <div style={{ padding: '9px 10px', background: 'rgba(107,71,245,.05)', border: '1px solid rgba(107,71,245,.2)', borderRadius: 7 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 7 }}>
+              <div style={{ width: 14, height: 14, borderRadius: 3, background: '#6B47F5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{DEMO_HEX}</div>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#5b21b6' }}>Reidar pre-meeting brief</span>
+            </div>
+            <div style={{ padding: '5px 7px', background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.3)', borderRadius: 5, marginBottom: 7 }}>
+              <div style={{ fontSize: 9, fontFamily: "'DM Mono',monospace", color: '#d97706', letterSpacing: '.05em', marginBottom: 2 }}>3 COMPARABLE PASSES</div>
+              <div style={{ fontSize: 10, color: '#3c4043', lineHeight: 1.4 }}>Each passed on GTM weakness. Probe for distribution plan.</div>
+            </div>
+            {[
+              "You're targeting enterprise health systems — who is your first paying customer and how did you close them?",
+              "Thomson Reuters is building natively here. What's your moat in 18 months?",
+            ].map((q, i) => (
+              <div key={i} style={{ display: 'flex', gap: 7, marginBottom: 5 }}>
+                <span style={{ fontSize: 9, fontFamily: "'DM Mono',monospace", color: 'rgba(107,71,245,.6)', flexShrink: 0 }}>0{i+1}</span>
+                <span style={{ fontSize: 10, color: '#3c4043', lineHeight: 1.45 }}>{q}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MockDashboardMatches() {
+  const companies = [
+    { name: 'Corpora AI', score: 91, tag: 'TOP MATCH', tagColor: '#10b981', tagBg: 'rgba(16,185,129,.1)', desc: 'Legal doc automation · Seed · YC W25' },
+    { name: 'FlowBase',   score: 84, tag: 'STRONG FIT', tagColor: '#6B47F5', tagBg: 'rgba(107,71,245,.1)', desc: 'Workflow intelligence · Pre-seed · YC W25' },
+    { name: 'Meridian Health', score: 79, tag: 'POSSIBLE', tagColor: '#f59e0b', tagBg: 'rgba(245,158,11,.08)', desc: 'Clinical ops · Pre-seed · YC W25' },
+    { name: 'Paragon Labs',  score: 76, tag: 'POSSIBLE', tagColor: '#f59e0b', tagBg: 'rgba(245,158,11,.08)', desc: 'Lab data APIs · Seed · YC W25' },
+    { name: 'Vertex AI Ops', score: 72, tag: 'POSSIBLE', tagColor: '#f59e0b', tagBg: 'rgba(245,158,11,.08)', desc: 'MLOps tooling · Pre-seed · YC W25' },
+  ];
+  return (
+    <div style={{ background: '#0a0a0f', borderRadius: 10, overflow: 'hidden', height: 420, display: 'flex', flexDirection: 'column' }}>
+      {/* Nav */}
+      <div style={{ padding: '9px 14px', background: '#0d0d14', borderBottom: '1px solid #1e1e2e', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+        <div style={{ width: 18, height: 18, borderRadius: 4, background: '#6B47F5', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>{DEMO_HEX}</div>
+        {['Coverage','Pipeline','Research','Signals'].map(t => (
+          <div key={t} style={{ padding: '3px 10px', borderRadius: 5, background: t === 'Coverage' ? 'rgba(107,71,245,.18)' : 'transparent', fontSize: 11, color: t === 'Coverage' ? '#A992FA' : 'rgba(235,235,235,.3)', cursor: 'default' }}>{t}</div>
+        ))}
+      </div>
+      {/* Sub-header */}
+      <div style={{ padding: '9px 14px', borderBottom: '1px solid #1e1e2e', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: '#f0f0ff' }}>New mandate matches</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: 'rgba(235,235,235,.35)', letterSpacing: '.05em' }}>YC W25 · 247 INGESTED · 8 MATCHES</span>
+          <span style={{ padding: '2px 7px', background: 'rgba(107,71,245,.15)', borderRadius: 10, fontSize: 9, color: '#A992FA', fontFamily: "'DM Mono',monospace" }}>sourced while away</span>
+        </div>
+      </div>
+      {/* Company cards */}
+      <div style={{ flex: 1, padding: '8px 14px', display: 'flex', flexDirection: 'column', gap: 6, overflow: 'hidden' }}>
+        {companies.map((c, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', background: '#0f0f1a', border: `1px solid ${i === 0 ? 'rgba(16,185,129,.2)' : '#1e1e2e'}`, borderRadius: 7 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 7, background: `rgba(${i===0?'16,185,129':i===1?'107,71,245':'245,158,11'},.12)`, border: `1px solid rgba(${i===0?'16,185,129':i===1?'107,71,245':'245,158,11'},.25)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 11, fontWeight: 700, color: i===0?'#10b981':i===1?'#A992FA':'#f59e0b', fontFamily: "'DM Mono',monospace" }}>{c.score}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#f0f0ff' }}>{c.name}</span>
+                <span style={{ padding: '1px 6px', borderRadius: 4, background: c.tagBg, fontSize: 8, fontFamily: "'DM Mono',monospace", color: c.tagColor, letterSpacing: '.06em' }}>{c.tag}</span>
+              </div>
+              <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: 'rgba(235,235,235,.32)', letterSpacing: '.03em' }}>{c.desc}</div>
+            </div>
+            <div style={{ fontSize: 10, color: 'rgba(235,235,235,.25)', flexShrink: 0 }}>→</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const DEMO_MOCKUPS = {
+  0: <MockGmail />,
+  1: <MockDashboardAgents />,
+  2: <MockSlack />,
+  4: <MockCalendar />,
+  5: <MockDashboardMatches />,
+};
+
+function DealTimeline() {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [animKey, setAnimKey] = useState(0);
+  const [entered, setEntered] = useState(false);
+  const sectionRef = useRef(null);
+  const timerRef = useRef(null);
+  const activeIdxRef = useRef(0);
+  const CYCLE_MS = 4500;
+
+  const goTo = (idx) => {
+    activeIdxRef.current = idx;
+    setActiveIdx(idx);
+    setAnimKey(k => k + 1);
+  };
+
+  useEffect(() => {
+    if (!entered) { clearInterval(timerRef.current); return; }
+    timerRef.current = setInterval(() => {
+      const pos = DEMO_CYCLEABLES.indexOf(activeIdxRef.current);
+      const next = (pos + 1) % DEMO_CYCLEABLES.length;
+      goTo(DEMO_CYCLEABLES[next]);
+    }, CYCLE_MS);
+    return () => clearInterval(timerRef.current);
+  }, [entered]);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => setEntered(e.isIntersecting), { threshold: 0.2 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  const STATS = [
+    { n: '11', label: 'agents dispatched' },
+    { n: '247', label: 'companies ingested' },
+    { n: '8', label: 'mandate matches' },
+    { n: '1', label: 'signal suppressed' },
+  ];
+
+  return (
+    <section id="demo" ref={sectionRef} style={{ padding: '80px 0 96px', background: '#07070A' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 48px' }}>
+        {/* Header */}
+        <div style={{ marginBottom: 40 }}>
+          <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: '.12em', color: '#6B47F5', textTransform: 'uppercase', marginBottom: 12 }}>Ambient intelligence</div>
+          <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(24px,2.8vw,36px)', fontWeight: 700, lineHeight: 1.08, color: '#EBEBEB', letterSpacing: '-.02em', marginBottom: 14, maxWidth: 640 }}>
+            Reidar worked while you were in a two-hour meeting.
+          </h2>
+          <p style={{ fontSize: 14, color: 'rgba(235,235,235,.38)', lineHeight: 1.7, maxWidth: 520 }}>
+            Six trigger events. Five surfaces. No prompts. Here's what happened.
+          </p>
+        </div>
+
+        {/* Stats bar */}
+        <div style={{ display: 'flex', gap: 0, marginBottom: 40, borderTop: '1px solid rgba(255,255,255,.06)', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+          {STATS.map((s, i) => (
+            <div key={i} style={{ flex: 1, padding: '14px 0', paddingLeft: i > 0 ? 24 : 0, borderLeft: i > 0 ? '1px solid rgba(255,255,255,.06)' : 'none', marginLeft: i > 0 ? 0 : 0 }}>
+              <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 22, fontWeight: 700, color: '#f0f0ff', lineHeight: 1, marginBottom: 4 }}>{s.n}</div>
+              <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: 'rgba(235,235,235,.32)', letterSpacing: '.07em' }}>{s.label.toUpperCase()}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Two-panel layout */}
+        <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start' }}>
+          {/* Left: event feed */}
+          <div style={{ width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {DEMO_EVENTS.map((ev, i) => {
+              const isActive = activeIdx === ev.id;
+              const isNoise = ev.id === 3;
+              return (
+                <div
+                  key={ev.id}
+                  onClick={() => {
+                    if (isNoise) return;
+                    clearInterval(timerRef.current);
+                    goTo(ev.id);
+                  }}
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: `1px solid ${isActive ? 'rgba(107,71,245,.35)' : 'rgba(255,255,255,.05)'}`,
+                    background: isActive ? 'rgba(107,71,245,.08)' : 'transparent',
+                    cursor: isNoise ? 'default' : 'pointer',
+                    opacity: isNoise ? 0.38 : 1,
+                    transition: 'border-color .25s ease, background .25s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: 'rgba(235,235,235,.3)', letterSpacing: '.04em', flexShrink: 0 }}>{ev.time}</span>
+                    {ev.surface && (
+                      <span style={{ padding: '1px 6px', borderRadius: 4, background: `rgba(${ev.surfaceColor === '#EA4335' ? '234,67,53' : ev.surfaceColor === '#6B47F5' ? '107,71,245' : ev.surfaceColor === '#4ade80' ? '74,222,128' : '66,133,244'},.12)`, fontSize: 8, fontFamily: "'DM Mono',monospace", color: ev.surfaceColor, letterSpacing: '.05em' }}>{ev.surface}</span>
+                    )}
+                    {isNoise && <span style={{ padding: '1px 6px', borderRadius: 4, background: 'rgba(255,255,255,.05)', fontSize: 8, fontFamily: "'DM Mono',monospace", color: 'rgba(235,235,235,.3)', letterSpacing: '.05em' }}>SUPPRESSED</span>}
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 500, color: isActive ? '#f0f0ff' : 'rgba(235,235,235,.55)', lineHeight: 1.4, marginBottom: 3 }}>{ev.label}</div>
+                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: isActive ? 'rgba(169,146,250,.6)' : 'rgba(235,235,235,.22)', letterSpacing: '.02em' }}>{ev.detail}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Right: mockup */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {DEMO_EVENTS[activeIdx] && DEMO_EVENTS[activeIdx].hasMockup ? (
+              <div key={animKey} style={{ animation: 'fadeUp .35s ease both', boxShadow: '0 8px 48px rgba(0,0,0,.55)', borderRadius: 10 }}>
+                {DEMO_MOCKUPS[activeIdx]}
+              </div>
+            ) : (
+              <div style={{ height: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,.06)', borderRadius: 10 }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: 'rgba(235,235,235,.3)', letterSpacing: '.08em', marginBottom: 8 }}>SIGNAL SUPPRESSED</div>
+                  <div style={{ fontSize: 13, color: 'rgba(235,235,235,.4)' }}>Not every signal needs your attention.<br/>Reidar decides what does.</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 /* ─── THREE MOMENTS ─── */
 const MOMENTS = [
   { tag: "Before every meeting", h: "Walk in knowing everything your firm already knows.", p: "Reidar surfaces your prior contact history, original thesis notes, portfolio conflicts, and suggested angles — generated from your own past decisions, not generic market data." },
@@ -1155,20 +1644,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── 03 DEMO ── */}
-      <section id="demo" style={{ padding: '96px 0' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 48px' }}>
-          <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: '.12em', color: '#6B47F5', textTransform: 'uppercase', marginBottom: 14 }}>See it in action</div>
-            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(26px,3.2vw,40px)', fontWeight: 700, lineHeight: 1.1, color: '#EBEBEB', letterSpacing: '-.01em', marginBottom: 0 }}>Your AI associate, <span style={{ color: 'rgba(235,235,235,.28)' }}>working in the background</span></h2>
-          </div>
-          <div style={{ height: 560, border: '1px solid rgba(255,255,255,.07)', borderRadius: 14, overflow: 'hidden' }}>
-            <ReidarChat />
-          </div>
-          <p style={{ textAlign: 'center', fontSize: 13, color: 'rgba(235,235,235,.25)', marginTop: 20, fontStyle: 'italic' }}>
-            Reidar surfaces the right context at the right moment — without being asked.
-          </p>
-        </div>
-      </section>
+      <DealTimeline />
 
       {/* ── 04 PROBLEM ── */}
       <ThesisSection />
