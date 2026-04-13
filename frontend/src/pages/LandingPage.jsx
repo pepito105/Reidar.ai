@@ -54,7 +54,7 @@ const STYLES = `
   /* SECTION LAYOUT */
   .sec-inner { max-width:1100px;width:100%;padding:0 48px;margin:0 auto; }
   .s-tag { font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.12em;color:#6B47F5;text-transform:uppercase;margin-bottom:14px }
-  .s-h2 { font-family:'Playfair Display',serif;font-size:clamp(26px,3.2vw,40px);font-weight:700;line-height:1.1;color:#EBEBEB;letter-spacing:-.01em;margin-bottom:14px }
+  .s-h2 { font-family:'Syne',sans-serif;font-size:clamp(26px,3.2vw,40px);font-weight:600;line-height:1.1;color:#EBEBEB;letter-spacing:-.02em;margin-bottom:14px }
   .s-h2 em { font-style:normal;color:rgba(235,235,235,.28) }
   .s-p { font-size:15px;font-weight:300;color:rgba(235,235,235,.42);line-height:1.72;max-width:520px }
 
@@ -63,7 +63,7 @@ const STYLES = `
   .hero-content{position:relative;z-index:2;padding:0 24px;max-width:720px;text-align:center;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
   .badge{display:inline-flex;align-items:center;gap:7px;padding:4px 12px;border-radius:100px;border:1px solid rgba(107,71,245,.4);background:rgba(107,71,245,.1);font-family:'DM Mono',monospace;font-size:10px;color:#A992FA;letter-spacing:.06em;margin-bottom:24px;animation:fadeUp .5s .05s both}
   .badge-dot{width:5px;height:5px;border-radius:50%;background:#6B47F5;animation:pulse 2s infinite}
-  .hero-h1{font-family:'Playfair Display',serif;font-size:clamp(32px,4.5vw,58px);font-weight:700;line-height:1.1;color:#EBEBEB;letter-spacing:-.02em;margin-bottom:20px;animation:fadeUp .55s .13s both}
+  .hero-h1{font-family:'Syne',sans-serif;font-size:clamp(32px,4.5vw,58px);font-weight:600;line-height:1.1;color:#EBEBEB;letter-spacing:-.02em;margin-bottom:20px;animation:fadeUp .55s .13s both}
   .hero-sub{font-size:16px;font-weight:300;color:rgba(235,235,235,.45);line-height:1.72;max-width:540px;margin:0 auto 20px;animation:fadeUp .55s .2s both}
   .hero-phrase{font-size:15px;color:#A992FA;letter-spacing:-.01em;margin-bottom:32px;min-height:24px;animation:fadeUp .55s .25s both}
   .hero-cta{display:flex;gap:10px;align-items:center;justify-content:center;animation:fadeUp .55s .27s both}
@@ -1014,7 +1014,7 @@ function DealTimeline() {
         {/* Header */}
         <div style={{ marginBottom: 40 }}>
           <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: '.12em', color: '#6B47F5', textTransform: 'uppercase', marginBottom: 12 }}>One deal. Six weeks.</div>
-          <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(24px,2.8vw,36px)', fontWeight: 700, lineHeight: 1.08, color: '#EBEBEB', letterSpacing: '-.02em', marginBottom: 14, maxWidth: 640 }}>
+          <h2 style={{ fontFamily: "'Syne',sans-serif", fontSize: 'clamp(24px,2.8vw,36px)', fontWeight: 600, lineHeight: 1.08, color: '#EBEBEB', letterSpacing: '-.02em', marginBottom: 14, maxWidth: 640 }}>
             Reidar works across your entire deal lifecycle.
           </h2>
           <p style={{ fontSize: 14, color: 'rgba(235,235,235,.38)', lineHeight: 1.7, maxWidth: 520 }}>
@@ -1441,7 +1441,7 @@ function UseCasesSection() {
           {USE_CASES.map((c, i) => (
             <div key={i} style={{ padding: '28px 24px', background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 12, opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition: `opacity .5s ${80 + i * 120}ms ease, transform .5s ${80 + i * 120}ms ease` }}>
               <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: '.1em', color: 'rgba(107,71,245,.6)', textTransform: 'uppercase', marginBottom: 14 }}>{c.label}</div>
-              <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: '#EBEBEB', letterSpacing: '-.01em', lineHeight: 1.25, marginBottom: 12 }}>{c.h3}</h3>
+              <h3 style={{ fontFamily: "'Syne',sans-serif", fontSize: 18, fontWeight: 600, color: '#EBEBEB', letterSpacing: '-.02em', lineHeight: 1.25, marginBottom: 12 }}>{c.h3}</h3>
               <p style={{ fontSize: 13, color: 'rgba(235,235,235,.42)', lineHeight: 1.72 }}>{c.body}</p>
             </div>
           ))}
