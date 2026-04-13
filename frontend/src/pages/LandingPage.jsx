@@ -1691,7 +1691,7 @@ const CAPABILITY_CARDS = [
   {
     num: '01', title: 'Sourcing Signal',
     body: '60-second triage on every inbound — before you open the email. Pattern-matches against mandate, Pool 2 history, and portfolio conflicts. No web research. Pure signal.',
-    trigger: 'email_received · company_sourced', agentCount: '1 agent',
+    trigger: 'email_received · company_sourced', agentCount: '1 agent', calibration: 'calibrated',
     sections: [
       { label: 'WHAT IT CHECKS', type: 'list', items: [
         'Stage match against fund focus_stages',
@@ -1708,7 +1708,7 @@ const CAPABILITY_CARDS = [
   {
     num: '02', title: 'Market Research',
     body: 'Three parallel agents. Market sizing, timing signals, and investment landscape. Every claim sourced, dated, and confidence-rated. Conflicting figures reported as a range — never averaged.',
-    trigger: 'diligence pipeline · direct', agentCount: '3 agents',
+    trigger: 'diligence pipeline · direct', agentCount: '3 agents', calibration: 'baseline',
     sections: [
       { label: 'THREE RESEARCH AGENTS', type: 'list', items: [
         'M1: Market sizing — TAM/SAM/SOM, growth rate, unit economics benchmarks',
@@ -1722,7 +1722,7 @@ const CAPABILITY_CARDS = [
   {
     num: '03', title: 'Competitive Intelligence',
     body: 'Six agents across three waves. Competitor profiles, pricing, customer sentiment mining, GTM analysis, and strategic signals — from an investor\'s perspective, not a founder\'s.',
-    trigger: 'diligence pipeline · direct', agentCount: '6 agents',
+    trigger: 'diligence pipeline · direct', agentCount: '6 agents', calibration: 'baseline',
     sections: [
       { label: 'SIX AGENTS · THREE WAVES', type: 'list', items: [
         'Wave 1 — C1: competitor deep-dives + C2: pricing intelligence',
@@ -1741,7 +1741,7 @@ const CAPABILITY_CARDS = [
   {
     num: '04', title: 'Founder Assessment',
     body: 'Three research agents on career history, public presence, and team composition. Cross-references your personal conviction patterns from Pool 2. Acqui-hire is not an exit.',
-    trigger: 'diligence pipeline · direct', agentCount: '3 agents',
+    trigger: 'diligence pipeline · direct', agentCount: '3 agents', calibration: 'calibrated',
     sections: [
       { label: 'THREE RESEARCH AGENTS', type: 'list', items: [
         'F1: Career history, prior outcomes (acqui-hire ≠ exit), domain expertise',
@@ -1755,7 +1755,7 @@ const CAPABILITY_CARDS = [
   {
     num: '05', title: 'Positioning Assessment',
     body: 'Dunford 5+1 framework adapted for investment evaluation. Not whether their messaging is compelling — whether the underlying position is real and can be held over time.',
-    trigger: 'diligence pipeline · direct', agentCount: '1 agent',
+    trigger: 'diligence pipeline · direct', agentCount: '1 agent', calibration: 'baseline',
     sections: [
       { label: 'DUNFORD 5+1 FRAMEWORK', type: 'list', items: [
         'Competitive alternatives — what customers use if this company didn\'t exist',
@@ -1775,7 +1775,7 @@ const CAPABILITY_CARDS = [
   {
     num: '06', title: 'Data Room Analysis',
     body: 'Four parallel agents. Every claim extracted, cross-referenced, and verified. Discrepancies and contradictions surface prominently — never buried. Missing documents are findings.',
-    trigger: 'data_room event', agentCount: '4 agents',
+    trigger: 'data_room event', agentCount: '4 agents', calibration: 'calibrated',
     sections: [
       { label: 'FOUR ANALYSIS AGENTS', type: 'list', items: [
         'DR1: Financial model — ARR, growth, unit economics, projection assumptions',
@@ -1790,7 +1790,7 @@ const CAPABILITY_CARDS = [
   {
     num: '07', title: 'Diligence Brief',
     body: 'The synthesis layer. Orchestrates all prior skills, loads Pool 2 firm and member context, and produces a structured brief with three-tier fit scoring and a clear conviction signal.',
-    trigger: 'any pipeline company', agentCount: 'orchestrator',
+    trigger: 'any pipeline company', agentCount: 'orchestrator', calibration: 'calibrated',
     sections: [
       { label: 'WHAT IT ORCHESTRATES', type: 'list', items: [
         'Dispatches all prior skills if not already completed',
@@ -1809,7 +1809,7 @@ const CAPABILITY_CARDS = [
   {
     num: '08', title: 'IC Preparation',
     body: 'Runs when a deal advances to IC. Maps likely objections to the partners most likely to raise them, based on firm reasoning history from Pool 2. Real answers — not rehearsed deflection.',
-    trigger: 'pipeline → ic_review', agentCount: '1 agent',
+    trigger: 'pipeline → ic_review', agentCount: '1 agent', calibration: 'calibrated',
     sections: [
       { label: 'POOL 2 OBJECTION MAPPING', type: 'text', text: 'Loads prior IC discussion signals from firm history. Maps likely objections to the specific partners most likely to raise them — based on their historical patterns from Pool 2. Prepares honest responses with evidence from all prior research. If a partner\'s objection is valid, it\'s acknowledged — not deflected.' },
       { label: 'DECISION FRAMEWORK', type: 'list', items: [
@@ -1833,13 +1833,13 @@ function CapabilitiesSection() {
         {/* Header */}
         <div style={{ maxWidth: 640, marginBottom: 64 }}>
           <div style={{ fontFamily:"'DM Mono',monospace", fontSize:10, letterSpacing:'.12em', color:'#A992FA', textTransform:'uppercase', marginBottom:16, opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition:'opacity .55s ease, transform .55s ease' }}>
-            The skill stack
+            The agent stack
           </div>
           <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(28px,3vw,44px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.1, letterSpacing:'-.02em', marginBottom:20, opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition:'opacity .55s 80ms ease, transform .55s 80ms ease' }}>
-            Eight skills. One pipeline.<br />Every deal.
+            Eight agents. One stack.<br />Gets smarter with every decision your firm makes.
           </h2>
           <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:16, color:'rgba(235,235,235,.5)', lineHeight:1.75, margin:0, opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition:'opacity .55s 160ms ease, transform .55s 160ms ease' }}>
-            From first contact to IC — each skill runs in sequence, dispatched automatically by the event that triggered it. Click any card to see how it works.
+            Each agent fires from the right trigger, produces structured output, and hands off to the next. The stack starts with a generic baseline. After 12 months it reflects exactly how your firm thinks — built from every decision you've made and everything you've told it.
           </p>
         </div>
 
@@ -1876,6 +1876,10 @@ function CapabilitiesSection() {
                 {/* Bottom row */}
                 <div style={{ display:'flex', alignItems:'center', gap:8, paddingLeft:30 }}>
                   <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, letterSpacing:'.06em', color:'rgba(107,71,245,.55)', background:'rgba(107,71,245,.08)', border:'1px solid rgba(107,71,245,.15)', borderRadius:4, padding:'3px 8px' }}>{card.trigger}</span>
+                  <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontFamily:"'DM Mono',monospace", fontSize:9, color: card.calibration === 'calibrated' ? 'rgba(16,185,129,0.6)' : 'rgba(235,235,235,0.2)' }}>
+                    <span style={{ width:4, height:4, borderRadius:'50%', background: card.calibration === 'calibrated' ? '#10b981' : 'rgba(255,255,255,0.15)', flexShrink:0, display:'inline-block' }} />
+                    {card.calibration === 'calibrated' ? 'firm-calibrated' : 'generic baseline'}
+                  </span>
                   <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(235,235,235,.2)' }}>{card.agentCount}</span>
                 </div>
 
@@ -1909,6 +1913,36 @@ function CapabilitiesSection() {
               </div>
             );
           })}
+        </div>
+
+        {/* Callout line */}
+        <div style={{ textAlign:'center', padding:'32px 0 0' }}>
+          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:'rgba(235,235,235,.35)', lineHeight:1.7, margin:0 }}>
+            Every firm starts with the same stack.{' '}
+            <span style={{ color:'rgba(235,235,235,.55)' }}>No two firms end up with the same agent.</span>
+          </p>
+          <p style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:'rgba(107,71,245,.45)', marginTop:8 }}>
+            Skills update from passive signals and direct instruction. Nothing to configure.
+          </p>
+        </div>
+
+        {/* Surfaces row */}
+        <div style={{ marginTop:40 }}>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, textTransform:'uppercase', letterSpacing:'.1em', color:'rgba(235,235,235,.2)', textAlign:'center', marginBottom:16 }}>
+            The stack lives where you already work
+          </div>
+          <div style={{ display:'flex', justifyContent:'center', gap:10 }}>
+            {[
+              { label:'Slack',            color:'#E01E5A', rgb:'224,30,90' },
+              { label:'Gmail',            color:'#EA4335', rgb:'234,67,53' },
+              { label:'Google Calendar',  color:'#4285F4', rgb:'66,133,244' },
+              { label:'Browser Extension',color:'#A992FA', rgb:'169,146,250' },
+            ].map((s) => (
+              <span key={s.label} style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:s.color, background:`rgba(${s.rgb},.08)`, border:`1px solid rgba(${s.rgb},.2)`, borderRadius:20, padding:'5px 14px', letterSpacing:'.06em' }}>
+                {s.label}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     </section>
