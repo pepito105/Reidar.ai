@@ -2366,9 +2366,9 @@ export default function LandingPage() {
   const { isSignedIn } = useAuth();
 
   useEffect(() => {
-    document.title = "Reidar — The Intelligence Layer for Venture Capital";
+    document.title = "Reidar — The AI Agent Stack for Venture Capital";
     const desc = document.querySelector('meta[name="description"]');
-    if (desc) desc.setAttribute('content', "Reidar captures how your firm reasons about investments — from every meeting, email, and decision — and surfaces that intelligence at the moment it matters. The AI associate built for venture capital.");
+    if (desc) desc.setAttribute('content', "Reidar sources, researches, and surfaces intelligence across your entire deal workflow — without being asked. The AI agent stack built around how your firm actually thinks.");
   }, []);
 
   const NavMark = () => (

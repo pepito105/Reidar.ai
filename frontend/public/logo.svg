@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Background: rounded square in brand purple -->
+  <rect width="32" height="32" rx="8" fill="#6B47F5"/>
+  <!-- Subtle inner glow -->
+  <rect width="32" height="32" rx="8" fill="url(#glow)" opacity="0.4"/>
+  <!-- Hexagon mark scaled to 32x32 with 4px padding (working area 24x24, center 16,16) -->
+  <!-- Original points on 14x14: top(7,1) tr(13,4) br(13,10) bot(7,13) bl(1,10) tl(1,4) -->
+  <!-- Scale 24/14 ≈ 1.714, offset 4 -->
+  <path d="M16 5.7L26.3 10.9V21.1L16 26.3L5.7 21.1V10.9Z"
+        stroke="white" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" fill="none" opacity="0.9"/>
+  <!-- Center dot -->
+  <circle cx="16" cy="16" r="2.8" fill="white" opacity="0.95"/>
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="white"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+  </defs>
+</svg>
