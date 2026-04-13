@@ -25,7 +25,8 @@ const STYLES = `
   @keyframes spin      { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
   @keyframes flowLeft  { 0%{right:0;opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{right:100%;opacity:0} }
   @keyframes flowRight { 0%{left:0;opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{left:100%;opacity:0} }
-  @keyframes pulseDot  { 0%,100%{opacity:.4;transform:scale(1)} 50%{opacity:1;transform:scale(1.4)} }
+  @keyframes pulseDot      { 0%,100%{opacity:.4;transform:scale(1)} 50%{opacity:1;transform:scale(1.4)} }
+  @keyframes insightFadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
 
   .typewriter-cursor { display:inline; animation:blink 1s step-end infinite }
 
@@ -1708,6 +1709,217 @@ function ReasoningLayerSection() {
   );
 }
 
+/* ─── PROACTIVE INTELLIGENCE SECTION ─── */
+const INSIGHT_CARDS = [
+  {
+    dot: '#D97706', type: 'Thesis drift', typeColor: '#D97706', time: '2 hours ago',
+    title: 'Your mandate may be filtering out a category you actually believe in.',
+    text: 'You\'ve passed on <strong>14 clinical AI companies</strong> in 18 months. Consistent reason: no enterprise GTM. But <strong>3 are now at Series B</strong> with the same profile.',
+    action: 'Review passes →',
+  },
+  {
+    dot: '#ef4444', type: 'Pipeline health', typeColor: '#ef4444', time: 'Yesterday',
+    title: '8 deals stalled in first_call for 45+ days.',
+    text: 'Your historical close rate from this stage after 6 weeks is <strong>4%</strong>. These deals are unlikely to move without intervention.',
+    action: 'See stalled deals →',
+  },
+  {
+    dot: '#A992FA', type: 'Market signal', typeColor: '#A992FA', time: '3 days ago',
+    title: '4 Tier 1 funds published clinical AI thesis pieces this quarter.',
+    text: 'The window in your most active sector may be closing. <strong>$2.1B deployed</strong> in the last 90 days by funds with deeper pockets.',
+    action: 'See funding activity →',
+  },
+  {
+    dot: '#10b981', type: 'Pattern match', typeColor: '#10b981', time: '1 week ago',
+    title: 'Your last 3 investments diverge from your highest-conviction pattern.',
+    text: 'Your top 6 outcomes came from <strong>technical domain experts with prior exits</strong>. Your last 3 investments were first-time founders.',
+    action: 'See pattern analysis →',
+  },
+];
+
+const PANELS = [
+  {
+    title: 'Thesis drift analysis', sub: 'Clinical AI · 18-month lookback', iconColor: '#D97706',
+    stats: [
+      { label: 'Companies passed',       value: '14',             valueColor: 'rgba(235,235,235,0.6)' },
+      { label: 'Consistent pass reason', value: 'No enterprise GTM', valueColor: '#D97706' },
+      { label: 'Now at Series B',        value: '3 companies',    valueColor: '#10b981' },
+      { label: 'Avg. time to Series B',  value: '14 months',      valueColor: 'rgba(235,235,235,0.6)' },
+    ],
+    bars: [
+      { label: 'Pass rate in clinical AI', pct: 87, color: '#D97706' },
+      { label: 'Sector share of pipeline', pct: 34, color: '#6B47F5' },
+    ],
+    noteSender: 'Reidar · thesis analysis',
+    noteText: 'Your pass rate in clinical AI is <strong>87%</strong> — highest of any sector you track. But 3 passed companies have since raised Series B rounds with the same profile you flagged. The GTM gap may be closing faster than your mandate assumes. Worth revisiting your clinical AI criteria.',
+  },
+  {
+    title: 'Pipeline health report', sub: 'first_call stage · 45+ days stalled', iconColor: '#ef4444',
+    stats: [
+      { label: 'Stalled deals',                      value: '8',       valueColor: '#ef4444' },
+      { label: 'Avg. days in first_call',             value: '61 days', valueColor: 'rgba(235,235,235,0.6)' },
+      { label: 'Historical close rate (6wk+)',         value: '4%',      valueColor: '#ef4444' },
+      { label: 'Deals with no recent activity',        value: '5 of 8',  valueColor: '#D97706' },
+    ],
+    bars: [
+      { label: 'Expected close rate at this stage', pct: 4,  color: '#ef4444' },
+      { label: 'Deals worth reviewing now',          pct: 62, color: '#D97706' },
+    ],
+    noteSender: 'Reidar · pipeline analysis',
+    noteText: 'Based on your historical pattern, deals that stay in first_call beyond 6 weeks almost never close. <strong>5 of these 8</strong> have had no email, call, or calendar activity in over 3 weeks. Recommend either reactivating with a specific ask or moving to passed to keep your pipeline signal clean.',
+  },
+  {
+    title: 'Market compression signal', sub: 'Clinical AI · Q1 2026 activity', iconColor: '#A992FA',
+    stats: [
+      { label: 'Tier 1 thesis pieces published', value: '4 this quarter', valueColor: '#A992FA' },
+      { label: 'Capital deployed (90 days)',      value: '$2.1B',          valueColor: 'rgba(235,235,235,0.6)' },
+      { label: 'Avg. seed valuation change',      value: '+34% YoY',       valueColor: '#D97706' },
+      { label: 'Your pipeline companies in sector', value: '6 active',     valueColor: 'rgba(235,235,235,0.6)' },
+    ],
+    bars: [
+      { label: 'Sector crowding index', pct: 78, color: '#A992FA' },
+    ],
+    noteSender: 'Reidar · market analysis',
+    noteText: 'When Tier 1 funds publish thesis pieces, seed valuations in that sector typically inflate within 2 quarters. <strong>4 funds</strong> have now staked a public position in clinical AI. Your 6 active pipeline companies are likely to see competitive term sheets. Moving faster on your highest-conviction deal may be worth considering.',
+  },
+  {
+    title: 'Investment pattern analysis', sub: 'Personal conviction patterns · all time', iconColor: '#10b981',
+    stats: [
+      { label: 'Top pattern: technical domain expert', value: '6 investments',   valueColor: '#10b981' },
+      { label: 'Outcome rate (top pattern)',            value: '4 of 6 strong',   valueColor: '#10b981' },
+      { label: 'Last 3 investments',                   value: 'First-time founders', valueColor: '#D97706' },
+      { label: 'Outcome rate (divergent pattern)',      value: '1 of 3 strong',   valueColor: 'rgba(235,235,235,0.4)' },
+    ],
+    bars: [
+      { label: 'Technical domain expert outcome rate', pct: 67, color: '#10b981' },
+      { label: 'First-time founder outcome rate',      pct: 33, color: '#D97706' },
+    ],
+    noteSender: 'Reidar · pattern analysis',
+    noteText: 'This isn\'t a rule — it\'s a pattern from your own history. Your last 3 investments diverge from the founder profile where you\'ve had the strongest outcomes. Worth being deliberate about whether the thesis has shifted or whether this is drift. <strong>No recommendation</strong> — just surfacing what the data shows.',
+  },
+];
+
+const PANEL_HEX = (color) => (
+  <svg viewBox="0 0 14 14" width="12" height="12" fill="none">
+    <path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke={color} strokeWidth="1.5" fill="none"/>
+    <circle cx="7" cy="7" r="2.2" fill={color}/>
+  </svg>
+);
+
+function ProactiveIntelligenceSection() {
+  const [activeInsight, setActiveInsight] = useState(0);
+  const [animKey, setAnimKey] = useState(0);
+  const [entered, ref] = useSectionEntry();
+  const T = (d) => ({ opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition: `opacity .55s ${d}ms ease, transform .55s ${d}ms ease` });
+
+  const panel = PANELS[activeInsight];
+  const card  = INSIGHT_CARDS[activeInsight];
+
+  return (
+    <section ref={ref} style={{ borderTop: '1px solid rgba(255,255,255,0.04)', padding: '120px 0' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 48px' }}>
+
+        {/* Header */}
+        <div style={{ maxWidth: 640, marginBottom: 48 }}>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:10, textTransform:'uppercase', letterSpacing:'0.12em', color:'rgba(107,71,245,0.55)', marginBottom:14, ...T(0) }}>
+            Proactive intelligence
+          </div>
+          <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(32px,3.5vw,44px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.1, letterSpacing:'-0.02em', marginBottom:16, ...T(80) }}>
+            Reidar tells you what <span style={{ color:'#A992FA' }}>you didn't think to ask.</span>
+          </h2>
+          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:17, color:'rgba(235,235,235,0.45)', lineHeight:1.7, maxWidth:520, margin:'0 0 0', ...T(160) }}>
+            Reidar watches your entire deal flow and surfaces patterns you'd never notice manually — thesis drift, stalled pipeline, market compression, conviction patterns. Not because you asked. Because it noticed.
+          </p>
+        </div>
+
+        {/* Two-column grid */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, alignItems:'start' }}>
+
+          {/* LEFT — insight feed */}
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            {INSIGHT_CARDS.map((c, idx) => {
+              const isActive = activeInsight === idx;
+              return (
+                <div
+                  key={idx}
+                  onClick={() => { setActiveInsight(idx); setAnimKey(k => k + 1); }}
+                  style={{
+                    background: '#0C0C10',
+                    border: `1px solid ${isActive ? 'rgba(107,71,245,0.3)' : 'rgba(255,255,255,0.07)'}`,
+                    borderRadius: 10, overflow:'hidden', cursor:'pointer',
+                    transition:'border-color 0.2s ease',
+                    opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)',
+                    transition2: `border-color 0.2s ease, opacity .55s ${120 + idx * 80}ms ease, transform .55s ${120 + idx * 80}ms ease`,
+                  }}
+                >
+                  {/* Header row */}
+                  <div style={{ padding:'11px 14px', borderBottom:'1px solid rgba(255,255,255,0.05)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+                      <span style={{ width:6, height:6, borderRadius:'50%', background:c.dot, display:'inline-block', flexShrink:0 }} />
+                      <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, textTransform:'uppercase', letterSpacing:'0.08em', color:c.typeColor }}>{c.type}</span>
+                    </div>
+                    <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(235,235,235,0.2)' }}>{c.time}</span>
+                  </div>
+                  {/* Body */}
+                  <div style={{ padding:'12px 14px' }}>
+                    <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:500, color:'rgba(235,235,235,0.8)', marginBottom:6, lineHeight:1.4 }}>{c.title}</div>
+                    <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:'rgba(235,235,235,0.45)', lineHeight:1.65, marginBottom:10 }} dangerouslySetInnerHTML={{ __html: c.text.replace(/<strong>/g, '<strong style="color:rgba(235,235,235,0.7);font-weight:500">') }} />
+                    <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(107,71,245,0.6)', letterSpacing:'0.04em' }}>{c.action}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* RIGHT — detail panel */}
+          <div key={animKey} style={{ background:'#0C0C10', border:'1px solid rgba(255,255,255,0.07)', borderRadius:10, overflow:'hidden', minHeight:340, animation:'insightFadeIn 0.25s ease both' }}>
+            {/* Panel header */}
+            <div style={{ padding:'12px 16px', borderBottom:'1px solid rgba(255,255,255,0.06)', background:'rgba(255,255,255,0.02)', display:'flex', alignItems:'center', gap:10 }}>
+              <div style={{ width:28, height:28, borderRadius:7, background:'rgba(107,71,245,0.12)', border:'1px solid rgba(107,71,245,0.2)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                {PANEL_HEX(panel.iconColor)}
+              </div>
+              <div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:500, color:'#EBEBEB' }}>{panel.title}</div>
+                <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(235,235,235,0.3)', marginTop:2 }}>{panel.sub}</div>
+              </div>
+            </div>
+            {/* Panel body */}
+            <div style={{ padding:16 }}>
+              {/* Stat rows */}
+              {panel.stats.map((s, si) => (
+                <div key={si} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom: si < panel.stats.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                  <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:'rgba(235,235,235,0.4)' }}>{s.label}</span>
+                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:s.valueColor }}>{s.value}</span>
+                </div>
+              ))}
+              {/* Bar rows */}
+              <div style={{ marginTop:14 }}>
+                {panel.bars.map((b, bi) => (
+                  <div key={bi}>
+                    <div style={{ display:'flex', justifyContent:'space-between', marginBottom:5 }}>
+                      <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(235,235,235,0.3)' }}>{b.label}</span>
+                      <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(235,235,235,0.3)' }}>{b.pct}%</span>
+                    </div>
+                    <div style={{ height:3, background:'rgba(255,255,255,0.06)', borderRadius:2, overflow:'hidden', marginBottom:10 }}>
+                      <div style={{ height:'100%', width:`${b.pct}%`, background:b.color, borderRadius:2 }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Reidar note */}
+              <div style={{ marginTop:14, padding:'10px 12px', background:'rgba(107,71,245,0.06)', border:'1px solid rgba(107,71,245,0.15)', borderRadius:7 }}>
+                <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'#A992FA', marginBottom:5, letterSpacing:'0.04em' }}>{panel.noteSender}</div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:'rgba(235,235,235,0.55)', lineHeight:1.6 }} dangerouslySetInnerHTML={{ __html: panel.noteText.replace(/<strong>/g, '<strong style="color:rgba(235,235,235,0.75);font-weight:500">') }} />
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── PIPELINE SECTION ─── */
 const TRIGGER_ROWS = [
   { trigger:'Email received',    agent:'Sourcing signal',       surface:'Slack',          dot:'#4ade80' },
@@ -2349,7 +2561,10 @@ export default function LandingPage() {
       {/* ── 05 REASONING LAYER ── */}
       <ReasoningLayerSection />
 
-      {/* ── 06 PIPELINE ── */}
+      {/* ── 06 PROACTIVE INTELLIGENCE ── */}
+      <ProactiveIntelligenceSection />
+
+      {/* ── 07 PIPELINE ── */}
       <PipelineSection />
 
       {/* ── 07 INTEGRATIONS ── */}
