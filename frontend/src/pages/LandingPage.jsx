@@ -59,8 +59,8 @@ const STYLES = `
   .sec-inner { max-width:1100px;width:100%;padding:0 48px;margin:0 auto; }
   .s-tag { font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.12em;color:#6B47F5;text-transform:uppercase;margin-bottom:14px }
   .s-h2 { font-family:'Syne',sans-serif;font-size:clamp(26px,3.2vw,40px);font-weight:600;line-height:1.1;color:#EBEBEB;letter-spacing:-.02em;margin-bottom:14px }
-  .s-h2 em { font-style:normal;color:rgba(235,235,235,.28) }
-  .s-p { font-size:15px;font-weight:300;color:rgba(235,235,235,.42);line-height:1.72;max-width:520px }
+  .s-h2 em { font-style:normal;color:rgba(235,235,235,.42) }
+  .s-p { font-size:15px;font-weight:400;color:rgba(235,235,235,.62);line-height:1.72;max-width:520px }
 
   /* HERO */
   .hero-wrap{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;padding-top:56px}
@@ -68,7 +68,7 @@ const STYLES = `
   .badge{display:inline-flex;align-items:center;gap:7px;padding:4px 12px;border-radius:100px;border:1px solid rgba(107,71,245,.4);background:rgba(107,71,245,.1);font-family:'DM Mono',monospace;font-size:10px;color:#A992FA;letter-spacing:.06em;margin-bottom:24px;animation:fadeUp .5s .05s both}
   .badge-dot{width:5px;height:5px;border-radius:50%;background:#6B47F5;animation:pulse 2s infinite}
   .hero-h1{font-family:'Syne',sans-serif;font-size:clamp(32px,4.5vw,58px);font-weight:600;line-height:1.1;color:#EBEBEB;letter-spacing:-.02em;margin-bottom:20px;animation:fadeUp .55s .13s both}
-  .hero-sub{font-size:16px;font-weight:300;color:rgba(235,235,235,.45);line-height:1.72;max-width:540px;margin:0 auto 20px;animation:fadeUp .55s .2s both}
+  .hero-sub{font-size:16px;font-weight:400;color:rgba(235,235,235,.62);line-height:1.72;max-width:540px;margin:0 auto 20px;animation:fadeUp .55s .2s both}
   .hero-phrase{font-size:15px;color:#A992FA;letter-spacing:-.01em;margin-bottom:32px;min-height:24px;animation:fadeUp .55s .25s both}
   .hero-cta{display:flex;gap:10px;align-items:center;justify-content:center;animation:fadeUp .55s .27s both}
   .btn-lg{font:15px/1 'Inter',sans-serif;font-weight:500;color:#fff;background:#6B47F5;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;transition:all .15s;box-shadow:0 0 24px rgba(107,71,245,.4)}
@@ -106,10 +106,10 @@ const STYLES = `
   .moment-active .moment-num{color:#A992FA}
   .moment-tag{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(235,235,235,.22);margin-bottom:10px}
   .moment-active .moment-tag{color:rgba(107,71,245,.55)}
-  .moment-h{font-size:14px;font-weight:600;color:rgba(235,235,235,.5);margin-bottom:9px;line-height:1.3}
+  .moment-h{font-size:14px;font-weight:600;color:rgba(235,235,235,.62);margin-bottom:9px;line-height:1.3}
   .moment-active .moment-h{color:#EBEBEB}
-  .moment-p{font-size:11px;color:rgba(235,235,235,.28);line-height:1.65}
-  .moment-active .moment-p{color:rgba(235,235,235,.45)}
+  .moment-p{font-size:11px;color:rgba(235,235,235,.42);line-height:1.65}
+  .moment-active .moment-p{color:rgba(235,235,235,.62)}
   .moment-prog{height:1.5px;background:rgba(255,255,255,.05);border-radius:1px;margin-top:18px;overflow:hidden}
   .moment-active .moment-prog{background:rgba(107,71,245,.18)}
   .moment-prog-bar{height:100%;background:#6B47F5;border-radius:1px}
@@ -236,7 +236,7 @@ function FaqItem({ q, a }) {
         <span style={{ color: 'rgba(235,235,235,.35)', fontSize: 20, lineHeight: 1, flexShrink: 0, marginLeft: 16, transform: open ? 'rotate(45deg)' : 'none', transition: 'transform .2s ease', fontFamily: 'monospace', display: 'inline-block' }}>+</span>
       </button>
       {open && (
-        <p style={{ fontSize: 14, color: 'rgba(235,235,235,.45)', lineHeight: 1.75, margin: 0, fontFamily: "'Inter',sans-serif" }}>{a}</p>
+        <p style={{ fontSize: 14, color: 'rgba(235,235,235,.62)', lineHeight: 1.75, margin: 0, fontFamily: "'Inter',sans-serif" }}>{a}</p>
       )}
     </div>
   );
@@ -1301,7 +1301,7 @@ function IntegrationsOrbit() {
               <button type="button" onClick={() => { setSelected(null); pausedRef.current = false; }} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'rgba(235,235,235,.25)', cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 4 }}>×</button>
             </div>
             <div style={{ height: 1, background: 'rgba(255,255,255,.06)', marginBottom: 14 }} />
-            <div style={{ fontSize: 12, color: 'rgba(235,235,235,.42)', lineHeight: 1.6 }}>{selInt.desc}</div>
+            <div style={{ fontSize: 12, color: 'rgba(235,235,235,.62)', lineHeight: 1.6 }}>{selInt.desc}</div>
             <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
               <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(107,71,245,.5)', animation: 'pulse 2s infinite' }} />
               <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: 'rgba(235,235,235,.2)', letterSpacing: '.06em' }}>On the roadmap</span>
@@ -1352,7 +1352,7 @@ function ProblemSection() {
                 <div key={i} style={{ background:'#0C0C10', border:'1px solid rgba(255,255,255,.06)', borderRadius:10, padding:20, opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(14px)', transition: `opacity .45s ${100 + i * 100}ms ease, transform .45s ${100 + i * 100}ms ease` }}>
                   <div style={{ fontSize:13, fontWeight:500, color:'#EBEBEB', marginBottom:4 }}>{c.name}</div>
                   <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(235,235,235,.28)', letterSpacing:'.04em', marginBottom:10 }}>{c.tag}</div>
-                  <p style={{ fontSize:12, color:'rgba(235,235,235,.45)', lineHeight:1.6, margin:0 }}>{c.desc}</p>
+                  <p style={{ fontSize:12, color:'rgba(235,235,235,.62)', lineHeight:1.6, margin:0 }}>{c.desc}</p>
                 </div>
               ))}
             </div>
@@ -1446,7 +1446,7 @@ function UseCasesSection() {
             <div key={i} style={{ padding: '28px 24px', background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 12, opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition: `opacity .5s ${80 + i * 120}ms ease, transform .5s ${80 + i * 120}ms ease` }}>
               <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: '.1em', color: 'rgba(107,71,245,.6)', textTransform: 'uppercase', marginBottom: 14 }}>{c.label}</div>
               <h3 style={{ fontFamily: "'Syne',sans-serif", fontSize: 18, fontWeight: 600, color: '#EBEBEB', letterSpacing: '-.02em', lineHeight: 1.25, marginBottom: 12 }}>{c.h3}</h3>
-              <p style={{ fontSize: 13, color: 'rgba(235,235,235,.42)', lineHeight: 1.72 }}>{c.body}</p>
+              <p style={{ fontSize: 13, color: 'rgba(235,235,235,.62)', lineHeight: 1.72 }}>{c.body}</p>
             </div>
           ))}
         </div>
@@ -1639,7 +1639,7 @@ function ReasoningLayerSection() {
         <div style={{ maxWidth:640, margin:'0 auto', textAlign:'center', marginBottom:56 }}>
           <div style={{ fontFamily:"'DM Mono',monospace", fontSize:10, letterSpacing:'.12em', color:'#A992FA', textTransform:'uppercase', marginBottom:16, ...T(0) }}>What makes Reidar different</div>
           <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(28px,3vw,44px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.1, letterSpacing:'-.02em', marginBottom:20, ...T(80) }}>Not a database.<br />A reasoning layer.</h2>
-          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:17, color:'rgba(235,235,235,.5)', lineHeight:1.7, margin:0, ...T(160) }}>Other tools store what happened. Reidar structures how you thought about it — and retrieves that reasoning at the moment it matters again.</p>
+          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:17, color:'rgba(235,235,235,.68)', lineHeight:1.7, margin:0, ...T(160) }}>Other tools store what happened. Reidar structures how you thought about it — and retrieves that reasoning at the moment it matters again.</p>
         </div>
 
         {/* Architecture diagram — full width, no cards below */}
@@ -1968,7 +1968,7 @@ function CtaSection() {
         <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(30px,3.5vw,48px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.1, letterSpacing:'-.02em', marginBottom:20, ...T(80) }}>
           Your firm's intelligence layer.<br />Compounding from day one.
         </h2>
-        <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:17, color:'rgba(235,235,235,.5)', lineHeight:1.7, marginBottom:40, ...T(80) }}>
+        <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:17, color:'rgba(235,235,235,.68)', lineHeight:1.7, marginBottom:40, ...T(80) }}>
           Set up in under an hour. No analyst required. Gets smarter with every decision your firm makes.
         </p>
         <button className="btn-lg" style={{ ...T(160) }} onClick={() => window.location.href = SIGN_UP_URL}>Request early access →</button>
@@ -2195,7 +2195,7 @@ function CapabilitiesSection() {
           <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(28px,3vw,44px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.1, letterSpacing:'-.02em', marginBottom:20, opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition:'opacity .55s 80ms ease, transform .55s 80ms ease' }}>
             Eleven sub-agents. One analyst.<br />Across your entire workflow.
           </h2>
-          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:16, color:'rgba(235,235,235,.5)', lineHeight:1.75, margin:0, opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition:'opacity .55s 160ms ease, transform .55s 160ms ease' }}>
+          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:16, color:'rgba(235,235,235,.68)', lineHeight:1.75, margin:0, opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition:'opacity .55s 160ms ease, transform .55s 160ms ease' }}>
             Reidar isn't a tool you go to. When a trigger fires — an inbound lands, a transcript arrives, a calendar invite appears — it deploys the right sub-agent automatically. Every sub-agent knows your mandate, learns from every decision, and gets smarter without being configured.
           </p>
         </div>
@@ -2228,7 +2228,7 @@ function CapabilitiesSection() {
                 </div>
 
                 {/* Body */}
-                <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:'rgba(235,235,235,.45)', lineHeight:1.65, margin:'0 0 14px', paddingLeft:30 }}>{card.body}</p>
+                <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:'rgba(235,235,235,.62)', lineHeight:1.65, margin:'0 0 14px', paddingLeft:30 }}>{card.body}</p>
 
                 {/* Bottom row */}
                 <div style={{ display:'flex', alignItems:'center', gap:8, paddingLeft:30 }}>
@@ -2251,7 +2251,7 @@ function CapabilitiesSection() {
                             {sec.items.map((item, ii) => (
                               <div key={ii} style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
                                 <div style={{ width:4, height:4, borderRadius:'50%', background:'rgba(107,71,245,.6)', flexShrink:0, marginTop:5 }} />
-                                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:'rgba(235,235,235,.45)', lineHeight:1.55 }}>{item}</span>
+                                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:'rgba(235,235,235,.62)', lineHeight:1.55 }}>{item}</span>
                               </div>
                             ))}
                           </div>
@@ -2317,7 +2317,7 @@ function CapabilitiesSection() {
 
         {/* Callout line */}
         <div style={{ textAlign:'center', padding:'32px 0 0' }}>
-          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:'rgba(235,235,235,.35)', lineHeight:1.7, margin:0 }}>
+          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:'rgba(235,235,235,.52)', lineHeight:1.7, margin:0 }}>
             Eleven sub-agents from day one.{' '}
             <span
               style={{ color:'#A992FA', textDecoration:'underline', textDecorationColor:'rgba(169,146,250,0.35)', cursor:'pointer' }}
@@ -2502,7 +2502,7 @@ export default function LandingPage() {
               <span style={{ fontSize:'clamp(38px,4.5vw,56px)', color:'#EBEBEB', display:'block' }}>The AI analyst for venture capital.</span>
               <span style={{ fontSize:'clamp(24px,2.8vw,36px)', color:'#A992FA', display:'block', marginTop:8 }}>Your firm's intelligence layer,<br />compounding from day one.</span>
             </h1>
-            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:17, color:'rgba(235,235,235,0.5)', lineHeight:1.75, marginBottom:36, maxWidth:460 }}>
+            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:17, color:'rgba(235,235,235,0.68)', lineHeight:1.75, marginBottom:36, maxWidth:460 }}>
               Sourcing, researching, and surfacing intelligence across your entire workflow — without being asked. Built around how your firm actually thinks.
             </p>
             <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
