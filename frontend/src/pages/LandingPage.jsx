@@ -1686,6 +1686,235 @@ const HERO_PHRASES = [
   "Your edge, compounding from day one.",
 ];
 
+/* ─── CAPABILITIES SECTION ─── */
+const CAPABILITY_CARDS = [
+  {
+    num: '01', title: 'Sourcing Signal',
+    body: '60-second triage on every inbound — before you open the email. Pattern-matches against mandate, Pool 2 history, and portfolio conflicts. No web research. Pure signal.',
+    trigger: 'email_received · company_sourced', agentCount: '1 agent',
+    sections: [
+      { label: 'WHAT IT CHECKS', type: 'list', items: [
+        'Stage match against fund focus_stages',
+        'Sector exclusions — touches excluded_sectors?',
+        'Geography — HQ in focus_geographies?',
+        'Business model exclusions',
+        'Portfolio conflicts from firm pipeline',
+        'Pool 2 prior encounter check — has this firm seen this before?',
+      ]},
+      { label: 'SIGNAL OUTPUT', type: 'text', text: 'GO: passes hard filters, run vc-diligence-brief. WATCH: specific condition would change signal either way — not a hedge. PASS: fails hard filter or clearly outside mandate. Second encounter triggers delta analysis. "Insufficient information to triage" is a valid output.' },
+    ],
+    keyOutput: 'Signal card in Slack — before you open the email',
+  },
+  {
+    num: '02', title: 'Market Research',
+    body: 'Three parallel agents. Market sizing, timing signals, and investment landscape. Every claim sourced, dated, and confidence-rated. Conflicting figures reported as a range — never averaged.',
+    trigger: 'diligence pipeline · direct', agentCount: '3 agents',
+    sections: [
+      { label: 'THREE RESEARCH AGENTS', type: 'list', items: [
+        'M1: Market sizing — TAM/SAM/SOM, growth rate, unit economics benchmarks',
+        'M2: Timing signals — regulatory, infrastructure, and behavioral tailwinds',
+        'M3: Investment landscape — VC activity, M&A, tier 1 fund thesis signals',
+      ]},
+      { label: 'SOURCE QUALITY', type: 'text', text: 'Tier 1 (Gartner, IDC, McKinsey, SEC filings) / Tier 2 (TechCrunch, WSJ, Bloomberg) / Tier 3 (blogs, vendor reports). If estimates vary by more than 3× across sources, the full range is reported with source credibility explained. Tier 3 data is never presented as Tier 1.' },
+    ],
+    keyOutput: 'market-research.md with confidence dashboard and data gaps',
+  },
+  {
+    num: '03', title: 'Competitive Intelligence',
+    body: 'Six agents across three waves. Competitor profiles, pricing, customer sentiment mining, GTM analysis, and strategic signals — from an investor\'s perspective, not a founder\'s.',
+    trigger: 'diligence pipeline · direct', agentCount: '6 agents',
+    sections: [
+      { label: 'SIX AGENTS · THREE WAVES', type: 'list', items: [
+        'Wave 1 — C1: competitor deep-dives + C2: pricing intelligence',
+        'Wave 2 — C3: review mining (G2, Capterra, Reddit) + C4: forum/community mining',
+        'Wave 3 — C5: GTM analysis + C6: strategic signals (hiring patterns, funding, M&A)',
+      ]},
+      { label: 'INVESTMENT LENS', type: 'list', items: [
+        'Moat type — network effect / data / switching cost / brand / none',
+        'Moat durability — durable / moderate / temporary',
+        'Build vs. buy risk — would an incumbent build this if the market is proven?',
+        'Window assessment — open / closing / closed',
+      ]},
+    ],
+    keyOutput: 'competitive-intelligence.md + individual battle cards per competitor',
+  },
+  {
+    num: '04', title: 'Founder Assessment',
+    body: 'Three research agents on career history, public presence, and team composition. Cross-references your personal conviction patterns from Pool 2. Acqui-hire is not an exit.',
+    trigger: 'diligence pipeline · direct', agentCount: '3 agents',
+    sections: [
+      { label: 'THREE RESEARCH AGENTS', type: 'list', items: [
+        'F1: Career history, prior outcomes (acqui-hire ≠ exit), domain expertise',
+        'F2: Public presence, press interviews, reference network',
+        'F3: Team composition, co-working history, advisory board quality',
+      ]},
+      { label: 'PERSONAL PATTERN MATCHING', type: 'text', text: 'Cross-references conviction_patterns from Pool 2 — surfaces whether this founder profile matches your historical backing pattern. "You have backed 6 founders with this profile. 4 had strong outcomes." Patterns include: technical_domain_expert, prior_exit, first_time_founder, repeat_founder.' },
+    ],
+    keyOutput: 'founder-assessment.md with pattern match rating and hard questions for first call',
+  },
+  {
+    num: '05', title: 'Positioning Assessment',
+    body: 'Dunford 5+1 framework adapted for investment evaluation. Not whether their messaging is compelling — whether the underlying position is real and can be held over time.',
+    trigger: 'diligence pipeline · direct', agentCount: '1 agent',
+    sections: [
+      { label: 'DUNFORD 5+1 FRAMEWORK', type: 'list', items: [
+        'Competitive alternatives — what customers use if this company didn\'t exist',
+        'Unique attributes with durability rating: Durable / Temporary / Unverified',
+        'Value translation — what each unique attribute enables for the customer',
+        'Best-fit customer — specific behavioral definition, not demographic',
+        'Market category strategy: head-to-head / subcategory / category creation',
+      ]},
+      { label: 'THREE STRESS TESTS', type: 'list', items: [
+        'Onliness Test — Convincing / Stretch / Cannot be stated',
+        'Mental Ladder Test — is the rung available, or does a competitor own it?',
+        'Incumbent Response Test — what survives a well-funded attack in 18 months?',
+      ]},
+    ],
+    keyOutput: 'positioning-assessment.md with moat type, moat durability, and positioning strength rating',
+  },
+  {
+    num: '06', title: 'Data Room Analysis',
+    body: 'Four parallel agents. Every claim extracted, cross-referenced, and verified. Discrepancies and contradictions surface prominently — never buried. Missing documents are findings.',
+    trigger: 'data_room event', agentCount: '4 agents',
+    sections: [
+      { label: 'FOUR ANALYSIS AGENTS', type: 'list', items: [
+        'DR1: Financial model — ARR, growth, unit economics, projection assumptions',
+        'DR2: Claims register — every factual claim extracted from every document',
+        'DR3: Consistency checker — cross-references all claims against each other and all prior research',
+        'DR4: Cap table and legal — ownership, option pool, liquidation preferences, IP flags',
+      ]},
+      { label: 'VERIFICATION SYSTEM', type: 'text', text: 'Every claim receives one of five statuses: VERIFIED · CONSISTENT · UNVERIFIED · DISCREPANCY · CONTRADICTION. Discrepancies and contradictions surface at the top of the output — never in a footnote. Inconsistencies are never rationalized.' },
+    ],
+    keyOutput: 'dataroom-analysis.md with claims register, discrepancy report, and follow-up questions',
+  },
+  {
+    num: '07', title: 'Diligence Brief',
+    body: 'The synthesis layer. Orchestrates all prior skills, loads Pool 2 firm and member context, and produces a structured brief with three-tier fit scoring and a clear conviction signal.',
+    trigger: 'any pipeline company', agentCount: 'orchestrator',
+    sections: [
+      { label: 'WHAT IT ORCHESTRATES', type: 'list', items: [
+        'Dispatches all prior skills if not already completed',
+        'Loads firm-level Pool 2: pass patterns, comparable deals, partner objections',
+        'Loads member-level Pool 2: personal conviction patterns, sector focus',
+        'Mandatory research gate before synthesis — pauses to confirm findings align with GP\'s read',
+      ]},
+      { label: 'THREE-TIER FIT SCORING', type: 'list', items: [
+        'Fund fit — hard filters: stage / check size / geography / exclusions',
+        'Member fit — personal pattern match against conviction history',
+        'Overall signal — 1–5 conviction score with specific next action',
+      ]},
+    ],
+    keyOutput: 'Full diligence brief with fit score, comparable passes from firm history, and 3 suggested questions for first call',
+  },
+  {
+    num: '08', title: 'IC Preparation',
+    body: 'Runs when a deal advances to IC. Maps likely objections to the partners most likely to raise them, based on firm reasoning history from Pool 2. Real answers — not rehearsed deflection.',
+    trigger: 'pipeline → ic_review', agentCount: '1 agent',
+    sections: [
+      { label: 'POOL 2 OBJECTION MAPPING', type: 'text', text: 'Loads prior IC discussion signals from firm history. Maps likely objections to the specific partners most likely to raise them — based on their historical patterns from Pool 2. Prepares honest responses with evidence from all prior research. If a partner\'s objection is valid, it\'s acknowledged — not deflected.' },
+      { label: 'DECISION FRAMEWORK', type: 'list', items: [
+        'What we know — high confidence findings with source',
+        'What we believe — medium confidence assessments',
+        'What we don\'t know — explicit unknowns after all research',
+        'What would make us yes / what would make us pass',
+      ]},
+    ],
+    keyOutput: 'ic-prep.md with objection responses, bull cases in Dunford format, and open items before close',
+  },
+];
+
+function CapabilitiesSection() {
+  const [expandedCard, setExpandedCard] = useState(null);
+  const [entered, ref] = useSectionEntry();
+
+  return (
+    <section ref={ref} style={{ padding: '120px 0', borderTop: '1px solid rgba(255,255,255,.04)' }}>
+      <div className="sec-inner">
+        {/* Header */}
+        <div style={{ maxWidth: 640, marginBottom: 64 }}>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:10, letterSpacing:'.12em', color:'#A992FA', textTransform:'uppercase', marginBottom:16, opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition:'opacity .55s ease, transform .55s ease' }}>
+            The skill stack
+          </div>
+          <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(28px,3vw,44px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.1, letterSpacing:'-.02em', marginBottom:20, opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition:'opacity .55s 80ms ease, transform .55s 80ms ease' }}>
+            Eight skills. One pipeline.<br />Every deal.
+          </h2>
+          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:16, color:'rgba(235,235,235,.5)', lineHeight:1.75, margin:0, opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition:'opacity .55s 160ms ease, transform .55s 160ms ease' }}>
+            From first contact to IC — each skill runs in sequence, dispatched automatically by the event that triggered it. Click any card to see how it works.
+          </p>
+        </div>
+
+        {/* Cards grid */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+          {CAPABILITY_CARDS.map((card, idx) => {
+            const isExp = expandedCard === idx;
+            return (
+              <div
+                key={idx}
+                onClick={() => setExpandedCard(prev => prev === idx ? null : idx)}
+                style={{
+                  background: '#0C0C10',
+                  border: `1px solid ${isExp ? 'rgba(107,71,245,0.25)' : 'rgba(255,255,255,.06)'}`,
+                  borderRadius: 10, padding: 20, position: 'relative', cursor: 'pointer',
+                  opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)',
+                  transition: `border-color 0.3s ease, opacity .55s ${100 + idx * 60}ms ease, transform .55s ${100 + idx * 60}ms ease`,
+                }}
+              >
+                {/* Chevron */}
+                <svg viewBox="0 0 12 12" width="12" height="12" fill="none" style={{ position:'absolute', top:16, right:16, color: isExp ? '#A992FA' : 'rgba(235,235,235,0.2)', transform: isExp ? 'rotate(180deg)' : 'rotate(0deg)', transition:'transform 0.3s ease, color 0.3s ease' }}>
+                  <polyline points="2,4 6,8 10,4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                </svg>
+
+                {/* Card header */}
+                <div style={{ display:'flex', alignItems:'flex-start', gap:12, marginBottom:12, paddingRight:24 }}>
+                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'rgba(107,71,245,.5)', letterSpacing:'.08em', flexShrink:0, marginTop:2 }}>{card.num}</span>
+                  <div style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:600, color: isExp ? '#EBEBEB' : 'rgba(235,235,235,.75)', transition:'color 0.2s ease' }}>{card.title}</div>
+                </div>
+
+                {/* Body */}
+                <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:'rgba(235,235,235,.45)', lineHeight:1.65, margin:'0 0 14px', paddingLeft:30 }}>{card.body}</p>
+
+                {/* Bottom row */}
+                <div style={{ display:'flex', alignItems:'center', gap:8, paddingLeft:30 }}>
+                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, letterSpacing:'.06em', color:'rgba(107,71,245,.55)', background:'rgba(107,71,245,.08)', border:'1px solid rgba(107,71,245,.15)', borderRadius:4, padding:'3px 8px' }}>{card.trigger}</span>
+                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(235,235,235,.2)' }}>{card.agentCount}</span>
+                </div>
+
+                {/* Expanded panel */}
+                <div style={{ maxHeight: isExp ? '600px' : '0px', opacity: isExp ? 1 : 0, overflow:'hidden', transition:'max-height 0.3s ease, opacity 0.3s ease' }}>
+                  <div style={{ borderTop:'1px solid rgba(255,255,255,.06)', paddingTop:16, marginTop:16 }}>
+                    {card.sections.map((sec, si) => (
+                      <div key={si} style={{ marginBottom: si < card.sections.length - 1 ? 16 : 0 }}>
+                        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, textTransform:'uppercase', letterSpacing:'.08em', color:'rgba(235,235,235,.25)', marginBottom:8 }}>{sec.label}</div>
+                        {sec.type === 'list' ? (
+                          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                            {sec.items.map((item, ii) => (
+                              <div key={ii} style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
+                                <div style={{ width:4, height:4, borderRadius:'50%', background:'rgba(107,71,245,.6)', flexShrink:0, marginTop:5 }} />
+                                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:'rgba(235,235,235,.45)', lineHeight:1.55 }}>{item}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:'rgba(235,235,235,.5)', lineHeight:1.65, margin:0 }}>{sec.text}</p>
+                        )}
+                      </div>
+                    ))}
+                    {/* Key output */}
+                    <div style={{ marginTop:16, paddingTop:12, borderTop:'1px solid rgba(255,255,255,.04)', display:'flex', alignItems:'flex-start', gap:10 }}>
+                      <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, textTransform:'uppercase', letterSpacing:'.08em', color:'rgba(235,235,235,.2)', flexShrink:0, marginTop:1 }}>KEY OUTPUT</span>
+                      <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:'#A992FA', lineHeight:1.5 }}>{card.keyOutput}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── HERO FEED ─── */
 const FEED_ENTRIES = [
   { time: "08:47:23", event: "Inbound — Synthos AI",          status: "triaged",    color: "rgba(235,235,235,0.55)" },
@@ -1896,7 +2125,10 @@ export default function LandingPage() {
       {/* ── 03 DEMO ── */}
       <DealTimeline />
 
-      {/* ── 04 PROBLEM ── */}
+      {/* ── 04 CAPABILITIES ── */}
+      <CapabilitiesSection />
+
+      {/* ── 05 PROBLEM ── */}
       <ProblemSection />
 
       {/* ── 05 REASONING LAYER ── */}
