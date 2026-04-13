@@ -23,6 +23,9 @@ const STYLES = `
   @keyframes chatInR   { from{opacity:0;transform:translateX(10px)} to{opacity:1;transform:none} }
   @keyframes streamIn  { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
   @keyframes spin      { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  @keyframes flowLeft  { 0%{right:0;opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{right:100%;opacity:0} }
+  @keyframes flowRight { 0%{left:0;opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{left:100%;opacity:0} }
+  @keyframes pulseDot  { 0%,100%{opacity:.4;transform:scale(1)} 50%{opacity:1;transform:scale(1.4)} }
 
   .typewriter-cursor { display:inline; animation:blink 1s step-end infinite }
 
@@ -1451,6 +1454,179 @@ function UseCasesSection() {
   );
 }
 
+/* ─── TWO POOL DIAGRAM ─── */
+const POOL1_SOURCES = [
+  { name: 'YC / HN / ProductHunt',  desc: 'Startup launches, founder profiles' },
+  { name: 'Brave Search',            desc: 'Live web research, news signals' },
+  { name: 'Funding rounds',          desc: 'Rounds, investors, valuations' },
+  { name: 'RSS feeds · 13 sources',  desc: 'TechCrunch, WSJ, VentureBeat' },
+  { name: 'Company profiles',        desc: 'Founders, team, sector tags' },
+];
+const POOL2_SOURCES = [
+  { name: 'Pass reasons',         desc: 'Why your firm said no, and what would change it' },
+  { name: 'Partner objections',   desc: 'IC patterns, defensibility concerns' },
+  { name: 'Meeting transcripts',  desc: 'Granola, Otter, Fathom — extracted signals' },
+  { name: 'Personal conviction',  desc: 'Your lens, separate from the firm\'s' },
+  { name: 'Score overrides',      desc: 'Every correction trains the stack' },
+];
+
+const FLOW_LINE_LEFT  = [
+  { dots: ['#7F77DD','#6B47F5','#A992FA'] },
+  { dots: ['#A992FA','#7F77DD','#6B47F5'] },
+  { dots: ['#6B47F5','#A992FA','#7F77DD'] },
+];
+const FLOW_LINE_RIGHT = [
+  { dots: ['#1D9E75','#10b981','#5DCAA5'] },
+  { dots: ['#10b981','#5DCAA5','#1D9E75'] },
+  { dots: ['#5DCAA5','#1D9E75','#10b981'] },
+];
+
+function FlowLines({ lines, dir }) {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', justifyContent:'space-around', alignSelf:'stretch', paddingTop:8 }}>
+      {lines.map((line, li) => (
+        <div key={li} style={{ position:'relative', height:1, background:'rgba(255,255,255,0.06)', overflow:'visible', margin:'20px 0' }}>
+          {line.dots.map((color, di) => (
+            <span key={di} style={{
+              position:'absolute', top:-2, width:5, height:5, borderRadius:'50%', background:color,
+              animation:`${dir === 'left' ? 'flowLeft' : 'flowRight'} 2s ease-in-out infinite`,
+              animationDelay:`${di * 0.7}s`,
+            }} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const AGENT_PILLS = [
+  { label:'market research',   status:'done',    dotColor:'#A992FA', dotDelay:'0s',   opacity:1 },
+  { label:'competitive intel', status:'done',    dotColor:'#A992FA', dotDelay:'0.3s', opacity:1 },
+  { label:'founder assessment',status:'running', dotColor:'#D97706', dotDelay:'0.6s', opacity:1 },
+  { label:'pool 2 retrieval',  status:'queued',  dotColor:'rgba(255,255,255,0.2)', dotDelay:'0s', opacity:0.4 },
+];
+
+const DIAG_HEX = (
+  <svg viewBox="0 0 14 14" width="12" height="12" fill="none">
+    <path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke="white" strokeWidth="1.5" fill="none"/>
+    <circle cx="7" cy="7" r="2.2" fill="white"/>
+  </svg>
+);
+
+function TwoPoolDiagram() {
+  return (
+    <div style={{ background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:14, padding:'28px 24px 20px', overflow:'hidden', position:'relative' }}>
+      {/* Top label */}
+      <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, textTransform:'uppercase', letterSpacing:'0.12em', color:'rgba(107,71,245,0.5)', textAlign:'center', marginBottom:20 }}>
+        How Reidar generates intelligence
+      </div>
+
+      {/* Column headers */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 52px 196px 52px 1fr', gap:0, marginBottom:8 }}>
+        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:8, textTransform:'uppercase', letterSpacing:'0.1em', color:'rgba(107,71,245,0.5)', textAlign:'center', paddingBottom:8 }}>Pool 1 — Global</div>
+        <div />
+        <div />
+        <div />
+        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:8, textTransform:'uppercase', letterSpacing:'0.1em', color:'rgba(16,185,129,0.5)', textAlign:'center', paddingBottom:8 }}>Pool 2 — Your firm</div>
+      </div>
+
+      {/* Main grid */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 52px 196px 52px 1fr', gap:0, alignItems:'start' }}>
+
+        {/* Col 1 — Pool 1 sources */}
+        <div style={{ display:'flex', flexDirection:'column', gap:7, paddingRight:6 }}>
+          {POOL1_SOURCES.map((s) => (
+            <div key={s.name} style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:8, padding:'9px 12px', position:'relative', overflow:'hidden' }}>
+              <div style={{ position:'absolute', left:0, top:0, bottom:0, width:2, background:'rgba(107,71,245,0.4)' }} />
+              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'rgba(235,235,235,0.55)', letterSpacing:'0.03em' }}>{s.name}</div>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:'rgba(235,235,235,0.25)', marginTop:3, lineHeight:1.4 }}>{s.desc}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Col 2 — Left flow lines */}
+        <FlowLines lines={FLOW_LINE_LEFT} dir="left" />
+
+        {/* Col 3 — Center */}
+        <div style={{ display:'flex', flexDirection:'column' }}>
+          {/* Pool 1 badge */}
+          <div style={{ width:'100%', padding:'4px 10px', background:'rgba(107,71,245,0.06)', border:'1px solid rgba(107,71,245,0.15)', borderRadius:3, textAlign:'center', fontFamily:"'DM Mono',monospace", fontSize:8, textTransform:'uppercase', letterSpacing:'0.1em', color:'rgba(107,71,245,0.6)', marginBottom:6 }}>
+            Market context
+          </div>
+
+          {/* Reidar core card */}
+          <div style={{ background:'#0C0C14', border:'1px solid rgba(107,71,245,0.3)', borderRadius:12, overflow:'hidden' }}>
+            {/* Header */}
+            <div style={{ padding:'12px 14px 10px', borderBottom:'1px solid rgba(255,255,255,0.06)', display:'flex', alignItems:'center', gap:8 }}>
+              <div style={{ width:24, height:24, borderRadius:6, background:'#6B47F5', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>{DIAG_HEX}</div>
+              <div style={{ flex:1 }}>
+                <div style={{ fontFamily:"'DM Mono',monospace", fontSize:12, fontWeight:500, color:'#EBEBEB', letterSpacing:'0.04em' }}>Reidar</div>
+                <div style={{ fontFamily:"'DM Mono',monospace", fontSize:8, color:'rgba(169,146,250,0.5)', marginTop:1 }}>Generating brief...</div>
+              </div>
+              <div style={{ width:6, height:6, borderRadius:'50%', background:'#10b981', animation:'pulse 2s ease-in-out infinite', flexShrink:0 }} />
+            </div>
+            {/* Agent pills */}
+            <div style={{ padding:'10px 12px' }}>
+              {AGENT_PILLS.map((pill) => (
+                <div key={pill.label} style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 8px', borderRadius:5, background:'rgba(107,71,245,0.08)', border:'1px solid rgba(107,71,245,0.15)', marginBottom:5, opacity:pill.opacity }}>
+                  <span style={{ width:5, height:5, borderRadius:'50%', background:pill.dotColor, display:'inline-block', flexShrink:0, animation:`pulseDot 1.8s ease-in-out infinite`, animationDelay:pill.dotDelay }} />
+                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(169,146,250,0.7)', letterSpacing:'0.03em', flex:1 }}>{pill.label}</span>
+                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:8, color:'rgba(169,146,250,0.3)', marginLeft:'auto' }}>{pill.status}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pool 2 badge */}
+          <div style={{ width:'100%', padding:'4px 10px', background:'rgba(16,185,129,0.05)', border:'1px solid rgba(16,185,129,0.15)', borderRadius:3, textAlign:'center', fontFamily:"'DM Mono',monospace", fontSize:8, textTransform:'uppercase', letterSpacing:'0.1em', color:'rgba(16,185,129,0.6)', marginTop:6, marginBottom:8 }}>
+            Firm reasoning
+          </div>
+
+          {/* Output label */}
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:8, textTransform:'uppercase', letterSpacing:'0.1em', color:'rgba(235,235,235,0.2)', textAlign:'center', marginBottom:6 }}>
+            Surfaces to
+          </div>
+
+          {/* Output pills */}
+          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+            {[
+              { dot:'#4ade80', name:'Slack',     action:'brief ready' },
+              { dot:'#4285F4', name:'Calendar',  action:'pre-meeting' },
+              { dot:'#A992FA', name:'Dashboard', action:'full brief'  },
+            ].map((o) => (
+              <div key={o.name} style={{ display:'flex', alignItems:'center', gap:7, padding:'7px 10px', background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:6 }}>
+                <span style={{ width:5, height:5, borderRadius:'50%', background:o.dot, display:'inline-block', flexShrink:0 }} />
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'rgba(235,235,235,0.45)' }}>{o.name}</span>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:8, color:'rgba(235,235,235,0.2)', marginLeft:'auto' }}>{o.action}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Col 4 — Right flow lines */}
+        <FlowLines lines={FLOW_LINE_RIGHT} dir="right" />
+
+        {/* Col 5 — Pool 2 sources */}
+        <div style={{ display:'flex', flexDirection:'column', gap:7, paddingLeft:6 }}>
+          {POOL2_SOURCES.map((s) => (
+            <div key={s.name} style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:8, padding:'9px 12px', position:'relative', overflow:'hidden' }}>
+              <div style={{ position:'absolute', left:0, top:0, bottom:0, width:2, background:'rgba(16,185,129,0.4)' }} />
+              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'rgba(235,235,235,0.55)', letterSpacing:'0.03em' }}>{s.name}</div>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:'rgba(235,235,235,0.25)', marginTop:3, lineHeight:1.4 }}>{s.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div style={{ marginTop:20, paddingTop:16, borderTop:'1px solid rgba(255,255,255,0.05)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(107,71,245,0.4)' }}>Pool 1 — shared across all firms · never the moat</span>
+        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(16,185,129,0.4)' }}>Pool 2 — private to your firm · the moat</span>
+      </div>
+    </div>
+  );
+}
+
 /* ─── REASONING LAYER SECTION ─── */
 function ReasoningLayerSection() {
   const [entered, ref] = useSectionEntry();
@@ -1465,6 +1641,11 @@ function ReasoningLayerSection() {
           <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(28px,3vw,44px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.1, letterSpacing:'-.02em', marginBottom:20, ...T(80) }}>Not a database.<br />A reasoning layer.</h2>
           <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:17, color:'rgba(235,235,235,.5)', lineHeight:1.7, margin:0, ...T(160) }}>Other tools store what happened. Reidar structures how you thought about it — and retrieves that reasoning at the moment it matters again.</p>
         </div>
+        {/* Architecture diagram */}
+        <div style={{ marginBottom:60 }}>
+          <TwoPoolDiagram />
+        </div>
+
         {/* Three cards */}
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20 }}>
           {/* Card 1 — Structured signals */}
