@@ -1632,76 +1632,46 @@ function TwoPoolDiagram() {
 function ReasoningLayerSection() {
   const [entered, ref] = useSectionEntry();
   const T = (d) => ({ opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition: `opacity .55s ${d}ms ease, transform .55s ${d}ms ease` });
-  const cardBase = { background:'#0C0C10', border:'1px solid rgba(255,255,255,.06)', borderRadius:10, padding:28, display:'flex', flexDirection:'column' };
   return (
-    <section ref={ref} style={{ padding:'140px 0', borderTop:'1px solid rgba(255,255,255,.04)' }}>
+    <section ref={ref} style={{ padding:'120px 0', borderTop:'1px solid rgba(255,255,255,.04)' }}>
       <div className="sec-inner">
         {/* Centered header */}
-        <div style={{ maxWidth:640, margin:'0 auto', textAlign:'center', marginBottom:80 }}>
+        <div style={{ maxWidth:640, margin:'0 auto', textAlign:'center', marginBottom:56 }}>
           <div style={{ fontFamily:"'DM Mono',monospace", fontSize:10, letterSpacing:'.12em', color:'#A992FA', textTransform:'uppercase', marginBottom:16, ...T(0) }}>What makes Reidar different</div>
           <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(28px,3vw,44px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.1, letterSpacing:'-.02em', marginBottom:20, ...T(80) }}>Not a database.<br />A reasoning layer.</h2>
           <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:17, color:'rgba(235,235,235,.5)', lineHeight:1.7, margin:0, ...T(160) }}>Other tools store what happened. Reidar structures how you thought about it — and retrieves that reasoning at the moment it matters again.</p>
         </div>
-        {/* Architecture diagram */}
-        <div style={{ marginBottom:60 }}>
+
+        {/* Architecture diagram — full width, no cards below */}
+        <div style={{ ...T(200) }}>
           <TwoPoolDiagram />
         </div>
 
-        {/* Three cards */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20 }}>
-          {/* Card 1 — Structured signals */}
-          <div style={{ ...cardBase, borderTop:'2px solid #6B47F5', ...T(100) }}>
-            <div style={{ width:32, height:32, borderRadius:8, background:'rgba(107,71,245,.1)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-              <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><rect x="0" y="0" width="16" height="2" rx="1" fill="#A992FA"/><rect x="0" y="5" width="11" height="2" rx="1" fill="#A992FA" opacity=".7"/><rect x="0" y="10" width="7" height="2" rx="1" fill="#A992FA" opacity=".4"/></svg>
+        {/* Three-column plain-language callout */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:1, marginTop:24, background:'rgba(255,255,255,0.04)', borderRadius:10, overflow:'hidden', ...T(280) }}>
+          {/* Pool 1 */}
+          <div style={{ background:'#07070A', padding:'20px 24px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:10 }}>
+              <span style={{ width:8, height:8, borderRadius:'50%', background:'rgba(107,71,245,0.5)', display:'inline-block', flexShrink:0 }} />
+              <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, textTransform:'uppercase', letterSpacing:'.1em', color:'rgba(107,71,245,0.6)' }}>Pool 1 — Shared</span>
             </div>
-            <div style={{ fontFamily:"'Syne',sans-serif", fontSize:18, fontWeight:600, color:'#EBEBEB', marginTop:20, marginBottom:12 }}>Structured reasoning signals</div>
-            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:'rgba(235,235,235,.5)', lineHeight:1.7, marginBottom:20, flex:1 }}>Every meeting transcript, pass email, and partner objection is processed into structured signals — not stored as raw text. "Maria raised an unresolved defensibility concern about incumbent entry" is more useful than a 6,000-word transcript.</p>
-            <div style={{ borderTop:'1px solid rgba(255,255,255,.06)', paddingTop:16 }}>
-              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(107,71,245,.5)', letterSpacing:'.08em', marginBottom:8 }}>SIGNAL EXTRACTED</div>
-              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:'#A992FA', background:'rgba(107,71,245,.06)', borderRadius:6, padding:12, lineHeight:1.6 }}>
-                signal_type: "partner_objection"<br/>
-                dimension: "defensibility"<br/>
-                resolution: "unresolved"<br/>
-                conviction_impact: "negative"
-              </div>
-            </div>
+            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:'rgba(235,235,235,.4)', lineHeight:1.65, margin:0 }}>Market context — companies, rounds, signals from public sources. Every firm starts here. Not the moat.</p>
           </div>
-          {/* Card 2 — Two layers */}
-          <div style={{ ...cardBase, borderTop:'2px solid #D97706', ...T(200) }}>
-            <div style={{ width:32, height:32, borderRadius:8, background:'rgba(217,119,6,.1)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-              <svg width="18" height="14" viewBox="0 0 18 14" fill="none"><circle cx="6" cy="7" r="5.5" stroke="#D97706" strokeWidth="1.3" fill="none"/><circle cx="12" cy="7" r="5.5" stroke="#D97706" strokeWidth="1.3" fill="none" opacity=".5"/></svg>
+          {/* RAG layer */}
+          <div style={{ background:'#07070A', padding:'20px 24px', borderLeft:'1px solid rgba(255,255,255,0.04)', borderRight:'1px solid rgba(255,255,255,0.04)' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:10 }}>
+              <span style={{ width:8, height:8, borderRadius:2, background:'rgba(235,235,235,0.15)', display:'inline-block', flexShrink:0 }} />
+              <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, textTransform:'uppercase', letterSpacing:'.1em', color:'rgba(235,235,235,.25)' }}>At query time</span>
             </div>
-            <div style={{ fontFamily:"'Syne',sans-serif", fontSize:18, fontWeight:600, color:'#EBEBEB', marginTop:20, marginBottom:12 }}>Two layers. Firm and individual.</div>
-            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:'rgba(235,235,235,.5)', lineHeight:1.7, marginBottom:20, flex:1 }}>Your firm has a collective view. You have your own. A deal that's a 3 for the partnership can be a 5 for you based on your personal conviction patterns. Reidar knows the difference and surfaces both.</p>
-            <div style={{ borderTop:'1px solid rgba(255,255,255,.06)', paddingTop:16 }}>
-              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(107,71,245,.5)', letterSpacing:'.08em', marginBottom:12 }}>YOUR LENS vs FIRM LENS</div>
-              {[{ label:'Firm fit', pct:60, color:'#D97706' }, { label:'Your fit', pct:90, color:'#10b981' }].map((row) => (
-                <div key={row.label} style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
-                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'rgba(235,235,235,.4)', width:52, flexShrink:0 }}>{row.label}</span>
-                  <div style={{ flex:1, height:3, background:'rgba(255,255,255,.08)', borderRadius:2, overflow:'hidden' }}>
-                    <div style={{ height:'100%', width:`${row.pct}%`, background:row.color, borderRadius:2 }} />
-                  </div>
-                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:row.color, width:28, textAlign:'right' }}>{row.pct}%</span>
-                </div>
-              ))}
-            </div>
+            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:'rgba(235,235,235,.4)', lineHeight:1.65, margin:0 }}>Both pools are retrieved and weighted. Pool 2 heavily. Every output reflects your firm's specific reasoning — not a generic model's view of the market.</p>
           </div>
-          {/* Card 3 — Compounds */}
-          <div style={{ ...cardBase, borderTop:'2px solid #10b981', ...T(300) }}>
-            <div style={{ width:32, height:32, borderRadius:8, background:'rgba(16,185,129,.1)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 14V8M8 8L4 10M8 8L12 10" stroke="#10b981" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/><circle cx="8" cy="4" r="2" fill="#10b981" opacity=".5"/><circle cx="3" cy="13" r="1.5" fill="#10b981" opacity=".35"/><circle cx="13" cy="13" r="1.5" fill="#10b981" opacity=".35"/></svg>
+          {/* Pool 2 */}
+          <div style={{ background:'#07070A', padding:'20px 24px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:10 }}>
+              <span style={{ width:8, height:8, borderRadius:'50%', background:'rgba(16,185,129,0.6)', display:'inline-block', flexShrink:0 }} />
+              <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, textTransform:'uppercase', letterSpacing:'.1em', color:'rgba(16,185,129,0.6)' }}>Pool 2 — Yours alone</span>
             </div>
-            <div style={{ fontFamily:"'Syne',sans-serif", fontSize:18, fontWeight:600, color:'#EBEBEB', marginTop:20, marginBottom:12 }}>Compounds with every decision.</div>
-            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:'rgba(235,235,235,.5)', lineHeight:1.7, marginBottom:20, flex:1 }}>Every pass reason, IC objection, score override, and conviction shift is extracted as a signal and embedded. After 12 months, your firm has a structured record of how it reasons — one that exists nowhere else and can't be replicated by any competitor regardless of their data.</p>
-            <div style={{ borderTop:'1px solid rgba(255,255,255,.06)', paddingTop:16 }}>
-              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(107,71,245,.5)', letterSpacing:'.08em', marginBottom:8 }}>SIGNALS EXTRACTED TO DATE</div>
-              {[['Partner objections','247'],['Pass patterns identified','34'],['Conviction triggers','189']].map(([lbl,val]) => (
-                <div key={lbl} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid rgba(255,255,255,.04)', padding:'6px 0' }}>
-                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:'rgba(235,235,235,.35)' }}>{lbl}</span>
-                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:'#A992FA' }}>{val}</span>
-                </div>
-              ))}
-            </div>
+            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:'rgba(235,235,235,.4)', lineHeight:1.65, margin:0 }}>Every pass reason, IC objection, conviction override — embedded and retrieved. Scoped to your firm. This is the moat. Gets more valuable with every decision.</p>
           </div>
         </div>
       </div>
@@ -2161,6 +2131,53 @@ const CAPABILITY_CARDS = [
     ],
     keyOutput: 'ic-prep.md with objection responses, bull cases in Dunford format, and open items before close',
   },
+  {
+    num: '09', title: 'Meeting Recap',
+    body: 'Processes every Granola, Otter, or Fathom transcript automatically. Extracts conviction delta, founder signals, open questions, and suggested follow-up. The transcript is raw material — the output is structured reasoning for Pool 2.',
+    trigger: 'transcript_ingested', agentCount: '1 agent', calibration: 'calibrated',
+    sections: [
+      { label: 'WHAT IT EXTRACTS', type: 'list', items: [
+        'Conviction delta — increased / decreased / unchanged / mixed',
+        'Founder signals — how they handled hard questions, what they volunteered',
+        'Product and traction signals mentioned in the call',
+        'Open questions blocking next step',
+        'Suggested follow-up action with timeline',
+      ]},
+      { label: 'POOL 2 OUTPUT', type: 'text', text: 'Every meeting produces structured reasoning signals written to Pool 2 automatically. Future briefs reference what was said in this call — without you having to remember or re-enter it. The transcript disappears. The intelligence stays.' },
+    ],
+    keyOutput: 'meetings/[company]-[date].md + reasoning signals written to Pool 2 automatically',
+  },
+  {
+    num: '10', title: 'Portfolio Monitor',
+    body: 'Watches every portfolio and pipeline company for funding rounds, leadership changes, press coverage, and hiring signals. Surfaces what matters. Suppresses what doesn\'t. Triggers second encounter alerts the moment a passed company resolves your original concern.',
+    trigger: 'scheduled · signal_detected', agentCount: '2 agents', calibration: 'calibrated',
+    sections: [
+      { label: 'FOUR COMPANY TIERS', type: 'list', items: [
+        'Tier 1 Portfolio — every signal, immediate notification',
+        'Tier 2 Active pipeline — signals affecting the investment decision',
+        'Tier 3 Watching — major signals only: funding, leadership, product launch',
+        'Tier 4 Passed — monitors for the exact condition that would reverse the pass',
+      ]},
+      { label: 'SECOND ENCOUNTER DETECTION', type: 'text', text: 'When a Tier 4 company hits the condition you originally passed on — "no enterprise GTM" → hires VP Sales from Salesforce — Reidar surfaces it immediately with the delta: what you said then, what changed now. The pass history is the context. The signal is the trigger.' },
+    ],
+    keyOutput: 'Immediate Slack notification + second encounter brief triggered automatically',
+  },
+  {
+    num: '11', title: 'Weekly Brief',
+    body: 'Every Monday morning — a mandate-specific brief covering what moved in your thesis areas, which sectors are getting crowded, 2-3 standout companies from the week, and one conviction call. Not a news digest. An analyst memo written for your specific fund.',
+    trigger: 'scheduled · monday 8am', agentCount: '4 agents', calibration: 'calibrated',
+    sections: [
+      { label: 'FIVE SECTIONS EVERY MONDAY', type: 'list', items: [
+        'The week in your thesis areas — synthesized view, not a news list',
+        'Sector crowding signals — which windows are opening or closing',
+        '2-3 standout companies — mandate-filtered, sourcing signal run before inclusion',
+        'Your pipeline this week — Pool 2 context on active deals and second encounters',
+        'One conviction call — not hedged, one position, one reason',
+      ]},
+      { label: 'MANDATE-FILTERED', type: 'text', text: 'Every section filtered through your thesis. Generic market news that doesn\'t connect to your mandate doesn\'t appear. A slow week is reported as a slow week — no manufactured significance. The brief is for this fund, not any fund.' },
+    ],
+    keyOutput: 'Slack summary + full brief in dashboard · Every Monday 8am',
+  },
 ];
 
 function CapabilitiesSection() {
@@ -2173,13 +2190,13 @@ function CapabilitiesSection() {
         {/* Header */}
         <div style={{ maxWidth: 640, marginBottom: 64 }}>
           <div style={{ fontFamily:"'DM Mono',monospace", fontSize:10, letterSpacing:'.12em', color:'#A992FA', textTransform:'uppercase', marginBottom:16, opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition:'opacity .55s ease, transform .55s ease' }}>
-            The agent stack
+            Sub-agents
           </div>
           <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(28px,3vw,44px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.1, letterSpacing:'-.02em', marginBottom:20, opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition:'opacity .55s 80ms ease, transform .55s 80ms ease' }}>
-            Eight agents. One stack.<br />Gets smarter with every decision your firm makes.
+            Eleven sub-agents. One analyst.<br />Across your entire workflow.
           </h2>
           <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:16, color:'rgba(235,235,235,.5)', lineHeight:1.75, margin:0, opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition:'opacity .55s 160ms ease, transform .55s 160ms ease' }}>
-            Each agent fires from the right trigger, produces structured output, and hands off to the next. The stack starts with a generic baseline. After 12 months it reflects exactly how your firm thinks — built from every decision you've made and everything you've told it.
+            Reidar isn't a tool you go to. When a trigger fires — an inbound lands, a transcript arrives, a calendar invite appears — it deploys the right sub-agent automatically. Every sub-agent knows your mandate, learns from every decision, and gets smarter without being configured.
           </p>
         </div>
 
@@ -2255,21 +2272,67 @@ function CapabilitiesSection() {
           })}
         </div>
 
+        {/* Compounding progression strip */}
+        <div style={{ margin:'48px 0 0', padding:28, background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:12 }}>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, textTransform:'uppercase', letterSpacing:'.1em', color:'rgba(107,71,245,0.5)', marginBottom:20, textAlign:'center' }}>
+            THE SAME AGENT. THREE DIFFERENT MOMENTS.
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr auto 1fr', gap:16, alignItems:'start' }}>
+            {/* Column 1 — Day one */}
+            <div>
+              <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:12 }}>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, padding:'3px 8px', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:3, color:'rgba(235,235,235,0.4)' }}>Day one</span>
+                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:500, color:'rgba(235,235,235,0.4)' }}>Generic baseline</span>
+              </div>
+              {['Founder assessment: generic signals','IC prep: standard objection categories','Pass patterns: no history yet'].map((row) => (
+                <div key={row} style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'rgba(235,235,235,0.25)', padding:'7px 10px', background:'rgba(255,255,255,0.02)', borderRadius:5, marginBottom:7 }}>{row}</div>
+              ))}
+            </div>
+            {/* Arrow 1→2 */}
+            <div style={{ alignSelf:'center', fontFamily:"'DM Mono',monospace", fontSize:16, color:'rgba(107,71,245,0.3)', justifySelf:'center' }}>→</div>
+            {/* Column 2 — Month three */}
+            <div>
+              <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:12 }}>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, padding:'3px 8px', background:'rgba(217,119,6,0.1)', border:'1px solid rgba(217,119,6,0.2)', borderRadius:3, color:'#D97706' }}>Month 3</span>
+                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:500, color:'rgba(235,235,235,0.55)' }}>Calibrating</span>
+              </div>
+              {['Founder assessment: learns your pattern','IC prep: tracks 2 partner tendencies','Pass patterns: 47 signals captured'].map((row) => (
+                <div key={row} style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'rgba(235,235,235,0.45)', padding:'7px 10px', background:'rgba(255,255,255,0.02)', borderRadius:5, marginBottom:7 }}>{row}</div>
+              ))}
+            </div>
+            {/* Arrow 2→3 */}
+            <div style={{ alignSelf:'center', fontFamily:"'DM Mono',monospace", fontSize:16, color:'rgba(107,71,245,0.3)', justifySelf:'center' }}>→</div>
+            {/* Column 3 — Month twelve */}
+            <div>
+              <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:12 }}>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, padding:'3px 8px', background:'rgba(107,71,245,0.1)', border:'1px solid rgba(107,71,245,0.2)', borderRadius:3, color:'#A992FA' }}>Month 12</span>
+                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:500, color:'#EBEBEB' }}>Firm-calibrated</span>
+              </div>
+              {['Founder assessment: knows your top 3 conviction patterns by outcome rate','IC prep: Maria always challenges defensibility · James flags market size','Pass patterns: 312 signals · surfaces second encounters automatically'].map((row) => (
+                <div key={row} style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'rgba(235,235,235,0.65)', padding:'7px 10px', background:'rgba(255,255,255,0.02)', borderLeft:'2px solid #6B47F5', borderRadius:5, marginBottom:7 }}>{row}</div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Callout line */}
         <div style={{ textAlign:'center', padding:'32px 0 0' }}>
           <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:'rgba(235,235,235,.35)', lineHeight:1.7, margin:0 }}>
-            Every firm starts with the same stack.{' '}
-            <span style={{ color:'rgba(235,235,235,.55)' }}>No two firms end up with the same agent.</span>
+            Eleven sub-agents from day one.{' '}
+            <span
+              style={{ color:'#A992FA', textDecoration:'underline', textDecorationColor:'rgba(169,146,250,0.35)', cursor:'pointer' }}
+              onClick={() => window.location.href = SIGN_UP_URL}
+            >Need one we haven't built? Tell us what the workflow demands.</span>
           </p>
           <p style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:'rgba(107,71,245,.45)', marginTop:8 }}>
-            Skills update from passive signals and direct instruction. Nothing to configure.
+            The agents are the delivery mechanism. Pool 2 is the moat. It compounds with every decision you make.
           </p>
         </div>
 
         {/* Surfaces row */}
         <div style={{ marginTop:40 }}>
           <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, textTransform:'uppercase', letterSpacing:'.1em', color:'rgba(235,235,235,.2)', textAlign:'center', marginBottom:16 }}>
-            The stack lives where you already work
+            Your team lives where you already work
           </div>
           <div style={{ display:'flex', justifyContent:'center', gap:10 }}>
             {[
@@ -2289,20 +2352,35 @@ function CapabilitiesSection() {
   );
 }
 
+/* ─── HERO TEAM ─── */
+const HERO_TEAM = [
+  { num:'01', name:'Sourcing Signal',    status:'active'  },
+  { num:'02', name:'Market Research',    status:'active'  },
+  { num:'03', name:'Competitive Intel',  status:'standby' },
+  { num:'04', name:'Founder Assessment', status:'active'  },
+  { num:'05', name:'Positioning',        status:'standby' },
+  { num:'06', name:'Data Room',          status:'standby' },
+  { num:'07', name:'Diligence Brief',    status:'running' },
+  { num:'08', name:'IC Preparation',     status:'standby' },
+  { num:'09', name:'Meeting Recap',      status:'running' },
+  { num:'10', name:'Portfolio Monitor',  status:'standby' },
+  { num:'11', name:'Weekly Brief',       status:'standby' },
+];
+
 /* ─── HERO FEED ─── */
 const FEED_ENTRIES = [
-  { time: "08:47:23", event: "Inbound — Synthos AI",          status: "triaged",    color: "rgba(235,235,235,0.55)" },
-  { time: "08:47:24", event: "Thesis match: 87/100",          status: "scored",     color: "#10b981" },
-  { time: "08:47:31", event: "11 agents dispatched",          status: "running",    color: "#A992FA" },
-  { time: "08:51:14", event: "Comparable passes: 3 found",    status: "flagged",    color: "#D97706" },
-  { time: "08:52:03", event: "Market research complete",      status: "done",       color: "#10b981" },
-  { time: "08:52:44", event: "Founder backgrounds complete",  status: "done",       color: "#10b981" },
-  { time: "08:53:01", event: "Brief → #deal-flow",            status: "delivered",  color: "#10b981" },
-  { time: "09:12:05", event: "Calendar: Synthos call 30min",  status: "detected",   color: "#A992FA" },
-  { time: "09:12:06", event: "Pre-meeting brief generating",  status: "running",    color: "#A992FA" },
-  { time: "09:14:33", event: "Brief → Slack",                 status: "delivered",  color: "#10b981" },
-  { time: "11:30:00", event: "Transcript received — Granola", status: "processing", color: "#A992FA" },
-  { time: "11:30:04", event: "Signals extracted: 7",          status: "done",       color: "#10b981" },
+  { time: "08:47:23", event: "Inbound — Synthos AI",          status: "triaged",    color: "rgba(235,235,235,0.55)", agent: "01" },
+  { time: "08:47:24", event: "Thesis match: 87/100",          status: "scored",     color: "#10b981",                agent: "01" },
+  { time: "08:47:31", event: "11 sub-agents dispatched",      status: "running",    color: "#A992FA",                agent: null },
+  { time: "08:51:14", event: "Comparable passes: 3 found",    status: "flagged",    color: "#D97706",                agent: "07" },
+  { time: "08:52:03", event: "Market research complete",      status: "done",       color: "#10b981",                agent: "02" },
+  { time: "08:52:44", event: "Founder backgrounds complete",  status: "done",       color: "#10b981",                agent: "04" },
+  { time: "08:53:01", event: "Brief → #deal-flow",            status: "delivered",  color: "#10b981",                agent: "07" },
+  { time: "09:12:05", event: "Calendar: Synthos call 30min",  status: "detected",   color: "#A992FA",                agent: "10" },
+  { time: "09:12:06", event: "Pre-meeting brief generating",  status: "running",    color: "#A992FA",                agent: "07" },
+  { time: "09:14:33", event: "Brief → Slack",                 status: "delivered",  color: "#10b981",                agent: "07" },
+  { time: "11:30:00", event: "Transcript received — Granola", status: "processing", color: "#A992FA",                agent: "09" },
+  { time: "11:30:04", event: "Signals extracted: 7",          status: "done",       color: "#10b981",                agent: "09" },
 ];
 
 const STATUS_STYLES = {
@@ -2344,14 +2422,15 @@ function HeroFeed() {
         return (
           <div key={i} style={{
             padding: '7px 18px',
-            display: 'grid', gridTemplateColumns: '80px 1fr auto',
-            alignItems: 'center', gap: 12,
+            display: 'grid', gridTemplateColumns: '70px 20px 1fr auto',
+            alignItems: 'center', gap: 10,
             borderBottom: i < FEED_ENTRIES.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none',
             opacity: i < visibleCount ? 1 : 0,
             transform: i < visibleCount ? 'none' : 'translateY(4px)',
             transition: 'opacity 200ms ease, transform 200ms ease',
           }}>
             <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'rgba(235,235,235,0.2)', letterSpacing:'0.04em' }}>{entry.time}</span>
+            <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color: entry.agent ? 'rgba(107,71,245,0.5)' : 'transparent', textAlign:'center' }}>{entry.agent ?? '·'}</span>
             <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:entry.color }}>{entry.event}</span>
             <span style={{ fontFamily:"'DM Mono',monospace", fontSize:9, letterSpacing:'0.06em', padding:'2px 6px', borderRadius:3, whiteSpace:'nowrap', background:s.background, color:s.color }}>{entry.status}</span>
           </div>
@@ -2417,7 +2496,7 @@ export default function LandingPage() {
           {/* LEFT */}
           <div style={{ flex:1, maxWidth:540 }}>
             <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, textTransform:'uppercase', letterSpacing:'0.12em', color:'#A992FA', marginBottom:24 }}>
-              The intelligence layer for venture capital
+              Built for emerging fund managers.
             </div>
             <h1 style={{ fontFamily:"'Syne',sans-serif", fontWeight:600, lineHeight:1.08, letterSpacing:'-0.03em', marginBottom:24 }}>
               <span style={{ fontSize:'clamp(38px,4.5vw,56px)', color:'#EBEBEB', display:'block' }}>The AI agent stack</span>
@@ -2441,13 +2520,12 @@ export default function LandingPage() {
           </div>
 
           {/* RIGHT */}
-          <div className="hero-split-right" style={{ width:440, flexShrink:0, position:'relative' }}>
+          <div className="hero-split-right" style={{ width:460, flexShrink:0, position:'relative' }}>
             {/* Glow */}
             <div style={{ position:'absolute', width:300, height:300, background:'rgba(107,71,245,0.12)', borderRadius:'50%', filter:'blur(60px)', top:-60, right:-60, pointerEvents:'none', zIndex:0 }} />
-            {/* Feed container */}
             <div style={{ background:'rgba(7,7,10,0.8)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, overflow:'hidden', position:'relative', zIndex:1, backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)' }}>
               {/* Header */}
-              <div style={{ padding:'14px 18px', borderBottom:'1px solid rgba(255,255,255,0.06)', display:'flex', justifyContent:'space-between', alignItems:'center', background:'rgba(255,255,255,0.02)' }}>
+              <div style={{ padding:'12px 18px', borderBottom:'1px solid rgba(255,255,255,0.06)', display:'flex', justifyContent:'space-between', alignItems:'center', background:'rgba(255,255,255,0.02)' }}>
                 <div style={{ display:'flex', gap:8, alignItems:'center' }}>
                   <div style={{ width:16, height:16, borderRadius:4, background:'#6B47F5', display:'flex', alignItems:'center', justifyContent:'center' }}>
                     <svg viewBox="0 0 14 14" width="9" height="9" fill="none"><path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke="white" strokeWidth="1.5"/></svg>
@@ -2456,14 +2534,37 @@ export default function LandingPage() {
                 </div>
                 <div style={{ display:'flex', gap:6, alignItems:'center' }}>
                   <div style={{ width:6, height:6, borderRadius:'50%', background:'#10b981', animation:'pulse 2s ease-in-out infinite' }} />
-                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'#10b981' }}>live</span>
+                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'#10b981' }}>11 sub-agents active</span>
                 </div>
               </div>
-              {/* Log */}
-              <div style={{ padding:'6px 0' }}><HeroFeed /></div>
+
+              {/* Team roster */}
+              <div style={{ padding:'12px 16px', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ fontFamily:"'DM Mono',monospace", fontSize:8, textTransform:'uppercase', letterSpacing:'0.1em', color:'rgba(235,235,235,0.2)', marginBottom:9 }}>SUB-AGENTS</div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:5 }}>
+                  {HERO_TEAM.map((agent) => {
+                    const dotColor = agent.status === 'active' ? '#10b981' : agent.status === 'running' ? '#A992FA' : 'rgba(255,255,255,0.12)';
+                    const nameColor = agent.status === 'standby' ? 'rgba(235,235,235,0.28)' : agent.status === 'running' ? 'rgba(169,146,250,0.8)' : 'rgba(235,235,235,0.6)';
+                    return (
+                      <div key={agent.num} style={{ display:'flex', alignItems:'center', gap:7, padding:'5px 8px', background:'rgba(255,255,255,0.02)', borderRadius:5 }}>
+                        <span style={{ width:5, height:5, borderRadius:'50%', background:dotColor, flexShrink:0, display:'inline-block', animation: agent.status !== 'standby' ? 'pulse 2s ease-in-out infinite' : 'none' }} />
+                        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:8, color:'rgba(107,71,245,0.45)', flexShrink:0 }}>{agent.num}</span>
+                        <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:nameColor, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{agent.name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Live feed */}
+              <div style={{ padding:'4px 0' }}>
+                <div style={{ padding:'6px 18px 4px', fontFamily:"'DM Mono',monospace", fontSize:8, textTransform:'uppercase', letterSpacing:'0.1em', color:'rgba(235,235,235,0.2)' }}>LIVE</div>
+                <HeroFeed />
+              </div>
+
               {/* Footer */}
-              <div style={{ padding:'12px 18px', borderTop:'1px solid rgba(255,255,255,0.05)', background:'rgba(107,71,245,0.03)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'rgba(235,235,235,0.2)' }}>12 events processed today</span>
+              <div style={{ padding:'10px 18px', borderTop:'1px solid rgba(255,255,255,0.05)', background:'rgba(107,71,245,0.03)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'rgba(235,235,235,0.2)' }}>11 sub-agents</span>
                 <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'rgba(107,71,245,0.5)' }}>0 manual actions required</span>
               </div>
             </div>
