@@ -1920,68 +1920,6 @@ function ProactiveIntelligenceSection() {
   );
 }
 
-/* ─── PIPELINE SECTION ─── */
-const TRIGGER_ROWS = [
-  { trigger:'Email received',    agent:'Sourcing signal',       surface:'Slack',          dot:'#4ade80' },
-  { trigger:'Pitch forwarded',   agent:'Full pipeline',         surface:'Dashboard',      dot:'#A992FA' },
-  { trigger:'Calendar invite',   agent:'Pre-meeting brief',     surface:'Slack + Email',  dot:'#f59e0b' },
-  { trigger:'Transcript arrives',agent:'Signal extraction',     surface:'Company record', dot:'#6B47F5' },
-  { trigger:'Data room shared',  agent:'Consistency check',     surface:'Dashboard',      dot:'#A992FA' },
-  { trigger:'Deal → IC review',  agent:'IC prep + objections',  surface:'Dashboard',      dot:'#A992FA' },
-];
-
-function PipelineSection() {
-  const [entered, ref] = useSectionEntry();
-  const T = (d) => ({ opacity: entered ? 1 : 0, transform: entered ? 'none' : 'translateY(20px)', transition: `opacity .55s ${d}ms ease, transform .55s ${d}ms ease` });
-  return (
-    <section ref={ref} style={{ padding:'140px 0', borderTop:'1px solid rgba(255,255,255,.04)' }}>
-      <div className="sec-inner">
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:80, alignItems:'start' }}>
-          {/* Left col */}
-          <div>
-            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:10, letterSpacing:'.12em', color:'#A992FA', textTransform:'uppercase', marginBottom:16, ...T(0) }}>How it works</div>
-            <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(28px,2.8vw,44px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.1, letterSpacing:'-.02em', marginBottom:20, ...T(80) }}>
-              Events trigger agents.<br />Agents surface intelligence.<br />You make the call.
-            </h2>
-            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:16, color:'rgba(235,235,235,.5)', lineHeight:1.75, marginBottom:40, ...T(160) }}>
-              Reidar watches your workflow across email, calendar, and Slack. Every meaningful event dispatches the right agent automatically. You receive intelligence where you already are — not in a dashboard you have to remember to open.
-            </p>
-            <div style={{ borderLeft:'2px solid #6B47F5', paddingLeft:20, ...T(240) }}>
-              <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:15, color:'rgba(235,235,235,.6)', lineHeight:1.7, fontStyle:'italic', margin:0 }}>
-                "An email arrives. Before you open it, Reidar has already run triage, checked your mandate, flagged three comparable passes in your history, and is ready to deploy 11 research agents on your signal."
-              </p>
-            </div>
-          </div>
-          {/* Right col — trigger table */}
-          <div style={{ background:'#0C0C10', border:'1px solid rgba(255,255,255,.06)', borderRadius:12, overflow:'hidden', opacity: entered ? 1 : 0, transition:'opacity .6s 200ms ease' }}>
-            {/* Header */}
-            <div style={{ padding:'12px 20px', borderBottom:'1px solid rgba(255,255,255,.06)', display:'grid', gridTemplateColumns:'1fr 1fr 1fr' }}>
-              {['TRIGGER','AGENT','SURFACE'].map(h => (
-                <span key={h} style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:'rgba(235,235,235,.25)', letterSpacing:'.1em' }}>{h}</span>
-              ))}
-            </div>
-            {/* Rows */}
-            {TRIGGER_ROWS.map((row, i) => (
-              <div key={i} style={{ padding:'14px 20px', borderBottom: i < TRIGGER_ROWS.length - 1 ? '1px solid rgba(255,255,255,.04)' : 'none', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', alignItems:'center' }}>
-                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:'rgba(235,235,235,.6)' }}>{row.trigger}</span>
-                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:'#A992FA' }}>{row.agent}</span>
-                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:'rgba(235,235,235,.4)', display:'flex', alignItems:'center', gap:6 }}>
-                  <span style={{ width:5, height:5, borderRadius:'50%', background:row.dot, display:'inline-block', flexShrink:0 }} />
-                  {row.surface}
-                </span>
-              </div>
-            ))}
-            {/* Footer */}
-            <div style={{ padding:'14px 20px', background:'rgba(107,71,245,.04)', borderTop:'1px solid rgba(107,71,245,.1)', fontFamily:"'DM Mono',monospace", fontSize:11, color:'rgba(107,71,245,.6)' }}>
-              Every agent runs in parallel. Every claim is cited. Nothing modifies your data without showing you first.
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /* ─── INTEGRATIONS SECTION ─── */
 function IntegrationsSection() {
   const [entered, ref] = useSectionEntry();
@@ -2048,7 +1986,16 @@ function CtaSection() {
   return (
     <section id="cta" ref={ref} style={{ padding: '160px 0 48px', display: 'flex', flexDirection: 'column', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,.04)' }}>
       <div style={{ maxWidth: 600, width: '100%', textAlign: 'center', padding: '0 24px' }}>
-        <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(30px,3.5vw,48px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.1, letterSpacing:'-.02em', marginBottom:20, ...T(0) }}>
+        {/* Testimonial quote */}
+        <div style={{ borderLeft:'2px solid #6B47F5', paddingLeft:20, marginBottom:56, textAlign:'left', ...T(0) }}>
+          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:15, color:'rgba(235,235,235,.6)', lineHeight:1.7, fontStyle:'italic', margin:0 }}>
+            "I opened Slack on a Tuesday morning and Reidar had already triaged 6 inbound pitches, flagged a portfolio signal, and drafted a pre-meeting brief for my 10am. I hadn't touched my laptop yet."
+          </p>
+          <p style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:'rgba(235,235,235,.25)', marginTop:10, margin:'10px 0 0' }}>
+            — Early access GP, $85M fund
+          </p>
+        </div>
+        <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:'clamp(30px,3.5vw,48px)', fontWeight:600, color:'#EBEBEB', lineHeight:1.1, letterSpacing:'-.02em', marginBottom:20, ...T(80) }}>
           Your firm's intelligence layer.<br />Compounding from day one.
         </h2>
         <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:17, color:'rgba(235,235,235,.5)', lineHeight:1.7, marginBottom:40, ...T(80) }}>
@@ -2563,9 +2510,6 @@ export default function LandingPage() {
 
       {/* ── 06 PROACTIVE INTELLIGENCE ── */}
       <ProactiveIntelligenceSection />
-
-      {/* ── 07 PIPELINE ── */}
-      <PipelineSection />
 
       {/* ── 07 INTEGRATIONS ── */}
       <IntegrationsSection />
