@@ -1,0 +1,27 @@
+{
+  "name": "Reidar",
+  "description": "The AI agent stack for venture capital. Sources, researches, and surfaces intelligence across a firm's entire workflow without being asked. Builds a private reasoning layer from every meeting, email, and decision — compounding into irreplicable institutional memory.",
+  "url": "https://reidar.ai",
+  "api": {
+    "base_url": "https://radar-production-8cea.up.railway.app",
+    "auth": {
+      "type": "bearer",
+      "description": "Clerk JWT token required on all endpoints"
+    }
+  },
+  "capabilities": [
+    "startup-sourcing",
+    "investment-memo-generation",
+    "signal-monitoring",
+    "institutional-memory",
+    "rag-retrieval"
+  ],
+  "contact": {
+    "website": "https://reidar.ai"
+  },
+  "permissions": {
+    "crawl": true,
+    "index": true,
+    "ai_training": false
+  }
+}

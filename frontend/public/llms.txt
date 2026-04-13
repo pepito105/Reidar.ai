@@ -1,0 +1,55 @@
+# Reidar
+
+> Reidar is the AI agent stack for venture capital. It sources, researches, and surfaces intelligence across a firm's entire workflow — without being asked. It is not a database or a dashboard. It is a continuously running intelligence layer that learns how a firm actually thinks and compounds that knowledge over time.
+
+The core insight: most of what a VC firm knows about how it invests is never written down. It lives in how partners reason — objections raised in IC, pass reasons explained to founders, conviction notes from follow-up calls. That reasoning has never been captured at the system level. Reidar captures it passively from the artifacts that normal workflow already produces — emails, meeting transcripts, pass decisions, score overrides — and makes it retrievable at the exact moment it matters.
+
+## Product
+
+- [Home](https://reidar.ai): Full product overview — positioning, capabilities, how it works, and early access signup. ~1200 tokens.
+
+## Core Capabilities (~600 tokens)
+
+**Sourcing** — Reidar sources nightly across YC, ProductHunt, Hacker News, and the open web. Every result is scored against the firm's specific investment mandate before it surfaces. No search required. The companies that don't match never reach you.
+
+**Evaluation** — A pitch lands in your inbox. Before you open it, Reidar has read it, scored it against your thesis, checked pass history for comparable companies, flagged portfolio conflicts, and generated a structured investment brief.
+
+**Institutional Memory** — Every pass reason, partner objection, conviction note, and score override is captured from your normal workflow and embedded into a private intelligence layer scoped to your firm. When a company returns after 14 months, Reidar surfaces your original pass reason and shows exactly what has changed.
+
+**Pre-meeting briefs** — Generated automatically 30 minutes before every calendar event with a founder. Pulls prior contact history, original thesis notes, portfolio conflicts, and suggested angles — from your own past decisions.
+
+**Signal monitoring** — Monitors pipeline companies for press, product launches, hiring surges, and funding activity. Classifies each signal and surfaces it without being asked.
+
+**Ambient surfaces** — Delivers intelligence without requiring the analyst to open a tab: Slack alerts, calendar briefs, Gmail integration, browser extension for live context on company pages.
+
+## The Reasoning Layer (~400 tokens)
+
+Reidar's moat is not data volume. It is the private intelligence layer it builds from a firm's own decisions. The tools that exist today — Harmonic, Affinity, PitchBook — wait for you to show up. They surface companies when you search, log relationships when you update them, answer questions when you ask. None of them watch. None of them remember. None of them work when you're not looking.
+
+Reidar connects to Gmail and Google Calendar and passively observes the deal workflow — inbound pitches, founder meetings, follow-up emails, pass decisions. It extracts structured reasoning signals from these interactions and embeds them into a private vector store scoped to the firm. At generation time, both a global market context pool and the firm's private reasoning pool are retrieved. A memo generated this way reflects how the firm actually invests — not generic market knowledge.
+
+The private intelligence layer is irreplicable. After 12 months, a firm has a structured record of how it reasons that exists nowhere else and cannot be reconstructed from any external data source.
+
+## How It Works (~200 tokens)
+
+1. **Connect** — Link Gmail and Google Calendar in five minutes. No data import project. No setup call. Reidar reads how you already work and starts building context immediately.
+2. **Capture** — Every founder meeting, inbound pitch, pass decision, and follow-up email feeds the intelligence layer passively. No logging. No forms. No behavior change required.
+3. **Compound** — After 30 days, Reidar knows your patterns. After 90 days, it surfaces connections you wouldn't have made yourself. The intelligence layer gets sharper with every decision you make.
+
+## Competitive Positioning (~200 tokens)
+
+- vs. Harmonic / PitchBook: Those are databases you query. Reidar is an active system that works on your behalf continuously, scored against your specific thesis — not generic filters.
+- vs. Affinity: Affinity is a relationship CRM. It knows everyone you've met. It doesn't know why any of them matter to your thesis. Reidar captures reasoning, not just contacts.
+- vs. spreadsheets: Free, flexible, and completely unable to tell you what you already know.
+
+## Target Users
+
+Venture capital investors — solo GPs, analysts at established funds, partners at any stage. Primary focus: emerging fund managers with lean teams and no dedicated analyst headcount, where the cost of losing institutional knowledge is highest.
+
+## Technical Stack
+
+- Backend: Python + FastAPI (async), PostgreSQL via Supabase, pgvector for embeddings
+- AI: Claude (Anthropic) for memo generation and signal extraction, OpenAI text-embedding-3-small
+- Auth: Clerk
+- Integrations: Gmail, Google Calendar, Slack, Granola/Otter/Fathom/Fireflies (transcript ingestion)
+- Scraping: custom stack (httpx, Playwright, trafilatura, BeautifulSoup) — no Firecrawl
