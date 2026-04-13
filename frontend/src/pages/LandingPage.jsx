@@ -2480,22 +2480,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── 02 SOCIAL PROOF ── */}
-      <section id="proof" style={{ borderTop: '1px solid rgba(255,255,255,.05)', borderBottom: '1px solid rgba(255,255,255,.05)', padding: '20px 0' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
-          <span style={{ fontSize: 12, color: 'rgba(235,235,235,.28)', fontStyle: 'italic' }}>Trusted by investors across North America and Europe</span>
-          <div style={{ display: 'flex', gap: 36, flexWrap: 'wrap' }}>
-            {[
-              "200+ companies evaluated weekly",
-              "Pre-seed through Series B",
-              "Gmail · Calendar · Slack",
-            ].map((s, i) => (
-              <span key={i} style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: 'rgba(235,235,235,.22)', letterSpacing: '.06em' }}>{s}</span>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── 03 DEMO ── */}
       <DealTimeline />
 
