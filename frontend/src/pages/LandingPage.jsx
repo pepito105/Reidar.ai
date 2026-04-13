@@ -2499,8 +2499,7 @@ export default function LandingPage() {
               Built for emerging fund managers.
             </div>
             <h1 style={{ fontFamily:"'Syne',sans-serif", fontWeight:600, lineHeight:1.08, letterSpacing:'-0.03em', marginBottom:24 }}>
-              <span style={{ fontSize:'clamp(38px,4.5vw,56px)', color:'#EBEBEB', display:'block' }}>The AI agent stack</span>
-              <span style={{ fontSize:'clamp(38px,4.5vw,56px)', color:'#EBEBEB', display:'block' }}>for venture capital.</span>
+              <span style={{ fontSize:'clamp(38px,4.5vw,56px)', color:'#EBEBEB', display:'block' }}>The AI analyst for venture capital.</span>
               <span style={{ fontSize:'clamp(24px,2.8vw,36px)', color:'#A992FA', display:'block', marginTop:8 }}>Your firm's intelligence layer,<br />compounding from day one.</span>
             </h1>
             <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:17, color:'rgba(235,235,235,0.5)', lineHeight:1.75, marginBottom:36, maxWidth:460 }}>
